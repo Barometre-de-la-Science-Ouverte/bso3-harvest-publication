@@ -52,6 +52,11 @@ For generating thumbnails corresponding to the harvested PDF, ImageMagick must b
 
 > apt-get install imagemagick
 
+For Windows:
+
+> pip uninstall python-magic
+> pip install python-magic-bin==0.4.14
+
 ## Configuration
 
 A configuration file must be completed, by default the file `config.json` will be used, but it is also possible to use it as a template and specifies a particular configuration file when using the tool (via the `--config` parameter). 
