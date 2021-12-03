@@ -1,2 +1,2 @@
 # bso3-harvest-publication
-Harvet publication
+Harvset publication
