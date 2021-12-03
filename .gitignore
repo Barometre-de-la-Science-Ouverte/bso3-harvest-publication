@@ -127,3 +127,24 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# project specific ignores
+target
+.DS_Store
+.project
+.settings
+.classpath
+.idea
+*.iml
+*.log.*
+*.old
+*.obj
+*.zip
+*.tar.gz
+data/
+!data/.gitkeep
+my_config.*
+OAHarvesterStreaming.py
+dump.json*
+map.json*
+failures.csv
