@@ -1,4 +1,4 @@
-# Open Access PDF harvester
+# Publication PDF harvester
 
 This repo is a fork of the repo https://github.com/kermitt2/biblio-glutton-harvester.
 
