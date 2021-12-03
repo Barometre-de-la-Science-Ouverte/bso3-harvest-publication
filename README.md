@@ -1,5 +1,7 @@
 # Open Access PDF harvester
 
+This repo is a fork of the repo https://github.com/kermitt2/biblio-glutton-harvester.
+
 Python utility for harvesting efficiently a large Open Access collection of scholar PDF: 
 
 * The downloaded PDF can be stored either on an Amazon S3 bucket, on a SWIFT object storage (OpenStack) or on a local storage, with UUID renaming/mapping. 
@@ -32,9 +34,9 @@ Storage: as a rule of thumb, consider bewteen 1 and 1.5 TB for storage 1 million
 
 Get the github repo:
 
-> git clone https://github.com/kermitt2/biblio-glutton-harvester
+> git clone https://github.com/Barometre-de-la-Science-Ouverte/bso3-harvest-publication.git
 
-> cd biblio-glutton-harvester
+> cd bso3-harvest-publication
 
 It is advised to setup first a virtual environment to avoid falling into one of these gloomy python dependency marshlands:
 
