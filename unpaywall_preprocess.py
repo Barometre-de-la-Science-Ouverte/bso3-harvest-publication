@@ -1,4 +1,4 @@
-'''
+"""
 
 A small preprocessing script for unpaywall dump file. The idea is to create partitions
 to distribute the processing if required and avoid repeating too many queries on the same 
@@ -8,29 +8,28 @@ What is done by the script:
 - skip entries without PDF open access resource
 - distribute the entries with open access resource in n bins/files
 
-'''
+"""
 
-import sys
-import os
-import shutil
+import argparse
 import gzip
 import json
-import argparse
+import os
 import time
-from random import randint
+
 from tqdm import tqdm
+
 
 def create_partition(unpaywall, output=None, nb_bins=10):
     # check the overall number of entries based on the line number
     print("\ncalculating number of entries...")
 
     count = 0
-    with gzip.open(unpaywall, 'rb') as gz:  
+    with gzip.open(unpaywall, 'rb') as gz:
         while 1:
-            buffer = gz.read(8192*1024)
+            buffer = gz.read(8192 * 1024)
             if not buffer: break
             count += buffer.count(b'\n')
-    #count = 126388740   
+    # count = 126388740
     print("total of", str(count), "entries")
 
     nb_oa_entries = 0
@@ -39,7 +38,7 @@ def create_partition(unpaywall, output=None, nb_bins=10):
     nbins_files = []
     basename = os.path.splitext(os.path.basename(unpaywall))[0]
     for n in range(nb_bins):
-        if output == None:            
+        if output is None:
             dirname = os.path.dirname(unpaywall)
             out_path = os.path.join(dirname, basename + "_" + str(n) + ".jsonl.gz")
         else:
@@ -77,10 +76,11 @@ def create_partition(unpaywall, output=None, nb_bins=10):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description = "Open Access PDF harvester")
-    parser.add_argument("--unpaywall", default=None, help="path to the Unpaywall dataset (gzipped)") 
-    parser.add_argument("--output", help="where to write the pre-processed files (default along with the Unpaywall input file)") 
-    parser.add_argument("--n", type=int, default="10", help="number of bins for partitioning the unpaywall entries") 
+    parser = argparse.ArgumentParser(description="Open Access PDF harvester")
+    parser.add_argument("--unpaywall", default=None, help="path to the Unpaywall dataset (gzipped)")
+    parser.add_argument("--output",
+                        help="where to write the pre-processed files (default along with the Unpaywall input file)")
+    parser.add_argument("--n", type=int, default="10", help="number of bins for partitioning the unpaywall entries")
 
     args = parser.parse_args()
 
@@ -92,7 +92,7 @@ if __name__ == "__main__":
         print("error: the path to the Unpaywall file has not been specified")
     elif not os.path.isfile(unpaywall):
         print("error: the indicated path to the Unpaywall file is not valid", unpaywall)
-    elif output != None and not os.path.isdir(output):
+    elif output is not None and not os.path.isdir(output):
         print("error: the indicated output path is not valid", output)
     else:
         start_time = time.time()
@@ -100,4 +100,4 @@ if __name__ == "__main__":
         create_partition(unpaywall, output, nb_bins)
 
         runtime = round(time.time() - start_time, 3)
-        print("runtime: %s seconds " % (runtime))
+        print("runtime: %s seconds " % runtime)

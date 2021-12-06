@@ -7,33 +7,34 @@ in csv format.
 
 '''
 
-import sys
-import os
-import shutil
+import argparse
 import gzip
 import json
-import argparse
+import os
 import time
 from urllib.parse import urlparse
+
 from tqdm import tqdm
 
+
 def analyze_failure(map_jsonl, output):
+
     # check the overall number of entries based on the line number
     print("\ncalculating number of entries...")
 
     count = 0
     if map_jsonl.endswith(".gz"):
-        with gzip.open(map_jsonl, 'rb') as gz:  
+        with gzip.open(map_jsonl, 'rb') as gz:
             while 1:
-                buffer = gz.read(8192*1024)
+                buffer = gz.read(8192 * 1024)
                 if not buffer: break
-                count += buffer.count(b'\n') 
+                count += buffer.count(b'\n')
     else:
         with open(map_jsonl, 'rb') as jsonl:
             while 1:
-                buffer = jsonl.read(8192*1024)
+                buffer = jsonl.read(8192 * 1024)
                 if not buffer: break
-                count += buffer.count(b'\n') 
+                count += buffer.count(b'\n')
 
     print("total of", str(count), "entries")
 
@@ -41,7 +42,7 @@ def analyze_failure(map_jsonl, output):
     distribution = {}
 
     if map_jsonl.endswith(".gz"):
-        with gzip.open(map_jsonl, 'rt') as gz:  
+        with gzip.open(map_jsonl, 'rt') as gz:
             for line in tqdm(gz, total=count):
                 nb_failed_entries += process_entry(line, distribution)
     else:
@@ -50,21 +51,22 @@ def analyze_failure(map_jsonl, output):
                 nb_failed_entries += process_entry(line, distribution)
 
     # write csv file with the distribution
-    a = nb_failed_entries*100/count
+    a = nb_failed_entries * 100 / count
     print("failure for", str(nb_failed_entries), "entries out of", str(count), "( %.2f" % a, "% )")
 
     with open(output, "w") as file_out:
         # Writing data to a file
         file_out.write("domain,count\n")
         for w in sorted(distribution, key=distribution.get, reverse=True):
-            file_out.write(str(w) + ","+ str(distribution[w]) + "\n")
+            file_out.write(str(w) + "," + str(distribution[w]) + "\n")
+
 
 def process_entry(line, distribution):
     entry = json.loads(line)
-    success = False 
+    success = False
 
     if 'pdf' in entry['resources']:
-        success= True
+        success = True
     else:
         oa_url = entry['oa_link']
         # get base url
@@ -75,7 +77,7 @@ def process_entry(line, distribution):
         if base_url.find(":") != -1:
             base_url = base_url[0:base_url.find(":")]
         pieces = base_url.split(".")
-        base_url = pieces[-2]+"."+pieces[-1]
+        base_url = pieces[-2] + "." + pieces[-1]
 
         if base_url in distribution:
             distribution[base_url] += 1
@@ -87,10 +89,12 @@ def process_entry(line, distribution):
     else:
         return 1
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description = "Open Access PDF harvester")
-    parser.add_argument("--map", default=None, help="path to the map file (default map.jsonl) to be analyzed") 
-    parser.add_argument("--output", default="failures.csv", help="where to write the result of the analysis (default failures.csv)") 
+    parser = argparse.ArgumentParser(description="Open Access PDF harvester")
+    parser.add_argument("--map", default=None, help="path to the map file (default map.jsonl) to be analyzed")
+    parser.add_argument("--output", default="failures.csv",
+                        help="where to write the result of the analysis (default failures.csv)")
 
     args = parser.parse_args()
 
@@ -99,7 +103,7 @@ if __name__ == "__main__":
 
     if not os.path.isfile(map_jsonl):
         print("error: the indicated path to the map file is not valid", map_jsonl)
-    elif output != None and os.path.isdir(output):
+    elif output is not None and os.path.isdir(output):
         print("error: the indicated output path is not valid", output)
     else:
         start_time = time.time()
@@ -107,4 +111,4 @@ if __name__ == "__main__":
         analyze_failure(map_jsonl, output)
 
         runtime = round(time.time() - start_time, 3)
-        print("runtime: %s seconds " % (runtime))
+        print("runtime: %s seconds " % runtime)

@@ -5,6 +5,7 @@ import swiftclient
 from time import sleep
 import logger
 from dotenv import load_dotenv
+from config.path_config import OVH_AUTH_URL
 from io import BytesIO, TextIOWrapper
 # from retry import retry
 # from bso.server.main.logger import get_logger
@@ -21,13 +22,17 @@ project_id = os.getenv('OS_TENANT_ID')
 tenant_name = os.getenv('OS_TENANT_NAME')
 username = os.getenv('OS_USERNAME')
 user = f'{tenant_name}:{username}'
-init_cmd = f"swift --os-auth-url https://auth.cloud.ovh.net/v3 --auth-version 3 \
+region_name = os.getenv('REGION_NAME')
+project_domain_name = os.getenv('PROJECT_DOMAIN_NAME')
+user_domain_name = os.getenv('USER_DOMAIN_NAME')
+
+init_cmd = f'swift --os-auth-url {OVH_AUTH_URL} --auth-version 3 \
       --key {key} --user {user} \
-      --os-user-domain-name Default \
-      --os-project-domain-name Default \
+      --os-user-domain-name {user_domain_name} \
+      --os-project-domain-name {project_domain_name} \
       --os-project-id {project_id} \
       --os-project-name {project_name} \
-      --os-region-name GRA"
+      --os-region-name {region_name}'
 
 conn = None
 buckets = ['bso-dump', 'glutton_oa_harvesting_v2']

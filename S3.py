@@ -1,9 +1,8 @@
 import os
 from boto3 import client
-
-# logging
 import logging
 import logging.handlers
+
 logging.basicConfig(filename='harvester.log', filemode='w', level=logging.DEBUG)
 
 '''
@@ -11,8 +10,9 @@ Note: at this stage, this is quick and dirty...
 we should examine the response object and properly raise exceptions and manage retry
 '''
 
+
 class S3(object):
-    
+
     def __init__(self, config):
         self.config = config
         if self.config['region'] is not None:
@@ -20,10 +20,10 @@ class S3(object):
         else:
             region = "us-west-2"
         self.bucket_name = self.config['bucket_name']
-        self.conn = client('s3', 
-                            region_name=region, 
-                            aws_access_key_id=self.config['aws_access_key_id'],
-                            aws_secret_access_key=self.config['aws_secret_access_key'])
+        self.conn = client('s3',
+                           region_name=region,
+                           aws_access_key_id=self.config['aws_access_key_id'],
+                           aws_secret_access_key=self.config['aws_secret_access_key'])
 
     def upload_file_to_s3(self, file_path, dest_path=None, storage_class='STANDARD_IA'):
         """
@@ -42,9 +42,10 @@ class S3(object):
         else:
             full_path = file_name
         try:
-            s3_client.upload_file(file_path, self.bucket_name, full_path, ExtraArgs={"Metadata": {"StorageClass": storage_class}})
+            s3_client.upload_file(file_path, self.bucket_name, full_path,
+                                  ExtraArgs={"Metadata": {"StorageClass": storage_class}})
         except:
-            logging.error('Could not upload file ' + file_path)    
+            logging.error('Could not upload file ' + file_path)
 
     def upload_object(self, body, s3_key, storage_class='STANDARD_IA'):
         """
@@ -69,8 +70,8 @@ class S3(object):
         except:
             logging.error('Could not download file: ' + file_path)
             return None
-        
-        return os.path.join(dest_path, filename)
+
+        return os.path.join(dest_path, file_name)
 
     def get_s3_list(self, dir_name):
         """
@@ -95,7 +96,7 @@ class S3(object):
     def remove_file(self, file_path):
         """
         Remove an existing file on the current S3 bucket
-        """ 
+        """
         s3_client = self.conn
         try:
             s3_client.delete_object(Bucket=self.bucket_name, Key=file_path)
