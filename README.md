@@ -54,7 +54,7 @@ For generating thumbnails corresponding to the harvested PDF, ImageMagick must b
 
 For Windows:
 
-> pip uninstall python-magic
+> pip uninstall python-magic  
 > pip install python-magic-bin==0.4.14
 
 ## Configuration
