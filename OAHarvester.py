@@ -122,20 +122,10 @@ class OAHarvester(object):
         total_no_best_oa_location_found = 0
         total_oa_location_found_but_empty_pdf_url = 0
 
-        # check the overall number of entries based on the line number
-        print("\ncalculating number of entries...")
-        count = 0
-        with gzip.open(filepath, 'rb') as gz:
-            while 1:
-                buffer = gz.read(8192 * 1024)
-                if not buffer: break
-                count += buffer.count(b'\n')
-        print("total entries found: " + str(count))
+        count = _count_entries(gzip.open, filepath)
 
         if self.sample is not None:
-            # random selection corresponding to the requested sample size
-            selection = [randint(0, count - 1) for p in range(0, sample)]
-            selection.sort()
+            selection = self._sample_selection(count)
 
         gz = gzip.open(filepath, 'rt')
         position = 0
@@ -261,6 +251,12 @@ class OAHarvester(object):
         print("total entries with usable pdf url found:", total_pdf_url_found)
         print("total processed entries:", n)
 
+    def _sample_selection(self, count):
+        """Random selection corresponding to the requested sample size"""
+        selection = [randint(0, count - 1) for p in range(0, self.sample)]
+        selection.sort()
+        return selection
+
     def harvestPMC(self, filepath, reprocess=False):
         """
         Main method for PMC, use the provided PMC list file for getting pdf url for Open Access resources, 
@@ -283,22 +279,11 @@ class OAHarvester(object):
 
         selection = None
 
-        # check the overall number of entries based on the line number
-        print("calculating number of entries...")
-        count = 0
-        with open(filepath, 'rb') as fp:
-            while 1:
-                buffer = fp.read(8192 * 1024)
-                if not buffer: break
-                count += buffer.count(b'\n')
-
-        print("total entries found: " + str(count))
-
+        count = _count_entries(open, filepath)
+        
         if self.sample is not None:
-            # random selection corresponding to the requested sample size
-            selection = [randint(0, count - 1) for p in range(0, self.sample)]
-            selection.sort()
-
+            selection = self._sample_selection(count)
+        
         with open(filepath, 'rt') as fp:
             position = 0
             for line in tqdm(fp, total=count):
@@ -893,6 +878,19 @@ def _serialize_pickle(a):
 
 def _deserialize_pickle(serialized):
     return pickle.loads(serialized)
+
+
+def _count_entries(open_fn, filepath):
+    """Check the overall number of entries based on the line number"""
+    print("\ncalculating number of entries...")
+    count = 0
+    with open_fn(filepath, 'rb') as fp:
+        while 1:
+            buffer = fp.read(8192 * 1024)
+            if not buffer: break
+            count += buffer.count(b'\n')
+    print("total entries found: " + str(count))
+    return count
 
 
 def _download(url, filename, local_entry):

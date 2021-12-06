@@ -10,6 +10,8 @@ from io import BytesIO, TextIOWrapper
 # from retry import retry
 # from bso.server.main.logger import get_logger
 
+
+
 # load env variables
 path_bso3_env = os.getenv('PATH_ENV_FILE_BSO3')
 load_dotenv(path_bso3_env)
