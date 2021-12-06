@@ -354,9 +354,9 @@ class OAHarvester(object):
                         # did we success with this entry?  
                         with self.env.begin() as txn:
                             local_object = txn.get(id_candidate.encode(encoding='UTF-8'))
-                            if local_object != None:
+                            if local_object is not None:
                                 local_entry = _deserialize_pickle(local_object)
-                                if local_entry != None:
+                                if local_entry is not None:
                                     if "resources" in local_entry and "pdf" in local_entry["resources"]:
                                         # we have a PDF, so no need to reprocess and we skip
                                         position += 1
