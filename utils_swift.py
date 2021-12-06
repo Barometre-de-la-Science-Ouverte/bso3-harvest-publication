@@ -4,14 +4,13 @@ import pandas as pd
 import swiftclient
 from time import sleep
 from logger import logger
-# import logging
 from dotenv import load_dotenv
 from config.path_config import OVH_AUTH_URL
 from io import BytesIO, TextIOWrapper
 # from retry import retry
 # from bso.server.main.logger import get_logger
 
-# logger = logging.getLogger(__name__).setLevel(logging.INFO)
+
 
 # load env variables
 path_bso3_env = os.getenv('PATH_ENV_FILE_BSO3')
