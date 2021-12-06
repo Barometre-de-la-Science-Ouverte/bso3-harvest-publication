@@ -1,11 +1,11 @@
-'''
+"""
 
 A modest postprocessing script for analyzing the generated map.jsonl file and count 
 harvesting failures by domains. For every entry without pdf resource, we take the
 base url of the OA link and generate a distribution of the failures by domain
 in csv format. 
 
-'''
+"""
 
 import argparse
 import gzip
@@ -13,6 +13,7 @@ import json
 import os
 import time
 from urllib.parse import urlparse
+from logger import logger
 
 from tqdm import tqdm
 
@@ -102,13 +103,13 @@ if __name__ == "__main__":
     output = args.output
 
     if not os.path.isfile(map_jsonl):
-        print("error: the indicated path to the map file is not valid", map_jsonl)
+        logger.error("error: the indicated path to the map file is not valid", map_jsonl)
     elif output is not None and os.path.isdir(output):
-        print("error: the indicated output path is not valid", output)
+        logger.error("error: the indicated output path is not valid", output)
     else:
         start_time = time.time()
 
         analyze_failure(map_jsonl, output)
 
         runtime = round(time.time() - start_time, 3)
-        print("runtime: %s seconds " % runtime)
+        logger.info("runtime: %s seconds " % runtime)

@@ -1,14 +1,11 @@
 import os
 from boto3 import client
-import logging
-import logging.handlers
+from logger import logger
 
-logging.basicConfig(filename='harvester.log', filemode='w', level=logging.DEBUG)
-
-'''
+"""
 Note: at this stage, this is quick and dirty... 
 we should examine the response object and properly raise exceptions and manage retry
-'''
+"""
 
 
 class S3(object):
@@ -45,7 +42,7 @@ class S3(object):
             s3_client.upload_file(file_path, self.bucket_name, full_path,
                                   ExtraArgs={"Metadata": {"StorageClass": storage_class}})
         except:
-            logging.error('Could not upload file ' + file_path)
+            logger.error('Could not upload file ' + file_path)
 
     def upload_object(self, body, s3_key, storage_class='STANDARD_IA'):
         """
@@ -68,7 +65,7 @@ class S3(object):
         try:
             s3_client.download_file(self.bucket_name, file_path, dest_path)
         except:
-            logging.error('Could not download file: ' + file_path)
+            logger.error('Could not download file: ' + file_path)
             return None
 
         return os.path.join(dest_path, file_name)
@@ -101,7 +98,7 @@ class S3(object):
         try:
             s3_client.delete_object(Bucket=self.bucket_name, Key=file_path)
         except:
-            logging.error('Could not delete file: ' + file_path)
+            logger.error('Could not delete file: ' + file_path)
             return False
         return True
 
@@ -113,4 +110,4 @@ class S3(object):
             bucket = self.conn.Bucket(self.bucket_name)
             bucket.objects.all().delete()
         except Exception as e:
-            logging.exception("Could not empty the bucket " + self.bucket_name)
+            logger.exception("Could not empty the bucket " + self.bucket_name)

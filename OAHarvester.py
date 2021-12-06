@@ -1,49 +1,42 @@
-import sys
-import os
-import shutil
+import argparse
 import gzip
 import json
+import os
+import pickle
+import shutil
+import subprocess
+import tarfile
+import time
+import urllib
+import uuid
+from concurrent.futures import ThreadPoolExecutor
+from random import randint, choices
+
+import lmdb
 import magic
 import requests
-import pickle
-import lmdb
-import uuid
-import urllib
-import subprocess
-import argparse
-import time
-from concurrent.futures import ThreadPoolExecutor
-import tarfile
-from random import randint, choices
 from tqdm import tqdm
 
-# logging
-import logging
-import logging.handlers
-
-# support for S3
 import S3
-
-# support for SWIFT object storage
 import swift
+from logger import logger
+import urllib3
 
 # init LMDB
 map_size = 10 * 1024 * 1024 * 1024
-logging.basicConfig(filename='harvester.log', filemode='w', level=logging.DEBUG)
-
-import urllib3
+logger.basicConfig(filename='harvester.log', filemode='w', level=logger.DEBUG)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-logging.getLogger("urllib3").setLevel(logging.ERROR)
+logger.getLogger("urllib3").setLevel(logger.ERROR)
 
-logging.getLogger("keystoneclient").setLevel(logging.ERROR)
-logging.getLogger("swiftclient").setLevel(logging.ERROR)
+logger.getLogger("keystoneclient").setLevel(logger.ERROR)
+logger.getLogger("swiftclient").setLevel(logger.ERROR)
 
 biblio_glutton_url = None
 crossref_base = None
 crossref_email = None
 
-'''
+"""
 Harvester for PDF available in open access. a LMDB index is used to keep track of the harvesting process and
 possible failures.  
 
@@ -52,7 +45,7 @@ Given the limits of ThreadPoolExecutor (input stored in memory, blocking Executo
 is processed and output stored in memory until all input is consumed), it works with batches of PDF of a size 
 indicated in the config.json file (default is 100 entries). We are moving from first batch to the second one 
 only when the first is entirely processed. The harvesting process is not CPU bounded so using threads is okay. 
-'''
+"""
 
 
 class OAHarvester(object):
@@ -91,9 +84,9 @@ class OAHarvester(object):
             try:
                 os.makedirs(self.config["data_path"])
             except OSError:
-                logging.exception("Creation of the directory %s failed" % self.config["data_path"])
+                logger.exception("Creation of the directory %s failed" % self.config["data_path"])
             else:
-                logging.debug("Successfully created the directory %s" % self.config["data_path"])
+                logger.debug("Successfully created the directory %s" % self.config["data_path"])
 
         # open in write mode
         envFilePath = os.path.join(self.config["data_path"], 'entries')
@@ -173,9 +166,9 @@ class OAHarvester(object):
                     # did we success with this entry?  
                     with self.env.begin() as txn:
                         local_object = txn.get(id_candidate.encode(encoding='UTF-8'))
-                        if local_object != None:
+                        if local_object is not None:
                             local_entry = _deserialize_pickle(local_object)
-                            if local_entry != None:
+                            if local_entry is not None:
                                 if "resources" in local_entry and "pdf" in local_entry["resources"]:
                                     # we have a PDF, so no need to reprocess and we skip
                                     position += 1
@@ -204,15 +197,15 @@ class OAHarvester(object):
                             break
 
             # if the best location is none, we discard it 
-            if 'best_oa_location' in entry and entry['best_oa_location'] == None:
+            if 'best_oa_location' in entry and entry['best_oa_location'] is None:
                 del entry['best_oa_location']
 
             # if the best location is not none but it has no usable 'url_for_pdf' field, we discard it 
-            if 'best_oa_location' in entry and entry['best_oa_location'] != None and not 'url_for_pdf' in entry[
+            if 'best_oa_location' in entry and entry['best_oa_location'] is not None and not 'url_for_pdf' in entry[
                 'best_oa_location']:
                 del entry['best_oa_location']
-            if 'best_oa_location' in entry and entry['best_oa_location'] != None and 'url_for_pdf' in entry[
-                'best_oa_location'] and entry['best_oa_location']['url_for_pdf'] == None:
+            if 'best_oa_location' in entry and entry['best_oa_location'] is not None and 'url_for_pdf' in entry[
+                'best_oa_location'] and entry['best_oa_location']['url_for_pdf'] is None:
                 del entry['best_oa_location']
 
             if (not 'best_oa_location' in entry and 'oa_locations' in entry and len(entry['oa_locations']) > 0):
@@ -226,7 +219,7 @@ class OAHarvester(object):
                 # if still no best location, take the first one with a valid link to a PDF
                 if not 'best_oa_location' in entry:
                     for oa_location in entry['oa_locations']:
-                        if 'url_for_pdf' in oa_location and oa_location['url_for_pdf'] != None:
+                        if 'url_for_pdf' in oa_location and oa_location['url_for_pdf'] is not None:
                             entry['best_oa_location'] = oa_location
                             break
 
@@ -439,7 +432,7 @@ class OAHarvester(object):
 
                 entries.append(local_entry)
             else:
-                logging.info("register harvesting failure: " + result[0])
+                logger.info("register harvesting failure: " + result[0])
 
                 # update DB
                 with self.env.begin(write=True) as txn:
@@ -483,7 +476,7 @@ class OAHarvester(object):
             try:
                 generate_thumbnail(local_filename)
             except:
-                logging.exception("error with thumbnail generation: " + local_entry['id'])
+                logger.exception("error with thumbnail generation: " + local_entry['id'])
 
         dest_path = os.path.join(generateStoragePath(local_entry['id']), local_entry['id'])
 
@@ -515,7 +508,7 @@ class OAHarvester(object):
                     subprocess.check_call(['gzip', '-f', local_filename_json])
                     local_filename_json += compression_suffix
 
-                if (self.thumbnail):
+                if self.thumbnail:
                     if os.path.isfile(thumb_file_small):
                         subprocess.check_call(['gzip', '-f', thumb_file_small])
                         thumb_file_small += compression_suffix
@@ -528,7 +521,7 @@ class OAHarvester(object):
                         subprocess.check_call(['gzip', '-f', thumb_file_large])
                         thumb_file_large += compression_suffix
             except:
-                logging.error("Error compressing resource files for " + local_entry['id'])
+                logger.error("Error compressing resource files for " + local_entry['id'])
 
         if self.s3 is not None:
             # upload to S3 
@@ -542,7 +535,7 @@ class OAHarvester(object):
                 if os.path.isfile(local_filename_json):
                     self.s3.upload_file_to_s3(local_filename_json, dest_path, storage_class='ONEZONE_IA')
 
-                if (self.thumbnail):
+                if self.thumbnail:
                     if os.path.isfile(thumb_file_small):
                         self.s3.upload_file_to_s3(thumb_file_small, dest_path, storage_class='ONEZONE_IA')
 
@@ -552,7 +545,7 @@ class OAHarvester(object):
                     if os.path.isfile(thumb_file_large):
                         self.s3.upload_file_to_s3(thumb_file_large, dest_path, storage_class='ONEZONE_IA')
             except:
-                logging.error("Error writing on S3 bucket")
+                logger.error("Error writing on S3 bucket")
 
         elif self.swift is not None:
             # to SWIFT object storage, we can do a bulk upload for all the resources associated to the entry
@@ -565,7 +558,7 @@ class OAHarvester(object):
                 if os.path.isfile(local_filename_json):
                     files_to_upload.append(local_filename_json)
 
-                if (self.thumbnail):
+                if self.thumbnail:
                     if os.path.isfile(thumb_file_small):
                         files_to_upload.append(thumb_file_small)
 
@@ -579,10 +572,10 @@ class OAHarvester(object):
                     self.swift.upload_files_to_swift(files_to_upload, dest_path)
 
             except:
-                logging.error("Error writing on SWIFT object storage")
+                logger.error("Error writing on SWIFT object storage")
 
         else:
-            # save under local storate indicated by data_path in the config json
+            # save under local storage indicated by data_path in the config json
             try:
                 local_dest_path = os.path.join(self.config["data_path"], dest_path)
 
@@ -597,7 +590,7 @@ class OAHarvester(object):
                     shutil.copyfile(local_filename_json,
                                     os.path.join(local_dest_path, local_entry['id'] + ".json" + compression_suffix))
 
-                if (self.thumbnail):
+                if self.thumbnail:
                     if os.path.isfile(thumb_file_small):
                         shutil.copyfile(thumb_file_small, os.path.join(local_dest_path, local_entry[
                             'id'] + "-thumb-small.png") + compression_suffix)
@@ -611,7 +604,7 @@ class OAHarvester(object):
                             'id'] + "-thumb-larger.png") + compression_suffix)
 
             except IOError:
-                logging.exception("invalid path")
+                logger.exception("invalid path")
 
         # clean pdf and thumbnail files
         try:
@@ -627,7 +620,7 @@ class OAHarvester(object):
             if os.path.isfile(local_filename_tar):
                 os.remove(local_filename_tar)
 
-            if (self.thumbnail):
+            if self.thumbnail:
                 if os.path.isfile(thumb_file_small):
                     os.remove(thumb_file_small)
                 if os.path.isfile(thumb_file_medium):
@@ -635,13 +628,13 @@ class OAHarvester(object):
                 if os.path.isfile(thumb_file_large):
                     os.remove(thumb_file_large)
         except IOError:
-            logging.exception("temporary file cleaning failed")
+            logger.exception("temporary file cleaning failed")
 
     def dump(self, dump_file, fail_file=None):
-        '''
+        """
         Write a catalogue for the harvested Open Access resources, mapping all the OA UUID with strong identifiers
         (doi, pimd, ...). Optionally, write an additional file with only havesting failures for OA entries.
-        '''
+        """
 
         # init lmdb transactions
         txn = self.env.begin(write=True)
@@ -650,11 +643,11 @@ class OAHarvester(object):
         print("number of entries with OA link:", nb_total)
 
         file_out_fail = None
-        if fail_file != None:
+        if fail_file is not None:
             try:
                 file_out_fail = open(fail_file, 'w')
             except:
-                logging.exception("Could not open dump file for havesting fail failure report")
+                logger.exception("Could not open dump file for harvesting fail failure report")
 
         with open(dump_file, 'w') as file_out:
             # iterate over lmdb
@@ -663,26 +656,26 @@ class OAHarvester(object):
                 if txn.get(key) is None:
                     continue
                 map_entry = _deserialize_pickle(txn.get(key))
-                map_entry["id"] = key.decode(encoding='UTF-8');
+                map_entry["id"] = key.decode(encoding='UTF-8')
 
                 json_local_entry = json.dumps(map_entry)
                 file_out.write(json_local_entry)
                 file_out.write("\n")
 
-                if file_out_fail != None:
+                if file_out_fail is not None:
                     if 'resources' in json_local_entry and not 'pdf' in json_local_entry['resources'] and not 'xml' in \
                                                                                                               json_local_entry[
                                                                                                                   'resources']:
                         file_out_fail.write(json.dumps(map_entry))
                         file_out_fail.write("\n")
 
-        if file_out_fail != None:
+        if file_out_fail is not None:
             file_out_fail.close()
 
         if self.config["compression"]:
             subprocess.check_call(['gzip', '-f', dump_file])
             dump_file += ".gz"
-            if fail_file != None:
+            if fail_file is not None:
                 subprocess.check_call(['gzip', '-f', fail_file])
                 fail_file += ".gz"
 
@@ -698,7 +691,7 @@ class OAHarvester(object):
                 shutil.move(os.path.join(self.config["data_path"], dump_file_name), path_for_old)
                 self.s3.upload_file_to_s3(path_for_old, None)
             except:
-                logging.debug("no map file on SWIFT object storage")
+                logger.debug("no map file on SWIFT object storage")
             shutil.move(dump_file + ".new", dump_file)
 
             # upload to S3 
@@ -706,7 +699,7 @@ class OAHarvester(object):
                 if os.path.isfile(dump_file):
                     self.s3.upload_file_to_s3(dump_file, None, storage_class='ONEZONE_IA')
             except:
-                logging.error("Error writing on S3 bucket")
+                logger.error("Error writing on S3 bucket")
 
         elif self.swift is not None:
             # we back-up existing map file on the SWIFT container
@@ -718,7 +711,7 @@ class OAHarvester(object):
                 self.swift.download_file(dump_file_name, path_for_old)
                 self.swift.upload_file_to_swift(path_for_old, None)
             except:
-                logging.debug("no map file on SWIFT object storage")
+                logger.debug("no map file on SWIFT object storage")
             shutil.move(dump_file + ".new", dump_file)
 
             # new map file to SWIFT object storage
@@ -726,7 +719,7 @@ class OAHarvester(object):
                 if os.path.isfile(dump_file):
                     self.swift.upload_file_to_swift(dump_file, None)
             except:
-                logging.error("Error writing on SWIFT object storage")
+                logger.error("Error writing on SWIFT object storage")
 
         # always save under local storage indicated by data_path in the config json, and backup the previous one
         try:
@@ -740,7 +733,7 @@ class OAHarvester(object):
                 shutil.copyfile(dump_file, os.path.join(self.config["data_path"], dump_file_name))
 
         except IOError:
-            logging.exception("invalid path")
+            logger.exception("invalid path")
 
     def reset(self):
         """
@@ -772,7 +765,7 @@ class OAHarvester(object):
                 try:
                     shutil.rmtree(path)
                 except OSError:
-                    logging.exception("Error cleaning tmp files")
+                    logger.exception("Error cleaning tmp files")
 
         # re-init the environments
         self._init_lmdb()
@@ -785,7 +778,7 @@ class OAHarvester(object):
             try: 
                 self.s3.remove_all_files()
             except:
-                logging.error("Error resetting S3 bucket")
+                logger.error("Error resetting S3 bucket")
             '''
         """
 
@@ -794,7 +787,7 @@ class OAHarvester(object):
             try:
                 self.swift.remove_all_files()
             except:
-                logging.error("Error resetting SWIFT object storage")
+                logger.error("Error resetting SWIFT object storage")
 
     def diagnostic(self):
         """
@@ -826,7 +819,7 @@ def _biblio_glutton_lookup(biblio_glutton_url, doi=None, pmcid=None, pmid=None, 
             if success:
                 jsonResult = response.json()
         except:
-            logging.exception("Could not connect to biblio-glutton for DOI look-up")
+            logger.exception("Could not connect to biblio-glutton for DOI look-up")
 
     if not success and pmid is not None and len(str(pmid)) > 0:
         try:
@@ -835,7 +828,7 @@ def _biblio_glutton_lookup(biblio_glutton_url, doi=None, pmcid=None, pmid=None, 
             if success:
                 jsonResult = response.json()
         except:
-            logging.exception("Could not connect to biblio-glutton for PMID look-up")
+            logger.exception("Could not connect to biblio-glutton for PMID look-up")
 
     if not success and pmcid is not None and len(pmcid) > 0:
         try:
@@ -844,7 +837,7 @@ def _biblio_glutton_lookup(biblio_glutton_url, doi=None, pmcid=None, pmid=None, 
             if success:
                 jsonResult = response.json()
         except:
-            logging.exception("Could not connect to biblio-glutton for PMC ID look-up")
+            logger.exception("Could not connect to biblio-glutton for PMC ID look-up")
 
     if not success and istex_id is not None and len(istex_id) > 0:
         try:
@@ -853,9 +846,9 @@ def _biblio_glutton_lookup(biblio_glutton_url, doi=None, pmcid=None, pmid=None, 
             if success:
                 jsonResult = response.json()
         except:
-            logging.exception("Could not connect to biblio-glutton for ISTEX ID look-up")
+            logger.exception("Could not connect to biblio-glutton for ISTEX ID look-up")
 
-    if not success and doi is not None and len(doi) > 0 and crossref_base != None:
+    if not success and doi is not None and len(doi) > 0 and crossref_base is not None:
         # let's call crossref as fallback for possible X-months gap in biblio-glutton
         # https://api.crossref.org/works/10.1037/0003-066X.59.1.29
         if crossref_email != None:
@@ -874,17 +867,17 @@ def _biblio_glutton_lookup(biblio_glutton_url, doi=None, pmcid=None, pmid=None, 
                 success = False
                 jsonResult = None
         except:
-            logging.exception("Could not connect to CrossRef")
+            logger.exception("Could not connect to CrossRef")
 
     return jsonResult
 
 
 def _get_random_user_agent():
-    '''
+    """
     This is a simple random/rotating user agent covering different devices and web clients/browsers
     Note: rotating the user agent without rotating the IP address (via proxies) might not be a good idea if the same server
     is harvested - but in our case we are harvesting a large variety of different Open Access servers
-    '''
+    """
     user_agents = ["Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:81.0) Gecko/20100101 Firefox/81.0",
                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36",
                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36"]
@@ -908,7 +901,7 @@ def _download(url, filename, local_entry):
     global crossref_base
     global crossref_email
 
-    if biblio_glutton_url != None:
+    if biblio_glutton_url is not None:
         local_doi = None
         if "doi" in local_entry:
             local_doi = local_entry['doi']
@@ -924,7 +917,7 @@ def _download(url, filename, local_entry):
                                                 pmid=local_pmid,
                                                 crossref_base=crossref_base,
                                                 crossref_email=crossref_email)
-        if glutton_record != None:
+        if glutton_record is not None:
             local_entry["glutton"] = glutton_record
             if not "doi" in local_entry and "doi" in glutton_record:
                 local_entry["doi"] = glutton_record["doi"]
@@ -974,24 +967,24 @@ def _download_wget(url, filename):
                 try:
                     os.remove(filename)
                 except OSError:
-                    logging.exception("Deletion of invalid compressed file failed")
+                    logger.exception("Deletion of invalid compressed file failed")
                     result = "fail"
             # ensure cleaning
             if os.path.isfile(filename + '.decompressed'):
                 try:
                     os.remove(filename + '.decompressed')
                 except OSError:
-                    logging.exception("Final deletion of temp decompressed file failed")
+                    logger.exception("Final deletion of temp decompressed file failed")
         else:
             result = "success"
 
     except subprocess.CalledProcessError as e:
-        logging.exception("error subprocess wget")
-        # logging.error("wget command was: " + cmd)
+        logger.exception("error subprocess wget")
+        # logger.error("wget command was: " + cmd)
         result = "fail"
 
     except Exception as e:
-        logging.exception("Unexpected error wget process")
+        logger.exception("Unexpected error wget process")
         result = "fail"
 
     return str(result)
@@ -1010,7 +1003,7 @@ def _download_requests(url, filename):
                 f_out.write(file_data.content)
             result = "success"
     except Exception:
-        logging.exception("Download failed for {0} with requests".format(url))
+        logger.exception("Download failed for {0} with requests".format(url))
     return result
 
 
@@ -1029,14 +1022,14 @@ def _download_ftp(url, filename):
                 f_out.write(file_data.content)
             result = "success"
     except Exception:
-        logging.exception("Download failed for {0} with requests".format(url))
+        logger.exception("Download failed for {0} with requests".format(url))
     return result
 
 
 def _check_compression(file):
-    '''
+    """
     check if a file is compressed, if yes decompress and replace by the decompressed version
-    '''
+    """
     if os.path.isfile(file):
         if os.path.getsize(file) == 0:
             return False
@@ -1049,7 +1042,7 @@ def _check_compression(file):
                     try:
                         shutil.copyfileobj(f_in, f_out)
                     except OSError:
-                        logging.exception("Decompression file failed")
+                        logger.exception("Decompression file failed")
                     else:
                         success = True
             # replace the file
@@ -1057,14 +1050,14 @@ def _check_compression(file):
                 try:
                     shutil.copyfile(file + '.decompressed', file)
                 except OSError:
-                    logging.exception("Replacement of decompressed file failed")
+                    logger.exception("Replacement of decompressed file failed")
                     success = False
             # delete the tmp file
             if os.path.isfile(file + '.decompressed'):
                 try:
                     os.remove(file + '.decompressed')
                 except OSError:
-                    logging.exception("Deletion of temp decompressed file failed")
+                    logger.exception("Deletion of temp decompressed file failed")
             return success
         else:
             return True
@@ -1119,7 +1112,7 @@ def _manage_pmc_archives(filename):
                     try:
                         shutil.rmtree(os.path.join(thedir, tmp_subdir))
                     except OSError:
-                        logging.exception("Deletion of tmp dir failed: " + os.path.join(thedir, tmp_subdir))
+                        logger.exception("Deletion of tmp dir failed: " + os.path.join(thedir, tmp_subdir))
                         # break
                 if member.isfile() and member.name.endswith(".nxml"):
                     member.name = os.path.basename(member.name)
@@ -1135,17 +1128,17 @@ def _manage_pmc_archives(filename):
                     try:
                         shutil.rmtree(os.path.join(thedir, tmp_subdir))
                     except OSError:
-                        logging.exception("Deletion of tmp dir failed: " + os.path.join(thedir, tmp_subdir))
+                        logger.exception("Deletion of tmp dir failed: " + os.path.join(thedir, tmp_subdir))
             tar.close()
             if not pdf_found:
-                logging.warning("no pdf found in archive: " + filename)
+                logger.warning("no pdf found in archive: " + filename)
             if os.path.isfile(filename):
                 try:
                     os.remove(filename)
                 except OSError:
-                    logging.exception("Deletion of PMC archive file failed: " + filename)
+                    logger.exception("Deletion of PMC archive file failed: " + filename)
         except Exception as e:
-            logging.exception("Unexpected error")
+            logger.exception("Unexpected error")
             pass
 
 
@@ -1159,21 +1152,21 @@ def generate_thumbnail(pdfFile):
     try:
         subprocess.check_call(cmd, shell=True)
     except subprocess.CalledProcessError as e:
-        logging.exception("error thumb-small.png")
+        logger.exception("error thumb-small.png")
 
     thumb_file = pdfFile.replace('.pdf', '-thumb-medium.png')
     cmd = 'convert -quiet -density 200 -thumbnail x300 -flatten ' + pdfFile + '[0] ' + thumb_file
     try:
         subprocess.check_call(cmd, shell=True)
     except subprocess.CalledProcessError as e:
-        logging.exception("error thumb-small.png")
+        logger.exception("error thumb-small.png")
 
     thumb_file = pdfFile.replace('.pdf', '-thumb-large.png')
     cmd = 'convert -quiet -density 200 -thumbnail x500 -flatten ' + pdfFile + '[0] ' + thumb_file
     try:
         subprocess.check_call(cmd, shell=True)
     except subprocess.CalledProcessError as e:
-        logging.exception("error thumb-small.png")
+        logger.exception("error thumb-small.png")
 
 
 def _biblio_glutton_url(biblio_glutton_base, biblio_glutton_port):
@@ -1187,9 +1180,9 @@ def _biblio_glutton_url(biblio_glutton_base, biblio_glutton_port):
 
 
 def _create_map_entry(local_entry):
-    '''
+    """
     Create a simple map JSON from the full metadata entry, to be stored locally and for the dumping the JSONL map file
-    '''
+    """
     map_entry = {}
     map_entry["id"] = local_entry["id"]
     if "doi" in local_entry:
@@ -1227,10 +1220,10 @@ def _create_map_entry(local_entry):
 
 
 def generateStoragePath(identifier):
-    '''
+    """
     Convert a file name into a path with file prefix as directory paths:
     123456789 -> 12/34/56/123456789
-    '''
+    """
     return os.path.join(identifier[:2], identifier[2:4], identifier[4:6], identifier[6:8])
 
 
@@ -1255,7 +1248,8 @@ if __name__ == "__main__":
                         help="write a map with UUID, article main identifiers and available harvested resources")
     parser.add_argument("--reprocess", action="store_true", help="reprocessed failed entries with OA link")
     parser.add_argument("--reset", action="store_true",
-                        help="ignore previous processing states, clear the existing storage and re-init the harvesting process from the beginning")
+                        help="ignore previous processing states, clear the existing storage and re-init the "
+                             "harvesting process from the beginning")
     parser.add_argument("--thumbnail", action="store_true",
                         help="generate thumbnail files for the front page of the PDF")
     parser.add_argument("--sample", type=int, default=None, help="Harvest only a random sample of indicated size")

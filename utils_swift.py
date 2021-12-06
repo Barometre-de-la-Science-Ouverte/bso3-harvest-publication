@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import swiftclient
 from time import sleep
-import logger
+from logger import logger
 from dotenv import load_dotenv
 from config.path_config import OVH_AUTH_URL
 from io import BytesIO, TextIOWrapper

@@ -1,11 +1,9 @@
-import logging
-import logging.handlers
 import os
 import shutil
 
 from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
 
-logging.basicConfig(filename='harvester.log', filemode='w', level=logging.DEBUG)
+from logger import logger
 
 
 class Swift(object):
@@ -27,19 +25,19 @@ class Swift(object):
                         if i_name == self.config["swift_container"]:
                             print("using SWIFT", self.config["swift_container"], "container:", item)
                 else:
-                    logging.error("error listing SWIFT object storage containers")
+                    logger.error("error listing SWIFT object storage containers")
 
         except SwiftError as e:
-            logging.exception("error listing containers")
+            logger.exception("error listing containers")
 
         if self.config["swift_container"] not in container_names:
             # create the container
             try:
                 self.swift.post(container=self.config["swift_container"])
             except SwiftError:
-                logging.exception("error creating SWIFT object storage container " + self.config["swift_container"])
+                logger.exception("error creating SWIFT object storage container " + self.config["swift_container"])
         else:
-            logging.debug("container already exists on SWIFT object storage: " + self.config["swift_container"])
+            logger.debug("container already exists on SWIFT object storage: " + self.config["swift_container"])
 
     def _init_swift_options(self):
         options = {}
@@ -67,12 +65,12 @@ class Swift(object):
                 if not result['success']:
                     error = result['error']
                     if result['action'] == "upload_object":
-                        logging.error("Failed to upload object %s to container %s: %s" % (
+                        logger.error("Failed to upload object %s to container %s: %s" % (
                             self.config["swift_container"], result['object'], error))
                     else:
-                        logging.error("%s" % error)
+                        logger.error("%s" % error)
         except SwiftError:
-            logging.exception("error uploading file to SWIFT container")
+            logger.exception("error uploading file to SWIFT container")
 
     def upload_files_to_swift(self, file_paths, dest_path=None):
         """
@@ -95,12 +93,12 @@ class Swift(object):
                 if not result['success']:
                     error = result['error']
                     if result['action'] == "upload_object":
-                        logging.error("Failed to upload object %s to container %s: %s" % (
+                        logger.error("Failed to upload object %s to container %s: %s" % (
                             self.config["swift_container"], result['object'], error))
                     else:
-                        logging.error("%s" % error)
+                        logger.error("%s" % error)
         except SwiftError:
-            logging.exception("error uploading file to SWIFT container")
+            logger.exception("error uploading file to SWIFT container")
 
     def download_file(self, file_path, dest_path):
         """
@@ -115,9 +113,9 @@ class Swift(object):
                     # print(local_path)
                     shutil.move(local_path, dest_path)
                 else:
-                    logging.error("'%s' download failed" % down_res['object'])
+                    logger.error("'%s' download failed" % down_res['object'])
         except SwiftError:
-            logging.exception("error downloading file from SWIFT container")
+            logger.exception("error downloading file from SWIFT container")
 
     def get_swift_list(self, dir_name=None):
         """
@@ -135,9 +133,9 @@ class Swift(object):
                         if dir_name is None or item["name"].startswith(dir_name):
                             result.append(item["name"])
                 else:
-                    logging.error(page["error"])
+                    logger.error(page["error"])
         except SwiftError as e:
-            logging.error(e.value)
+            logger.error(e.value)
         return result
 
     def remove_file(self, file_path):
@@ -150,12 +148,12 @@ class Swift(object):
                 if not result['success']:
                     error = result['error']
                     if result['action'] == "delete_object":
-                        logging.error("Failed to delete object %s from container %s: %s" % (
+                        logger.error("Failed to delete object %s from container %s: %s" % (
                             self.config["swift_container"], result['object'], error))
                     else:
-                        logging.error("%s" % error)
+                        logger.error("%s" % error)
         except SwiftError:
-            logging.exception("error removing file from SWIFT container")
+            logger.exception("error removing file from SWIFT container")
 
     def remove_all_files(self):
         """
@@ -172,9 +170,9 @@ class Swift(object):
                         if not del_res['success']:
                             error = del_res['error']
                             if del_res['action'] == "delete_object":
-                                logging.error("Failed to delete object %s from container %s: %s" % (
+                                logger.error("Failed to delete object %s from container %s: %s" % (
                                     self.config["swift_container"], del_res['object'], error))
                             else:
-                                logging.error("%s" % error)
+                                logger.error("%s" % error)
         except SwiftError:
-            logging.exception("error removing all files from SWIFT container")
+            logger.exception("error removing all files from SWIFT container")

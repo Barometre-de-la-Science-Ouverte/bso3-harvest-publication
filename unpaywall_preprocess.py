@@ -88,7 +88,7 @@ if __name__ == "__main__":
     output = args.output
     nb_bins = args.n
 
-    if unpaywall == None:
+    if unpaywall is None:
         print("error: the path to the Unpaywall file has not been specified")
     elif not os.path.isfile(unpaywall):
         print("error: the indicated path to the Unpaywall file is not valid", unpaywall)
