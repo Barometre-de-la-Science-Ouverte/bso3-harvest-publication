@@ -42,7 +42,7 @@ def get_connection() -> swiftclient.Connection:
     global conn
     if conn is None:
         conn = swiftclient.Connection(
-            authurl='https://auth.cloud.ovh.net/v3',
+            authurl=OVH_AUTH_URL,
             user=user,
             key=key,
             os_options={
