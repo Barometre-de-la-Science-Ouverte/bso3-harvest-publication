@@ -16,8 +16,6 @@ import lmdb
 import magic
 import requests
 from tqdm import tqdm
-
-import S3
 import swift
 from logger import logger
 import urllib3
@@ -68,10 +66,6 @@ class OAHarvester(object):
 
         # if a sample value is provided, indicate that we only harvest the indicated number of PDF
         self.sample = sample
-
-        self.s3 = None
-        if "bucket_name" in self.config and len(self.config["bucket_name"].strip()) > 0:
-            self.s3 = S3.S3(self.config)
 
         self.swift = None
         if "swift" in self.config and len(self.config["swift"]) > 0 and "swift_container" in self.config and len(
