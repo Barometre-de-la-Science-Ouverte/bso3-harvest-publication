@@ -881,7 +881,8 @@ def _count_entries(open_fn, filepath):
     with open_fn(filepath, 'rb') as fp:
         while 1:
             buffer = fp.read(8192 * 1024)
-            if not buffer: break
+            if not buffer:
+                break
             count += buffer.count(b'\n')
     print("total entries found: " + str(count))
     return count

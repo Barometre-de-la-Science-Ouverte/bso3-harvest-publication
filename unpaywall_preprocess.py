@@ -27,7 +27,8 @@ def create_partition(unpaywall, output=None, nb_bins=10):
     with gzip.open(unpaywall, 'rb') as gz:
         while 1:
             buffer = gz.read(8192 * 1024)
-            if not buffer: break
+            if not buffer:
+                break
             count += buffer.count(b'\n')
     # count = 126388740
     print("total of", str(count), "entries")

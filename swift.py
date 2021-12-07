@@ -10,8 +10,8 @@ class Swift(object):
 
     def __init__(self, config):
         self.config = config
-
         options = self._init_swift_options()
+
         options['object_uu_threads'] = 20
         self.swift = SwiftService(options=options)
         container_names = []
