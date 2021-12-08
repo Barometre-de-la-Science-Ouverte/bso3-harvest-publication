@@ -17,63 +17,50 @@ import os
 import time
 
 from tqdm import tqdm
+from OAHarvester import _count_entries, get_nth_key
 
 
-def create_partition(unpaywall, output=None, nb_bins=10):
-    # check the overall number of entries based on the line number
-    print("\ncalculating number of entries...")
-
-    count = 0
-    with gzip.open(unpaywall, 'rb') as gz:
-        while 1:
-            buffer = gz.read(8192 * 1024)
-            if not buffer:
-                break
-            count += buffer.count(b'\n')
-    # count = 126388740
-    print("total of", str(count), "entries")
-
+def create_partition(unpaywall, output=None, nb_bins=10, keep=True) -> None:
+    """Filter the archive file and split it into nb_bins (compressed) files"""
+    if (output and os.path.isdir(output) and len(os.listdir(output)) > 0) or len(os.listdir(os.path.dirname(unpaywall))) > 1:
+        print("Partitions probably exist already")
+        return
+    count = _count_entries(gzip.open, unpaywall)
     nb_oa_entries = 0
-
     # prepare the n bins files
     nbins_files = []
-    basename = os.path.splitext(os.path.basename(unpaywall))[0]
+    basename = os.path.basename(unpaywall).rstrip('.jsonl.gz')
+
     for n in range(nb_bins):
         if output is None:
             dirname = os.path.dirname(unpaywall)
             out_path = os.path.join(dirname, basename + "_" + str(n) + ".jsonl.gz")
         else:
+            if not os.path.isdir(output):
+                os.makedirs(output)
             out_path = os.path.join(output, basename + "_" + str(n) + ".jsonl.gz")
         f = gzip.open(out_path, 'wt')
         nbins_files.append(f)
 
-    gz = gzip.open(unpaywall, 'rt')
-    position = 0
-    current_bin = 0
-    for line in tqdm(gz, total=count):
-        entry = json.loads(line)
-
-        if 'best_oa_location' in entry:
-            if entry['best_oa_location'] is not None:
-                if 'url_for_pdf' in entry['best_oa_location']:
-                    pdf_url = entry['best_oa_location']['url_for_pdf']
-                    if pdf_url is not None:
-                        # add the line in the selected bin
+    with gzip.open(unpaywall, 'rt') as gz:
+        current_bin = 0
+        for position, line in enumerate(tqdm(gz, total=count)):
+            entry = json.loads(line)
+            latest_observation = entry['oa_details'][get_nth_key(entry['oa_details'], -1)]
+            if latest_observation['is_oa']:
+                for oa_location in latest_observation['oa_locations']:
+                    if oa_location['is_best'] and oa_location['url_for_pdf']:
                         nbins_files[current_bin].write(line)
-
-                        current_bin += 1
-                        if current_bin == nb_bins:
-                            current_bin = 0
-
+                        current_bin = (current_bin + 1) % nb_bins
                         nb_oa_entries += 1
-        position += 1
-
-    gz.close()
 
     for n in range(nb_bins):
         nbins_files[n].close()
 
-    print(str(nb_bins), " files generated, with a total of ", str(nb_oa_entries), "OA entries with PDF URL")
+    print(str(nb_bins), "files generated, with a total of", str(nb_oa_entries), "OA entries with PDF URL")
+
+    if not keep:
+        os.remove(unpaywall)
 
 
 if __name__ == "__main__":

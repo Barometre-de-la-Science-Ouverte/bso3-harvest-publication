@@ -47,6 +47,9 @@ only when the first is entirely processed. The harvesting process is not CPU bou
 """
 
 
+class Continue(Exception): pass
+
+
 class OAHarvester(object):
 
     def __init__(self, config, thumbnail=False, sample=None):
@@ -97,7 +100,7 @@ class OAHarvester(object):
         """
         Main method, use the Unpaywall dataset for getting pdf url for Open Access resources, 
         download in parallel PDF, generate thumbnails (if selected), upload resources locally 
-        or on S3 and update the json description of the entries
+        or on OVH and update the json description of the entries
         """
         if 'batch_size' in self.config:
             batch_size_pdf = self.config['batch_size']
@@ -118,7 +121,7 @@ class OAHarvester(object):
         count = _count_entries(gzip.open, filepath)
 
         if self.sample is not None:
-            selection = self._sample_selection(count)
+            selection = _sample_selection(self.sample, count)
 
         with gzip.open(filepath, 'rt') as gz:
             for position, line in enumerate(tqdm(gz, total=count)):
@@ -138,30 +141,10 @@ class OAHarvester(object):
                 entry = json.loads(line)
                 doi = entry['doi']
 
-                # check if the entry has already been processed
-                id_candidate = self.getUUIDByIdentifier(doi)
-                if id_candidate is not None:
-                    id_candidate = id_candidate.decode("utf-8")
-                    if reprocess:
-                        entry['id'] = id_candidate
-                        # did we success with this entry?  
-                        with self.env.begin() as txn:
-                            local_object = txn.get(id_candidate.encode(encoding='UTF-8'))
-                            if local_object is not None:
-                                local_entry = _deserialize_pickle(local_object)
-                                if local_entry is not None:
-                                    if "resources" in local_entry and "pdf" in local_entry["resources"]:
-                                        # we have a PDF, so no need to reprocess and we skip
-                                        continue
-                        # otherwise we consider the entry for reprocessing
-                    else:
-                        # we don't reprocess existing entries
-                        continue
-                else:
-                    # store a UUID
-                    entry['id'] = str(uuid.uuid4())
-                    with self.env_doi.begin(write=True) as txn_doi:
-                        txn_doi.put(entry['doi'].encode(encoding='UTF-8'), entry['id'].encode(encoding='UTF-8'))
+                try:
+                    _check_entry(entry, doi, self.getUUIDByIdentifier, reprocess, self.env, self.env_doi)
+                except Continue:
+                    continue
 
                 latest_observation = entry['oa_details'][get_nth_key(entry['oa_details'], -1)]
                 if latest_observation['is_oa']:
@@ -194,12 +177,6 @@ class OAHarvester(object):
         logging.info(f"number of entries without a valid pdf url: {no_url_for_pdf}")
         logging.info(f"number of entries to be processed: {n}")
 
-    def _sample_selection(self, count):
-        """Random selection corresponding to the requested sample size"""
-        selection = [randint(0, count - 1) for p in range(0, self.sample)]
-        selection.sort()
-        return selection
-
     def harvestPMC(self, filepath, reprocess=False):
         """
         Main method for PMC, use the provided PMC list file for getting pdf url for Open Access resources, 
@@ -225,7 +202,7 @@ class OAHarvester(object):
         count = _count_entries(open, filepath)
         
         if self.sample is not None:
-            selection = self._sample_selection(count)
+            selection = _sample_selection(self.sample, count)
         
         with open(filepath, 'rt') as fp:
             position = 0
@@ -273,32 +250,10 @@ class OAHarvester(object):
                 # TODO: avoid depending on instanciated DOI
                 entry['doi'] = pmcid
 
-                # check if the entry has already been processed
-                id_candidate = self.getUUIDByIdentifier(pmcid)
-                if id_candidate is not None:
-                    id_candidate = id_candidate.decode("utf-8")
-                    if reprocess:
-                        entry['id'] = id_candidate
-                        # did we success with this entry?  
-                        with self.env.begin() as txn:
-                            local_object = txn.get(id_candidate.encode(encoding='UTF-8'))
-                            if local_object is not None:
-                                local_entry = _deserialize_pickle(local_object)
-                                if local_entry is not None:
-                                    if "resources" in local_entry and "pdf" in local_entry["resources"]:
-                                        # we have a PDF, so no need to reprocess and we skip
-                                        position += 1
-                                        continue
-                        # otherwise we consider the entry for reprocessing
-                    else:
-                        # we don't reprocess existing entries
-                        position += 1
-                        continue
-                else:
-                    # store a UUID
-                    entry['id'] = str(uuid.uuid4())
-                    with self.env_doi.begin(write=True) as txn_doi:
-                        txn_doi.put(entry['doi'].encode(encoding='UTF-8'), entry['id'].encode(encoding='UTF-8'))
+                try:
+                    _check_entry(entry, pmcid, self.getUUIDByIdentifier, reprocess, self.env, self.env_doi)
+                except Continue:
+                    continue
 
                 if subpath is not None:
                     tar_url = pmc_base + subpath
@@ -582,29 +537,7 @@ class OAHarvester(object):
                 subprocess.check_call(['gzip', '-f', fail_file])
                 fail_file += ".gz"
 
-        # copy/upload mapping dump file
-        if self.s3 is not None:
-            # we back-up existing map file on S3
-            dump_file_name = os.path.basename(dump_file)
-            shutil.move(dump_file, dump_file + ".new")
-            try:
-                path_for_old = os.path.join(self.config["data_path"], dump_file_name + ".old")
-                # TBD: check if the file exists to avoid the 404 exception
-                self.s3.download_file(dump_file_name, self.config["data_path"])
-                shutil.move(os.path.join(self.config["data_path"], dump_file_name), path_for_old)
-                self.s3.upload_file_to_s3(path_for_old, None)
-            except:
-                logger.debug("no map file on SWIFT object storage")
-            shutil.move(dump_file + ".new", dump_file)
-
-            # upload to S3 
-            try:
-                if os.path.isfile(dump_file):
-                    self.s3.upload_file_to_s3(dump_file, None, storage_class='ONEZONE_IA')
-            except:
-                logger.error("Error writing on S3 bucket")
-
-        elif self.swift is not None:
+        if self.swift is not None:
             # we back-up existing map file on the SWIFT container
             dump_file_name = os.path.basename(dump_file)
             shutil.move(dump_file, dump_file + ".new")
@@ -673,18 +606,6 @@ class OAHarvester(object):
         # re-init the environments
         self._init_lmdb()
 
-        # if used, clean S3 
-        """
-        if self.s3 is not None:
-            # the following is dangerous I think, we should restrict the deletion to a prefix path
-            '''
-            try: 
-                self.s3.remove_all_files()
-            except:
-                logger.error("Error resetting S3 bucket")
-            '''
-        """
-
         # if used, SWIFT object storage
         if self.swift is not None:
             try:
@@ -701,6 +622,40 @@ class OAHarvester(object):
         nb_fails = txn_fail.stat()['entries']
         nb_total = txn.stat()['entries']
         print("number of failed entries with OA link:", nb_fails, "out of", nb_total, "entries")
+
+
+def _sample_selection(sample, count):
+        """Random selection corresponding to the requested sample size"""
+        selection = [randint(0, count - 1) for p in range(0, sample)]
+        selection.sort()
+        return selection
+
+
+def _check_entry(entry, _id, getUUID_fn, reprocess, env, env_doi):
+    """Check if the entry has already been processed"""
+    id_candidate = getUUID_fn(_id)
+    if id_candidate is not None:
+        id_candidate = id_candidate.decode("utf-8")
+        if reprocess:
+            entry['id'] = id_candidate
+            # did we succeed with this entry?
+            with env.begin() as txn:
+                local_object = txn.get(id_candidate.encode(encoding='UTF-8'))
+                if local_object is not None:
+                    local_entry = _deserialize_pickle(local_object)
+                    if local_entry is not None:
+                        if "resources" in local_entry and "pdf" in local_entry["resources"]:
+                            # we have a PDF, so no need to reprocess and we skip
+                            raise Continue()
+            # otherwise we consider the entry for reprocessing
+        else:
+            # we don't reprocess existing entries
+            raise Continue()
+    else:
+        # store a UUID
+        entry['id'] = str(uuid.uuid4())
+        with env_doi.begin(write=True) as txn_doi:
+            txn_doi.put(entry['doi'].encode(encoding='UTF-8'), entry['id'].encode(encoding='UTF-8'))
 
 
 def _biblio_glutton_lookup(biblio_glutton_url, doi=None, pmcid=None, pmid=None, istex_id=None, istex_ark=None,
