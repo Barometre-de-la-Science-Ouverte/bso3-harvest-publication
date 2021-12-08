@@ -1,6 +1,7 @@
 import argparse
 import gzip
 import json
+import logging
 import os
 import pickle
 import shutil
@@ -22,13 +23,13 @@ import urllib3
 
 # init LMDB
 map_size = 10 * 1024 * 1024 * 1024
-logger.basicConfig(filename='harvester.log', filemode='w', level=logger.DEBUG)
+logging.basicConfig(filename='harvester.log', filemode='w', level=logging.DEBUG)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-logger.getLogger("urllib3").setLevel(logger.ERROR)
+logging.getLogger("urllib3").setLevel(logging.ERROR)
 
-logger.getLogger("keystoneclient").setLevel(logger.ERROR)
-logger.getLogger("swiftclient").setLevel(logger.ERROR)
+logging.getLogger("keystoneclient").setLevel(logging.ERROR)
+logging.getLogger("swiftclient").setLevel(logging.ERROR)
 
 biblio_glutton_url = None
 crossref_base = None
@@ -111,139 +112,87 @@ class OAHarvester(object):
         entries = []
         filenames = []
         selection = None
-        total_pdf_url_found = 0
-        total_oa_location_found = 0
-        total_no_best_oa_location_found = 0
-        total_oa_location_found_but_empty_pdf_url = 0
+        non_oa_entries = 0
+        no_url_for_pdf = 0
 
         count = _count_entries(gzip.open, filepath)
 
         if self.sample is not None:
             selection = self._sample_selection(count)
 
-        gz = gzip.open(filepath, 'rt')
-        position = 0
-        for line in tqdm(gz, total=count):
-            if selection is not None and not position in selection:
-                position += 1
-                continue
-
-            if i == batch_size_pdf:
-                self.processBatch(urls, filenames, entries)
-                # reinit
-                i = 0
-                urls = []
-                entries = []
-                filenames = []
-                n += batch_size_pdf
-
-            # one json entry per line
-            entry = json.loads(line)
-            doi = entry['doi']
-
-            # check if the entry has already been processed
-            id_candidate = self.getUUIDByIdentifier(doi)
-            if id_candidate is not None:
-                id_candidate = id_candidate.decode("utf-8")
-                if reprocess:
-                    entry['id'] = id_candidate
-                    # did we success with this entry?  
-                    with self.env.begin() as txn:
-                        local_object = txn.get(id_candidate.encode(encoding='UTF-8'))
-                        if local_object is not None:
-                            local_entry = _deserialize_pickle(local_object)
-                            if local_entry is not None:
-                                if "resources" in local_entry and "pdf" in local_entry["resources"]:
-                                    # we have a PDF, so no need to reprocess and we skip
-                                    position += 1
-                                    continue
-                    # otherwise we consider the entry for reprocessing
-                else:
-                    # we don't reprocess existing entries
-                    position += 1
+        with gzip.open(filepath, 'rt') as gz:
+            for position, line in enumerate(tqdm(gz, total=count)):
+                if selection is not None and not position in selection:
                     continue
-            else:
-                # store a UUID
-                entry['id'] = str(uuid.uuid4())
-                with self.env_doi.begin(write=True) as txn_doi:
-                    txn_doi.put(entry['doi'].encode(encoding='UTF-8'), entry['id'].encode(encoding='UTF-8'))
 
-            if 'oa_locations' in entry and len(entry['oa_locations']) > 0:
-                total_oa_location_found += 1
+                if i == batch_size_pdf:
+                    self.processBatch(urls, filenames, entries)
+                    # reinit
+                    i = 0
+                    urls = []
+                    entries = []
+                    filenames = []
+                    n += batch_size_pdf
 
-            # if requested, we always prioritize PMC pdf over publisher one for higher chance of successful download
-            if "prioritize_pmc" in self.config and self.config["prioritize_pmc"]:
-                for oa_location in entry['oa_locations']:
-                    if 'url_for_pdf' in oa_location and oa_location['url_for_pdf'] != None:
-                        if oa_location['url_for_pdf'].find('europepmc.org/articles/pmc') != -1 or oa_location[
-                            'url_for_pdf'].find('ncbi.nlm.nih.gov/pmc/articles') != -1:
-                            entry['best_oa_location'] = oa_location
-                            break
+                # one json entry per line
+                entry = json.loads(line)
+                doi = entry['doi']
 
-            # if the best location is none, we discard it 
-            if 'best_oa_location' in entry and entry['best_oa_location'] is None:
-                del entry['best_oa_location']
+                # check if the entry has already been processed
+                id_candidate = self.getUUIDByIdentifier(doi)
+                if id_candidate is not None:
+                    id_candidate = id_candidate.decode("utf-8")
+                    if reprocess:
+                        entry['id'] = id_candidate
+                        # did we success with this entry?  
+                        with self.env.begin() as txn:
+                            local_object = txn.get(id_candidate.encode(encoding='UTF-8'))
+                            if local_object is not None:
+                                local_entry = _deserialize_pickle(local_object)
+                                if local_entry is not None:
+                                    if "resources" in local_entry and "pdf" in local_entry["resources"]:
+                                        # we have a PDF, so no need to reprocess and we skip
+                                        continue
+                        # otherwise we consider the entry for reprocessing
+                    else:
+                        # we don't reprocess existing entries
+                        continue
+                else:
+                    # store a UUID
+                    entry['id'] = str(uuid.uuid4())
+                    with self.env_doi.begin(write=True) as txn_doi:
+                        txn_doi.put(entry['doi'].encode(encoding='UTF-8'), entry['id'].encode(encoding='UTF-8'))
 
-            # if the best location is not none but it has no usable 'url_for_pdf' field, we discard it 
-            if 'best_oa_location' in entry and entry['best_oa_location'] is not None and not 'url_for_pdf' in entry[
-                'best_oa_location']:
-                del entry['best_oa_location']
-            if 'best_oa_location' in entry and entry['best_oa_location'] is not None and 'url_for_pdf' in entry[
-                'best_oa_location'] and entry['best_oa_location']['url_for_pdf'] is None:
-                del entry['best_oa_location']
-
-            if (not 'best_oa_location' in entry and 'oa_locations' in entry and len(entry['oa_locations']) > 0):
-
-                # the best oa_location identified with a "is_best" attribute, we need a valid link to a PDF too
-                for oa_location in entry['oa_locations']:
-                    if oa_location['is_best'] and 'url_for_pdf' in oa_location and oa_location['url_for_pdf'] != None:
-                        entry['best_oa_location'] = oa_location
-                        break
-
-                # if still no best location, take the first one with a valid link to a PDF
-                if not 'best_oa_location' in entry:
-                    for oa_location in entry['oa_locations']:
-                        if 'url_for_pdf' in oa_location and oa_location['url_for_pdf'] is not None:
-                            entry['best_oa_location'] = oa_location
-                            break
-
-            # TBD: consider alternative non-best PDF URL with better chance of download,
-            # e.g. PMC rather than publisher version 
-
-            if 'oa_locations' in entry and len(entry['oa_locations']) > 0:
-                if not 'best_oa_location' in entry:
-                    total_oa_location_found_but_empty_pdf_url += 1
-
-            if 'best_oa_location' in entry:
-                if entry['best_oa_location'] is not None and 'url_for_pdf' in entry['best_oa_location']:
-                    pdf_url = entry['best_oa_location']['url_for_pdf']
-                    if pdf_url is not None:
-                        total_pdf_url_found += 1
-
-                        urls.append(pdf_url)
-                        entries.append(entry)
-
-                        filenames.append(os.path.join(self.config["data_path"], entry['id'] + ".pdf"))
-                        i += 1
-                        if "is_best" in entry['best_oa_location']:
-                            del entry['best_oa_location']['is_best']
-            else:
-                total_no_best_oa_location_found += 1
-
-            position += 1
-
-        gz.close()
-
+                latest_observation = entry['oa_details'][get_nth_key(entry['oa_details'], -1)]
+                if latest_observation['is_oa']:
+                    # if requested, we always prioritize PMC pdf over publisher one for higher chance of successful download
+                    if "prioritize_pmc" in self.config and self.config["prioritize_pmc"]:
+                        for oa_location in latest_observation['oa_locations']:
+                            if oa_location['repository_normalized'] == "PubMed Central" and oa_location['url_for_pdf'] != None:
+                                entry['best_oa_location'] = oa_location
+                                break
+                    
+                    for oa_location in latest_observation['oa_locations']:
+                        if oa_location['is_best']: 
+                            if oa_location['url_for_pdf']:
+                                urls.append(oa_location['url_for_pdf'])
+                                entries.append({'id': entry['id'], **oa_location})
+                                filenames.append(os.path.join(self.config["data_path"], entry['id'] + ".pdf"))
+                                i += 1
+                                break
+                            else: #TODO voir s'il faut proposer un url (dans ceux is_best=False)
+                                no_url_for_pdf += 1
+                                break
+                else:
+                    non_oa_entries += 1
         # we need to process the latest incomplete batch (if not empty)
         if len(urls) > 0:
             self.processBatch(urls, filenames, entries)
             n += len(urls)
 
-        print("total entries with non empty oa_location found:", total_oa_location_found)
-        print("total entries with no oa_location or no usable oa_location found:", total_no_best_oa_location_found)
-        print("total entries with oa_location but no usable pdf url found:", total_oa_location_found_but_empty_pdf_url)
-        print("total entries with usable pdf url found:", total_pdf_url_found)
-        print("total processed entries:", n)
+        logging.info(f"number of entries not oa: {non_oa_entries}")
+        logging.info(f"number of entries without a valid pdf url: {no_url_for_pdf}")
+        logging.info(f"number of entries to be processed: {n}")
 
     def _sample_selection(self, count):
         """Random selection corresponding to the requested sample size"""
@@ -388,15 +337,15 @@ class OAHarvester(object):
             # it should not happen *in theory*
             # and check mime type
             valid_file = False
-            local_filename = os.path.join(self.config["data_path"], local_entry['id'] + ".pdf")
-            if os.path.isfile(local_filename):
-                if _is_valid_file(local_filename, "pdf"):
+
+            local_filename = os.path.join(self.config["data_path"], local_entry['id'])
+            if os.path.isfile(local_filename + ".pdf"):
+                if _is_valid_file(local_filename + ".pdf", "pdf"):
                     valid_file = True
                     local_entry["valid_fulltext_pdf"] = True
 
-            local_filename = os.path.join(self.config["data_path"], local_entry['id'] + ".nxml")
-            if os.path.isfile(local_filename):
-                if _is_valid_file(local_filename, "xml"):
+            if os.path.isfile(local_filename + ".nxml"):
+                if _is_valid_file(local_filename + ".nxml", "xml"):
                     valid_file = True
                     local_entry["valid_fulltext_xml"] = True
 
@@ -449,7 +398,6 @@ class OAHarvester(object):
 
         # for metadata
         local_filename_json = os.path.join(self.config["data_path"], local_entry['id'] + ".json")
-
         # generate thumbnails
         if self.thumbnail:
             try:
@@ -502,31 +450,7 @@ class OAHarvester(object):
             except:
                 logger.error("Error compressing resource files for " + local_entry['id'])
 
-        if self.s3 is not None:
-            # upload to S3 
-            # upload is already in parallel for individual file (with parts)
-            # so we don't further upload in parallel at the level of the files
-            try:
-                if os.path.isfile(local_filename):
-                    self.s3.upload_file_to_s3(local_filename, dest_path, storage_class='ONEZONE_IA')
-                if os.path.isfile(local_filename_nxml):
-                    self.s3.upload_file_to_s3(local_filename_nxml, dest_path, storage_class='ONEZONE_IA')
-                if os.path.isfile(local_filename_json):
-                    self.s3.upload_file_to_s3(local_filename_json, dest_path, storage_class='ONEZONE_IA')
-
-                if self.thumbnail:
-                    if os.path.isfile(thumb_file_small):
-                        self.s3.upload_file_to_s3(thumb_file_small, dest_path, storage_class='ONEZONE_IA')
-
-                    if os.path.isfile(thumb_file_medium):
-                        self.s3.upload_file_to_s3(thumb_file_medium, dest_path, storage_class='ONEZONE_IA')
-
-                    if os.path.isfile(thumb_file_large):
-                        self.s3.upload_file_to_s3(thumb_file_large, dest_path, storage_class='ONEZONE_IA')
-            except:
-                logger.error("Error writing on S3 bucket")
-
-        elif self.swift is not None:
+        if self.swift is not None:
             # to SWIFT object storage, we can do a bulk upload for all the resources associated to the entry
             try:
                 files_to_upload = []
@@ -552,7 +476,7 @@ class OAHarvester(object):
 
             except:
                 logger.error("Error writing on SWIFT object storage")
-
+        
         else:
             # save under local storage indicated by data_path in the config json
             try:
@@ -886,6 +810,15 @@ def _count_entries(open_fn, filepath):
             count += buffer.count(b'\n')
     print("total entries found: " + str(count))
     return count
+
+
+def get_nth_key(dictionary, n=0):
+    if n < 0:
+        n += len(dictionary)
+    for i, key in enumerate(dictionary.keys()):
+        if i == n:
+            return key
+    raise IndexError("dictionary index out of range")
 
 
 def _download(url, filename, local_entry):
