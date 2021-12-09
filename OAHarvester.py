@@ -96,7 +96,7 @@ class OAHarvester(object):
         envFilePath = os.path.join(self.config["data_path"], 'fail')
         self.env_fail = lmdb.open(envFilePath, map_size=map_size)
 
-    def harvestUnpaywall(self, filepath, reprocess=False):
+    def harvestUnpaywall(self, filepath, reprocess=False, filter_out=[]):
         """
         Main method, use the Unpaywall dataset for getting pdf url for Open Access resources, 
         download in parallel PDF, generate thumbnails (if selected), upload resources locally 
@@ -140,6 +140,9 @@ class OAHarvester(object):
                 # one json entry per line
                 entry = json.loads(line)
                 doi = entry['doi']
+
+                if doi in filter_out:
+                    continue
 
                 try:
                     _check_entry(entry, doi, self.getUUIDByIdentifier, reprocess, self.env, self.env_doi)
