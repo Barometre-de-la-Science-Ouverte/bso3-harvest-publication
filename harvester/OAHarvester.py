@@ -125,7 +125,7 @@ class OAHarvester(object):
 
         with gzip.open(filepath, 'rt') as gz:
             for position, line in enumerate(tqdm(gz, total=count)):
-                if selection is not None and not position in selection:
+                if selection is not None and position not in selection:
                     continue
 
                 if i == batch_size_pdf:
@@ -150,6 +150,7 @@ class OAHarvester(object):
                     continue
 
                 latest_observation = entry['oa_details'][get_nth_key(entry['oa_details'], -1)]
+
                 if latest_observation['is_oa']:
                     # if requested, we always prioritize PMC pdf over publisher one for higher chance of successful download
                     if "prioritize_pmc" in self.config and self.config["prioritize_pmc"]:
@@ -159,7 +160,8 @@ class OAHarvester(object):
                                 break
                     
                     for oa_location in latest_observation['oa_locations']:
-                        if oa_location['is_best']: 
+                        if oa_location['is_best']:
+
                             if oa_location['url_for_pdf']:
                                 urls.append(oa_location['url_for_pdf'])
                                 entries.append({'id': entry['id'], **oa_location})
@@ -173,6 +175,14 @@ class OAHarvester(object):
                     non_oa_entries += 1
         # we need to process the latest incomplete batch (if not empty)
         if len(urls) > 0:
+            print('filename 1:')
+            print(filenames[0])
+            print('filename 2:')
+            print(filenames[1])
+            print('entries 1:')
+            print(entries[0])
+            print('entries 2:')
+            print(entries[1])
             self.processBatch(urls, filenames, entries)
             n += len(urls)
 
