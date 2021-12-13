@@ -23,3 +23,4 @@ if __name__ == '__main__':
     harvester = OAHarvester(config_harvester, thumbnail=False, sample=10)
 
     harvest_partitions(harvester, partitions_dir)
+    harvester.diagnostic()

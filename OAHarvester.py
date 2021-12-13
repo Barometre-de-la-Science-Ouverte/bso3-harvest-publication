@@ -13,6 +13,8 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from random import randint, choices
 
+import cloudscraper
+from bs4 import BeautifulSoup
 import lmdb
 import magic
 import requests
@@ -329,7 +331,7 @@ class OAHarvester(object):
                 #    txn_doi.put(local_entry['doi'].encode(encoding='UTF-8'), local_entry['id'].encode(encoding='UTF-8'))
 
                 with self.env_fail.begin(write=True) as txn_fail:
-                    txn_fail.put(local_entry['id'].encode(encoding='UTF-8'), result[0].encode(encoding='UTF-8'))
+                    txn_fail.put(local_entry['id'].encode(encoding='UTF-8'), _serialize_pickle({"result": result[0], "url": local_entry['url_for_pdf']}))
 
                 # if an empty pdf or tar file is present, we clean it
                 local_filename = os.path.join(self.config["data_path"], local_entry['id'] + ".pdf")
@@ -815,11 +817,38 @@ def _download(url, filename, local_entry):
     result = _download_requests(url, filename)
     if result != "success":
         result = _download_wget(url, filename)
+    if result != "success":
+        result = _download_cloudflare_scraper(url, filename)
 
     if os.path.isfile(filename) and filename.endswith(".tar.gz"):
         _manage_pmc_archives(filename)
 
     return result, local_entry
+
+def _process_request(scraper, url):
+    file_data = scraper.get(url)
+    if file_data.status_code == 200:
+        if file_data.text[:5] == '%PDF-':
+            return file_data.content
+        else:
+            soup = BeautifulSoup(file_data.text, 'html.parser')
+            if soup.select_one('a#redirect'):
+                redirect_url = soup.select_one('a#redirect')['href']
+                return _process_request(scraper, redirect_url)
+    return
+
+
+def _download_cloudflare_scraper(url, filename):
+    result = "fail"
+    try:
+        scraper = cloudscraper.create_scraper(interpreter='nodejs')
+        content = _process_request(scraper, url)
+        with open(filename, 'wb') as f_out:
+            f_out.write(content)
+            result = "success"
+    except Exception:
+        logger.exception("Download failed for {0} with CloudScraper".format(url))
+    return result
 
 
 def _download_wget(url, filename):

@@ -141,6 +141,7 @@ target
 *.obj
 *.zip
 *.tar.gz
+*.gz
 data/
 !data/.gitkeep
 my_config.*
