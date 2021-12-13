@@ -64,7 +64,7 @@ def create_partition(unpaywall, output=None, nb_bins=10, keep=True) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Open Access PDF harvester")
+    parser = argparse.ArgumentParser(description="Open Access PDF fixtures")
     parser.add_argument("--unpaywall", default=None, help="path to the Unpaywall dataset (gzipped)")
     parser.add_argument("--output",
                         help="where to write the pre-processed files (default along with the Unpaywall input file)")

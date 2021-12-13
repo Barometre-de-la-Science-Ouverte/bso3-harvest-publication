@@ -92,7 +92,7 @@ def process_entry(line, distribution):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Open Access PDF harvester")
+    parser = argparse.ArgumentParser(description="Open Access PDF fixtures")
     parser.add_argument("--map", default=None, help="path to the map file (default map.jsonl) to be analyzed")
     parser.add_argument("--output", default="failures.csv",
                         help="where to write the result of the analysis (default failures.csv)")

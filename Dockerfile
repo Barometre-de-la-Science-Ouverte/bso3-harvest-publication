@@ -1,4 +1,4 @@
-## Docker image for biblio-glutton-harvester
+## Docker image for biblio-glutton-fixtures
 
 ## See https://github.com/kermitt2/biblio-glutton-harvester
 

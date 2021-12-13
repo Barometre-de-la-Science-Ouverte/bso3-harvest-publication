@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 from config.path_config import OVH_AUTH_URL
 from io import BytesIO, TextIOWrapper
 
-
 # load env variables
 path_bso3_env = os.getenv('PATH_ENV_FILE_BSO3')
 load_dotenv(path_bso3_env)
@@ -56,7 +55,7 @@ def get_connection() -> swiftclient.Connection:
     return conn
 
 
-def list_files(container: str, path:str='') -> List:
+def list_files(container: str, path: str = '') -> List:
     try:
         connection = get_connection()
         obj = connection.get_object(container, path)

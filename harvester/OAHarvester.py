@@ -7,6 +7,7 @@ import pickle
 import shutil
 import subprocess
 import tarfile
+import magic
 import time
 import urllib
 import uuid
@@ -17,7 +18,6 @@ from config.path_config import DATA_PATH
 import cloudscraper
 from bs4 import BeautifulSoup
 import lmdb
-import magic
 import requests
 from tqdm import tqdm
 from infrastructure.storage import swift
@@ -628,10 +628,15 @@ class OAHarvester(object):
 
 
 def _sample_selection(sample, count):
-        """Random selection corresponding to the requested sample size"""
-        selection = [randint(0, count - 1) for p in range(0, sample)]
-        selection.sort()
-        return selection
+        """
+        Random selection corresponding to the requested sample size
+        """
+        if sample > 0:
+            selection = [randint(0, count - 1) for p in range(0, sample)]
+            selection.sort()
+            return selection
+        else:
+            raise IndexError('Sample must be greater than 0')
 
 
 def _check_entry(entry, _id, getUUID_fn, reprocess, env, env_doi):
@@ -760,14 +765,17 @@ def _count_entries(open_fn, filepath):
     """Check the overall number of entries based on the line number"""
     print("\ncalculating number of entries...")
     count = 0
-    with open_fn(filepath, 'rb') as fp:
-        while 1:
-            buffer = fp.read(8192 * 1024)
-            if not buffer:
-                break
-            count += buffer.count(b'\n')
-    print("total entries found: " + str(count))
-    return count
+    if os.path.exists(filepath):
+        with open_fn(filepath, 'rb') as fp:
+            while 1:
+                buffer = fp.read(8192 * 1024)
+                if not buffer:
+                    break
+                count += buffer.count(b'\n')
+        print("total entries found: " + str(count))
+        return count
+    else:
+        raise FileNotFoundError(f'{filepath} does not exist')
 
 
 def get_nth_key(dictionary, n=0):
@@ -1151,7 +1159,7 @@ def test():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Open Access PDF harvester")
+    parser = argparse.ArgumentParser(description="Open Access PDF fixtures")
     parser.add_argument("--unpaywall", default=None, help="path to the Unpaywall dataset (gzipped)")
     parser.add_argument("--pmc", default=None, help="path to the pmc file list, as available on NIH's site")
     parser.add_argument("--config", default="./config.json", help="path to the config file, default is ./config.json")
