@@ -3,9 +3,8 @@ import os
 
 from config.path_config import HARVESTER_CONFIG_PATH
 from load_metadata import load_metadata
-from logger import logger
-from OAHarvester import OAHarvester
-from unpaywall_preprocess import create_partition
+from harvester.OAHarvester import OAHarvester
+from harvester.unpaywall_preprocess import create_partition
 
 
 def harvest_partitions(harvester, partitions_dir):

@@ -17,7 +17,7 @@ import os
 import time
 
 from tqdm import tqdm
-from OAHarvester import _count_entries, get_nth_key
+from harvester.OAHarvester import _count_entries, get_nth_key
 
 
 def create_partition(unpaywall, output=None, nb_bins=10, keep=True) -> None:

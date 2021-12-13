@@ -19,13 +19,13 @@ import lmdb
 import magic
 import requests
 from tqdm import tqdm
-import swift
+from infrastructure.storage import swift
 from logger import logger
 import urllib3
 
 # init LMDB
 map_size = 10 * 1024 * 1024 * 1024
-logging.basicConfig(filename='harvester.log', filemode='w', level=logging.DEBUG)
+logging.basicConfig(filename='../harvester.log', filemode='w', level=logging.DEBUG)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logging.getLogger("urllib3").setLevel(logging.ERROR)

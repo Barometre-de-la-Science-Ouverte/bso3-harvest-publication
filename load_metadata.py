@@ -1,5 +1,5 @@
 import os
-from utils_swift import (list_files, download_object)
+from infrastructure.storage.utils_swift import (list_files, download_object)
 
 
 def load_metadata() -> str:
