@@ -1,0 +1,6 @@
+Collecting SQLAlchemy
+  Downloading SQLAlchemy-1.4.28-cp39-cp39-win_amd64.whl (1.5 MB)
+Collecting greenlet!=0.4.17
+  Using cached greenlet-1.1.2-cp39-cp39-win_amd64.whl (101 kB)
+Installing collected packages: greenlet, SQLAlchemy
+Successfully installed SQLAlchemy-1.4.28 greenlet-1.1.2
