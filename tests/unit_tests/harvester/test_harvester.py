@@ -17,7 +17,7 @@ class HarvesterCountEntries(TestCase):
             _count_entries(open, wrong_filepath)
 
     def test_when_2_publications_then_return_2(self):
-        filepath_2_publications = os.path.join(FIXTURES_PATH, 'dump_2_publications.jsonl.gz')
+        filepath_2_publications = os.path.join(FIXTURES_PATH, 'dump_2_publications.jsonl.gz.test')
 
         nb_publications = _count_entries(gzip.open, filepath_2_publications)
 
@@ -53,7 +53,7 @@ class HarvestUnpaywall(TestCase):
                                                              mock_sample_selection,
                                                              mock_processBatch):
         # Given a file path
-        filepath = os.path.join(FIXTURES_PATH, 'dump_2_publications.jsonl.gz')
+        filepath = os.path.join(FIXTURES_PATH, 'dump_2_publications.jsonl.gz.test')
         urls = urls_2_publications
         filenames = filename_2_publications
         entries = entries_2_publications
