@@ -12,6 +12,7 @@ import urllib
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from random import randint, choices
+from config.path_config import DATA_PATH
 
 import cloudscraper
 from bs4 import BeautifulSoup
@@ -80,22 +81,22 @@ class OAHarvester(object):
 
     def _init_lmdb(self):
         # create the data path if it does not exist 
-        if not os.path.isdir(self.config["data_path"]):
+        if not os.path.isdir(DATA_PATH):
             try:
-                os.makedirs(self.config["data_path"])
+                os.makedirs(DATA_PATH)
             except OSError:
-                logger.exception("Creation of the directory %s failed" % self.config["data_path"])
+                logger.exception("Creation of the directory %s failed" % DATA_PATH)
             else:
-                logger.debug("Successfully created the directory %s" % self.config["data_path"])
+                logger.debug("Successfully created the directory %s" % DATA_PATH)
 
         # open in write mode
-        envFilePath = os.path.join(self.config["data_path"], 'entries')
+        envFilePath = os.path.join(DATA_PATH, 'entries')
         self.env = lmdb.open(envFilePath, map_size=map_size)
 
-        envFilePath = os.path.join(self.config["data_path"], 'doi')
+        envFilePath = os.path.join(DATA_PATH, 'doi')
         self.env_doi = lmdb.open(envFilePath, map_size=map_size)
 
-        envFilePath = os.path.join(self.config["data_path"], 'fail')
+        envFilePath = os.path.join(DATA_PATH, 'fail')
         self.env_fail = lmdb.open(envFilePath, map_size=map_size)
 
     def harvestUnpaywall(self, filepath, reprocess=False, filter_out=[]):
@@ -165,7 +166,7 @@ class OAHarvester(object):
                             if oa_location['url_for_pdf']:
                                 urls.append(oa_location['url_for_pdf'])
                                 entries.append({'id': entry['id'], **oa_location})
-                                filenames.append(os.path.join(self.config["data_path"], entry['id'] + ".pdf"))
+                                filenames.append(os.path.join(DATA_PATH, entry['id'] + ".pdf"))
                                 i += 1
                                 break
                             else: #TODO voir s'il faut proposer un url (dans ceux is_best=False)
@@ -272,7 +273,7 @@ class OAHarvester(object):
                     entry_url['url_for_pdf'] = tar_url
                     entry['best_oa_location'] = entry_url
                     entries.append(entry)
-                    filenames.append(os.path.join(self.config["data_path"], entry['id'] + ".tar.gz"))
+                    filenames.append(os.path.join(DATA_PATH, entry['id'] + ".tar.gz"))
                     i += 1
 
                 position += 1
@@ -298,7 +299,7 @@ class OAHarvester(object):
             # and check mime type
             valid_file = False
 
-            local_filename = os.path.join(self.config["data_path"], local_entry['id'])
+            local_filename = os.path.join(DATA_PATH, local_entry['id'])
             if os.path.isfile(local_filename + ".pdf"):
                 if _is_valid_file(local_filename + ".pdf", "pdf"):
                     valid_file = True
@@ -334,13 +335,13 @@ class OAHarvester(object):
                     txn_fail.put(local_entry['id'].encode(encoding='UTF-8'), _serialize_pickle({"result": result[0], "url": local_entry['url_for_pdf']}))
 
                 # if an empty pdf or tar file is present, we clean it
-                local_filename = os.path.join(self.config["data_path"], local_entry['id'] + ".pdf")
+                local_filename = os.path.join(DATA_PATH, local_entry['id'] + ".pdf")
                 if os.path.isfile(local_filename):
                     os.remove(local_filename)
-                local_filename = os.path.join(self.config["data_path"], local_entry['id'] + ".tar.gz")
+                local_filename = os.path.join(DATA_PATH, local_entry['id'] + ".tar.gz")
                 if os.path.isfile(local_filename):
                     os.remove(local_filename)
-                local_filename = os.path.join(self.config["data_path"], local_entry['id'] + ".nxml")
+                local_filename = os.path.join(DATA_PATH, local_entry['id'] + ".nxml")
                 if os.path.isfile(local_filename):
                     os.remove(local_filename)
 
@@ -353,11 +354,11 @@ class OAHarvester(object):
         return txn.get(identifier.encode(encoding='UTF-8'))
 
     def manageFiles(self, local_entry):
-        local_filename = os.path.join(self.config["data_path"], local_entry['id'] + ".pdf")
-        local_filename_nxml = os.path.join(self.config["data_path"], local_entry['id'] + ".nxml")
+        local_filename = os.path.join(DATA_PATH, local_entry['id'] + ".pdf")
+        local_filename_nxml = os.path.join(DATA_PATH, local_entry['id'] + ".nxml")
 
         # for metadata
-        local_filename_json = os.path.join(self.config["data_path"], local_entry['id'] + ".json")
+        local_filename_json = os.path.join(DATA_PATH, local_entry['id'] + ".json")
         # generate thumbnails
         if self.thumbnail:
             try:
@@ -440,7 +441,7 @@ class OAHarvester(object):
         else:
             # save under local storage indicated by data_path in the config json
             try:
-                local_dest_path = os.path.join(self.config["data_path"], dest_path)
+                local_dest_path = os.path.join(DATA_PATH, dest_path)
 
                 os.makedirs(local_dest_path, exist_ok=True)
                 if os.path.isfile(local_filename):
@@ -479,7 +480,7 @@ class OAHarvester(object):
                 os.remove(local_filename_json)
 
             # possible tar.gz remaining from PMC resources
-            local_filename_tar = os.path.join(self.config["data_path"], local_entry['id'] + ".tar.gz")
+            local_filename_tar = os.path.join(DATA_PATH, local_entry['id'] + ".tar.gz")
             if os.path.isfile(local_filename_tar):
                 os.remove(local_filename_tar)
 
@@ -547,7 +548,7 @@ class OAHarvester(object):
             dump_file_name = os.path.basename(dump_file)
             shutil.move(dump_file, dump_file + ".new")
             try:
-                path_for_old = os.path.join(self.config["data_path"], dump_file_name + ".old")
+                path_for_old = os.path.join(DATA_PATH, dump_file_name + ".old")
                 # TBD: check if the file exists to avoid the 404 exception
                 self.swift.download_file(dump_file_name, path_for_old)
                 self.swift.upload_file_to_swift(path_for_old, None)
@@ -566,12 +567,12 @@ class OAHarvester(object):
         try:
             # back-up previous map file: rename existing one as .old
             dump_file_name = os.path.basename(dump_file)
-            if os.path.isfile(os.path.join(self.config["data_path"], dump_file_name)):
-                shutil.move(os.path.join(self.config["data_path"], dump_file_name),
-                            os.path.join(self.config["data_path"], dump_file_name + ".old"))
+            if os.path.isfile(os.path.join(DATA_PATH, dump_file_name)):
+                shutil.move(os.path.join(DATA_PATH, dump_file_name),
+                            os.path.join(DATA_PATH, dump_file_name + ".old"))
 
             if os.path.isfile(dump_file):
-                shutil.copyfile(dump_file, os.path.join(self.config["data_path"], dump_file_name))
+                shutil.copyfile(dump_file, os.path.join(DATA_PATH, dump_file_name))
 
         except IOError:
             logger.exception("invalid path")
@@ -586,22 +587,22 @@ class OAHarvester(object):
         self.env_doi.close()
         self.env_fail.close()
 
-        envFilePath = os.path.join(self.config["data_path"], 'entries')
+        envFilePath = os.path.join(DATA_PATH, 'entries')
         shutil.rmtree(envFilePath)
 
-        envFilePath = os.path.join(self.config["data_path"], 'doi')
+        envFilePath = os.path.join(DATA_PATH, 'doi')
         shutil.rmtree(envFilePath)
 
-        envFilePath = os.path.join(self.config["data_path"], 'fail')
+        envFilePath = os.path.join(DATA_PATH, 'fail')
         shutil.rmtree(envFilePath)
 
         # clean any possibly remaining tmp files (.pdf and .png)
-        for f in os.listdir(self.config["data_path"]):
+        for f in os.listdir(DATA_PATH):
             if f.endswith(".pdf") or f.endswith(".png") or f.endswith(".nxml") or f.endswith(".tar.gz") or f.endswith(
                     ".xml"):
-                os.remove(os.path.join(self.config["data_path"], f))
+                os.remove(os.path.join(DATA_PATH, f))
             # clean any existing data files  
-            path = os.path.join(self.config["data_path"], f)
+            path = os.path.join(DATA_PATH, f)
             if os.path.isdir(path):
                 try:
                     shutil.rmtree(path)

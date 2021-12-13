@@ -7,10 +7,11 @@
     "biblio_glutton_base": "https://cloud.science-miner.com/glutton",
     "crossref_base": "https://api.crossref.org",
     "crossref_email": "patrice.lopez@science-miner.com",
-    "aws_access_key_id": "",
-    "aws_secret_access_key": "",
-    "bucket_name": "",
-    "region": "",
     "swift": {},
-    "swift_container": ""
+    "swift_container": "",
+    "db_user": "postgres",
+    "db_password": "password",
+    "db_host": "db",
+    "db_port": "5432",
+    "db_name": "postgres_db"
 }

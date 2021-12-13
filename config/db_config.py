@@ -1,11 +1,24 @@
+import json
 import os
 
 import psycopg2
-from sqlalchemy import create_engine, MetaData, Table, Column, String, DateTime
+from sqlalchemy import create_engine, MetaData, Table, Column, String, DateTime, Boolean
 from sqlalchemy.engine import Engine
 
-"""
-from config.env_config import CONFIG_PATH, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME
+from config.path_config import CONFIG_PATH, PROJECT_DIRNAME
+
+if os.path.isfile(CONFIG_PATH + '/config_local.json'):
+    with open(CONFIG_PATH + '/config_local.json') as f:
+        config_env = json.load(f)
+else:
+    with open(PROJECT_DIRNAME + '/config.json') as f:
+        config_env = json.load(f)
+
+DB_USER = config_env['db_user']
+DB_PASSWORD = config_env['db_password']
+DB_HOST = config_env['db_host']
+DB_PORT = config_env['db_port']
+DB_NAME = config_env['db_name']
 
 if os.path.isfile(CONFIG_PATH + '/config_local.json'):
     from testing.postgresql import Postgresql
@@ -24,36 +37,12 @@ else:
 engine: Engine = create_engine(connection_string)
 meta = MetaData()
 
-tickets_table = Table(
-    'tickets', meta,
-    Column('sys_id', String, primary_key=True),
-    Column('numero', String),
-    Column('date_de_creation', DateTime),
-    Column('objet', String),
-    Column('declarant', String),
-    Column('premier_groupe_affectation', String),
-    Column('priorite', String),
-    Column('origine_incident', String),
-    Column('type_incident', String),
-    Column('categorie', String),
-    Column('sous_categorie', String),
-    Column('sous_sous_categorie', String),
-    Column('environnement', String),
-    Column('prediction_ml', String)
-)
-
-prediction_table = Table(
-    'predictions', meta,
-    Column('sys_id', String, primary_key=True),
-    Column('prediction', String)
-)
-
-annotations_table = Table(
-    'annotations', meta,
-    Column('sys_id', String, primary_key=True),
-    Column('annotation', String),
-    Column('date_de_cloture', DateTime)
+harvested_status_table = Table(
+    'harvested_status_table', meta,
+    Column('doi', String, primary_key=True),
+    Column('is_harvested', Boolean),
+    Column('harvested_date', DateTime),
+    Column('uuid', String)
 )
 
 meta.create_all(engine)
-"""

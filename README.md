@@ -75,7 +75,6 @@ A configuration file must be completed, by default the file `config.json` will b
 
 ```json
 {
-    "data_path": "./data",
     "compression": true,
     "batch_size": 100,
     "prioritize_pmc": false,
@@ -83,9 +82,6 @@ A configuration file must be completed, by default the file `config.json` will b
     "biblio_glutton_base": "", 
     "crossref_base": "https://api.crossref.org",
     "crossref_email": "",
-    "aws_access_key_id": "",
-    "aws_secret_access_key": "",
-    "bucket_name": "",
     "region": "",
     "swift": {},
     "swift_container": ""
