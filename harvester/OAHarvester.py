@@ -46,7 +46,8 @@ only when the first is entirely processed. The harvesting process is not CPU bou
 """
 
 
-class Continue(Exception): pass
+class Continue(Exception):
+    pass
 
 
 class OAHarvester(object):
