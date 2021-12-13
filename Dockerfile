@@ -15,7 +15,7 @@ RUN python3 -m pip install pip --upgrade
 
 # copy project
 COPY *.py /opt/
-COPY config.json /opt/
+COPY config/config.json /opt/
 COPY requirements.txt /opt/
 RUN mkdir /opt/data
 
