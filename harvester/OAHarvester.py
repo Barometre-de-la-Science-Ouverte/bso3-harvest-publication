@@ -111,88 +111,16 @@ class OAHarvester(object):
         else:
             batch_size_pdf = 100
 
-        # batch size for lmdb commit
-        batch_size_lmdb = 10
-        n = 0
-        i = 0
-        urls = []
-        entries = []
-        filenames = []
-        selection = None
-        non_oa_entries = 0
-        no_url_for_pdf = 0
-
         count = _count_entries(gzip.open, filepath)
-
-        if self.sample is not None:
-            selection = _sample_selection(self.sample, count)
-
-        with gzip.open(filepath, 'rt') as gz:
-            for position, line in enumerate(tqdm(gz, total=count)):
-                if selection is not None and position not in selection:
-                    continue
-
-                if i == batch_size_pdf:
-                    self.processBatch(urls, filenames, entries)
-                    # reinit
-                    i = 0
-                    urls = []
-                    entries = []
-                    filenames = []
-                    n += batch_size_pdf
-
-                # one json entry per line
-                entry = json.loads(line)
-                doi = entry['doi']
-
-                if doi in filter_out:
-                    continue
-
-                try:
-                    _check_entry(entry, doi, self.getUUIDByIdentifier, reprocess, self.env, self.env_doi)
-                except Continue:
-                    continue
-
-                latest_observation = entry['oa_details'][get_nth_key(entry['oa_details'], -1)]
-
-                if latest_observation['is_oa']:
-                    # if requested, we always prioritize PMC pdf over publisher one for higher chance of successful download
-                    if "prioritize_pmc" in self.config and self.config["prioritize_pmc"]:
-                        for oa_location in latest_observation['oa_locations']:
-                            if oa_location['repository_normalized'] == "PubMed Central" and oa_location['url_for_pdf'] != None:
-                                entry['best_oa_location'] = oa_location
-                                break
-                    
-                    for oa_location in latest_observation['oa_locations']:
-                        if oa_location['is_best']:
-
-                            if oa_location['url_for_pdf']:
-                                urls.append(oa_location['url_for_pdf'])
-                                entries.append({'id': entry['id'], **oa_location})
-                                filenames.append(os.path.join(DATA_PATH, entry['id'] + ".pdf"))
-                                i += 1
-                                break
-                            else: #TODO voir s'il faut proposer un url (dans ceux is_best=False)
-                                no_url_for_pdf += 1
-                                break
-                else:
-                    non_oa_entries += 1
-        # we need to process the latest incomplete batch (if not empty)
-        if len(urls) > 0:
-            print('filename 1:')
-            print(filenames[0])
-            print('filename 2:')
-            print(filenames[1])
-            print('entries 1:')
-            print(entries[0])
-            print('entries 2:')
-            print(entries[1])
+        # TODO add sample possibility
+        # if self.sample is not None:
+        #     selection = _sample_selection(self.sample, count)
+        batch_gen = self._get_batch_generator(filepath, count, reprocess, batch_size_pdf)
+        for batch in batch_gen:
+            urls = [e[0] for e in batch]
+            entries = [e[1] for e in batch]
+            filenames = [e[2] for e in batch]
             self.processBatch(urls, filenames, entries)
-            n += len(urls)
-
-        logging.info(f"number of entries not oa: {non_oa_entries}")
-        logging.info(f"number of entries without a valid pdf url: {no_url_for_pdf}")
-        logging.info(f"number of entries to be processed: {n}")
 
     def harvestPMC(self, filepath, reprocess=False):
         """
@@ -296,6 +224,49 @@ class OAHarvester(object):
 
         print("total processed entries:", n)
 
+    def _process_entry(self, entry, reprocess, filter_out=[]):
+        doi = entry['doi']
+        if doi in filter_out:
+            raise Continue
+        try:
+            _check_entry(entry, doi, self.getUUIDByIdentifier, reprocess, self.env, self.env_doi)
+            url, entry, filename = self._parse_entry(entry)
+            if url:
+                return url, entry, filename
+        except Continue:
+            raise
+
+    def _parse_entry(self, entry):
+        """Parse entry to get url, entry, filename"""
+        latest_observation = entry['oa_details'][get_nth_key(entry['oa_details'], -1)]
+        if latest_observation['is_oa']:
+            # if requested, we can prioritize PMC pdf over publisher one for higher chance of successful download
+            if "prioritize_pmc" in self.config and self.config["prioritize_pmc"]:
+                for oa_location in latest_observation['oa_locations']:
+                    if oa_location['repository_normalized'] == "PubMed Central" and oa_location['url_for_pdf'] != None:
+                        return oa_location['url_for_pdf'], {'id': entry['id'], **oa_location}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+
+            for oa_location in latest_observation['oa_locations']:
+                if oa_location['is_best']:
+                    if oa_location['url_for_pdf']:
+                        return oa_location['url_for_pdf'], {'id': entry['id'], **oa_location}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+
+    def _get_batch_generator(self, filepath, count, reprocess, batch_size=100):
+        batch = []
+        with gzip.open(filepath, 'rt') as gz:
+            for line in tqdm(gz, total=count):
+                try:
+                    url, entry, filename = self._process_entry(json.loads(line), reprocess)
+                    if url:
+                        batch.append([url, entry, filename])
+                except Continue:
+                    continue
+
+                if (len(batch) != 0) and (len(batch) % batch_size == 0):
+                    yield batch
+                    batch = []
+            yield batch
+
     def processBatch(self, urls, filenames, entries):  # , txn, txn_doi, txn_fail):
         with ThreadPoolExecutor(max_workers=12) as executor:
             results = executor.map(_download, urls, filenames, entries, timeout=30)
@@ -365,6 +336,7 @@ class OAHarvester(object):
         return txn.get(identifier.encode(encoding='UTF-8'))
 
     def manageFiles(self, local_entry):
+        # TODO split into >=3 functions thumbnail/upload/file cleaning
         local_filename = os.path.join(DATA_PATH, local_entry['id'] + ".pdf")
         local_filename_nxml = os.path.join(DATA_PATH, local_entry['id'] + ".nxml")
 
@@ -632,13 +604,14 @@ class OAHarvester(object):
 
     def diagnostic(self):
         """
-        Print a report on failures stored during the harvesting process
+        Log a report on failures stored during the harvesting process
         """
         txn = self.env.begin(write=True)
         txn_fail = self.env_fail.begin(write=True)
         nb_fails = txn_fail.stat()['entries']
         nb_total = txn.stat()['entries']
-        print("number of failed entries with OA link:", nb_fails, "out of", nb_total, "entries")
+        logging.info(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
+        print(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
 
 
 def _sample_selection(sample, count):
@@ -654,7 +627,7 @@ def _sample_selection(sample, count):
 
 
 def _check_entry(entry, _id, getUUID_fn, reprocess, env, env_doi):
-    """Check if the entry has already been processed"""
+    """Check if the entry has already been processed, reprocessed if needed otherwise create an uuid for the new entry"""
     id_candidate = getUUID_fn(_id)
     if id_candidate is not None:
         id_candidate = id_candidate.decode("utf-8")
@@ -786,7 +759,6 @@ def _count_entries(open_fn, filepath):
                 if not buffer:
                     break
                 count += buffer.count(b'\n')
-        print("total entries found: " + str(count))
         return count
     else:
         raise FileNotFoundError(f'{filepath} does not exist')
