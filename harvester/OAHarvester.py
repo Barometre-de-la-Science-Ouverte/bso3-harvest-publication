@@ -14,6 +14,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from random import randint, choices
 from config.path_config import DATA_PATH
+from datetime import date
 
 import cloudscraper
 from bs4 import BeautifulSoup
@@ -22,7 +23,10 @@ import requests
 from tqdm import tqdm
 from infrastructure.storage import swift
 from logger import logger
+import urllib3
 
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # init LMDB
 map_size = 10 * 1024 * 1024 * 1024
 logging.basicConfig(filename='../harvester.log', filemode='w', level=logging.DEBUG)
@@ -841,6 +845,7 @@ def _download(url, filename, local_entry):
 
     return result, local_entry
 
+
 def _process_request(scraper, url):
     file_data = scraper.get(url)
     if file_data.status_code == 200:
@@ -859,8 +864,9 @@ def _download_cloudflare_scraper(url, filename):
     try:
         scraper = cloudscraper.create_scraper(interpreter='nodejs')
         content = _process_request(scraper, url)
-        with open(filename, 'wb') as f_out:
-            f_out.write(content)
+        if content:
+            with open(filename, 'wb') as f_out:
+                f_out.write(content)
             result = "success"
     except Exception:
         logger.exception("Download failed for {0} with CloudScraper".format(url))
@@ -1138,7 +1144,7 @@ def _create_map_entry(local_entry):
         resources.append("thumbnails")
 
     map_entry["resources"] = resources
-
+    map_entry["harvested_date"] = date.today().strftime('%Y-%m-%d')
     # add target OA link
     if 'best_oa_location' in local_entry and 'url_for_pdf' in local_entry['best_oa_location']:
         pdf_url = local_entry['best_oa_location']['url_for_pdf']
