@@ -7,7 +7,8 @@ from config.path_config import DATA_PATH, CONFIG_PATH
 FIXTURES_PATH = os.path.dirname(__file__)
 
 config_harvester = json.load(open(CONFIG_PATH, 'r'))
-harvester_2_publications = OAHarvester(config_harvester, thumbnail=False, sample=2)
+harvester_2_publications = OAHarvester(config_harvester, thumbnail=False)
+harvester_2_publications_sample = OAHarvester(config_harvester, thumbnail=False, sample=1)
 
 urls_2_publications = [
     'https://hal.archives-ouvertes.fr/hal-02159827/file/2019%20Gavotto%20etal.%2C%20Factor%20associated%20with.pdf',

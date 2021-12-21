@@ -12,7 +12,7 @@ import time
 import urllib
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from random import randint, choices
+from random import sample, choices
 from config.path_config import DATA_PATH
 from datetime import date
 
@@ -112,11 +112,15 @@ class OAHarvester(object):
             batch_size_pdf = 100
 
         count = _count_entries(gzip.open, filepath)
-        # TODO add sample possibility
-        # if self.sample is not None:
-        #     selection = _sample_selection(self.sample, count)
-        batch_gen = self._get_batch_generator(filepath, count, reprocess, batch_size_pdf)
+        if self.sample:
+            selection = _sample_selection(self.sample, count)
+            current_idx = 0
+        batch_gen = self._get_batch_generator(filepath, count, reprocess, batch_size_pdf, filter_out)
         for batch in batch_gen:
+            if self.sample:
+                n = len(batch)
+                batch = _apply_selection(batch, selection, current_idx)
+                current_idx += n
             urls = [e[0] for e in batch]
             entries = [e[1] for e in batch]
             filenames = [e[2] for e in batch]
@@ -240,23 +244,20 @@ class OAHarvester(object):
         """Parse entry to get url, entry, filename"""
         latest_observation = entry['oa_details'][get_nth_key(entry['oa_details'], -1)]
         if latest_observation['is_oa']:
-            # if requested, we can prioritize PMC pdf over publisher one for higher chance of successful download
-            if "prioritize_pmc" in self.config and self.config["prioritize_pmc"]:
-                for oa_location in latest_observation['oa_locations']:
-                    if oa_location['repository_normalized'] == "PubMed Central" and oa_location['url_for_pdf'] != None:
-                        return oa_location['url_for_pdf'], {'id': entry['id'], **oa_location}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
-
+            # Prioritize PMC and HAL pdf over publisher one for higher chance of successful download
             for oa_location in latest_observation['oa_locations']:
-                if oa_location['is_best']:
-                    if oa_location['url_for_pdf']:
+                if 'repository_normalized' in oa_location and (oa_location['repository_normalized'] == "PubMed Central" or oa_location['repository_normalized'] == "HAL") and oa_location['url_for_pdf'] != None:
+                    return oa_location['url_for_pdf'], {'id': entry['id'], **oa_location}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+                elif oa_location['is_best'] and oa_location['url_for_pdf']:
                         return oa_location['url_for_pdf'], {'id': entry['id'], **oa_location}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
 
-    def _get_batch_generator(self, filepath, count, reprocess, batch_size=100):
+    def _get_batch_generator(self, filepath, count, reprocess, batch_size=100, filter_out=[]):
+        """Reads gzip file and returns batches of processed entries"""
         batch = []
         with gzip.open(filepath, 'rt') as gz:
             for line in tqdm(gz, total=count):
                 try:
-                    url, entry, filename = self._process_entry(json.loads(line), reprocess)
+                    url, entry, filename = self._process_entry(json.loads(line), reprocess, filter_out)
                     if url:
                         batch.append([url, entry, filename])
                 except Continue:
@@ -332,8 +333,8 @@ class OAHarvester(object):
             results = executor.map(self.manageFiles, entries, timeout=30)
 
     def getUUIDByIdentifier(self, identifier):
-        txn = self.env_doi.begin()
-        return txn.get(identifier.encode(encoding='UTF-8'))
+        with self.env_doi.begin() as txn:
+            return txn.get(identifier.encode(encoding='UTF-8'))
 
     def manageFiles(self, local_entry):
         # TODO split into >=3 functions thumbnail/upload/file cleaning
@@ -606,24 +607,29 @@ class OAHarvester(object):
         """
         Log a report on failures stored during the harvesting process
         """
-        txn = self.env.begin(write=True)
-        txn_fail = self.env_fail.begin(write=True)
-        nb_fails = txn_fail.stat()['entries']
-        nb_total = txn.stat()['entries']
+        with self.env_fail.begin(write=True) as txn_fail:
+            nb_fails = txn_fail.stat()['entries']
+        with self.env.begin(write=True) as txn:
+            nb_total = txn.stat()['entries']
         logging.info(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
         print(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
 
 
-def _sample_selection(sample, count):
+def _sample_selection(nb_samples, count):
         """
         Random selection corresponding to the requested sample size
         """
-        if sample > 0:
-            selection = [randint(0, count - 1) for p in range(0, sample)]
+        if nb_samples > 0:
+            selection = sample(range(count), nb_samples)
             selection.sort()
             return selection
         else:
             raise IndexError('Sample must be greater than 0')
+
+
+def _apply_selection(batch, selection, current_idx):
+    sub_selection = [i - current_idx for i in selection if current_idx <= i < current_idx + len(batch)]
+    return [batch[i] for i in sub_selection]
 
 
 def _check_entry(entry, _id, getUUID_fn, reprocess, env, env_doi):
@@ -806,11 +812,11 @@ def _download(url, filename, local_entry):
             if not "istexId" in local_entry and "istexId" in glutton_record:
                 local_entry["istexId"] = glutton_record["istexId"]
 
-    result = _download_requests(url, filename)
-    if result != "success":
-        result = _download_wget(url, filename)
-    if result != "success":
-        result = _download_cloudflare_scraper(url, filename)
+    # result = _download_requests(url, filename)
+    # if result != "success":
+    #     result = _download_wget(url, filename)
+    # if result != "success":
+    result = _download_cloudflare_scraper(url, filename)
 
     if os.path.isfile(filename) and filename.endswith(".tar.gz"):
         _manage_pmc_archives(filename)

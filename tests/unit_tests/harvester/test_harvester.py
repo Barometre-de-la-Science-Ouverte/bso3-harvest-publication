@@ -5,8 +5,8 @@ import os
 from unittest import TestCase, mock
 import uuid
 
-from harvester.OAHarvester import OAHarvester, _count_entries, _sample_selection, _check_entry, Continue
-from tests.unit_tests.fixtures.harvester import harvester_2_publications, entries_2_publications, \
+from harvester.OAHarvester import OAHarvester, _count_entries, _sample_selection, _check_entry, Continue, _apply_selection
+from tests.unit_tests.fixtures.harvester import harvester_2_publications, harvester_2_publications_sample, entries_2_publications, \
     filename_2_publications, urls_2_publications, ids_2_publications, FIXTURES_PATH
 
 
@@ -29,10 +29,10 @@ class HarvesterCountEntries(TestCase):
 class HarvesterSampleSelection(TestCase):
 
     def test_when_sample_is_4_then_return_list_of_size_4(self):
-        sample = 22
-        count = 4
-        samples = _sample_selection(sample, count)
-        self.assertEqual(len(samples), sample)
+        nb_sample = 4
+        count = 22
+        samples = _sample_selection(nb_sample, count)
+        self.assertEqual(len(samples), nb_sample)
 
     def test_when_sample_is_0_then_raise_index_error_exception(self):
         sample = 0
@@ -41,6 +41,32 @@ class HarvesterSampleSelection(TestCase):
             samples = _sample_selection(sample, count)
 
 
+class HarvesterApplySelection(TestCase):
+
+    def test_when_given_a_list_returns_elements_corresponding_to_selection(self):
+        # Given
+        nb_sample = 4
+        batches = []
+        batch = []
+        for i in range(22):
+            batch.append([chr(i),chr(i+1),chr(i+2)])
+        batches.append(batch)
+        batch = []
+        for i in range(22, 25):
+            batch.append([chr(i),chr(i+1),chr(i+2)])
+        batches.append(batch)
+        mock_selection = [1, 2, 3, 24]
+        # When
+        current_idx = 0
+        for batch_n, batch in enumerate(batches):
+            trimmed_down_list = _apply_selection(batch, mock_selection, current_idx)
+            # Then
+            self.assertEquals(len([i for i in mock_selection if current_idx <= i < current_idx + len(batch)]), len(trimmed_down_list))
+            for e in trimmed_down_list:
+                self.assertIn(e, batch)
+                self.assertIn(batch.index(e), mock_selection)
+            current_idx += len(batch)
+
 class HarvestUnpaywall(TestCase):
 
     def test_when_wrong_filepath_raise_FileNotFoundError_exception(self):
@@ -48,6 +74,25 @@ class HarvestUnpaywall(TestCase):
 
         with self.assertRaises(FileNotFoundError):
             harvester_2_publications.harvestUnpaywall(wrong_filepath)
+
+    @mock.patch('harvester.OAHarvester._sample_selection')
+    @mock.patch.object(uuid, 'uuid4')
+    @mock.patch.object(OAHarvester, 'processBatch')
+    @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
+    def test_when_2_publications_and_sample_is_1_then_processBatch_is_called_with_1_element(self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4, mock_sample_selection):
+        # Given a file path
+        filepath = os.path.join(FIXTURES_PATH, 'dump_2_publications.jsonl.gz.test')
+        expected_url = urls_2_publications[0]
+        expected_filename = filename_2_publications[0]
+        expected_entrie = entries_2_publications[0]
+        mock_uuid4.side_effect = ids_2_publications
+        mock_getUUIDByIdentifier.return_value = None
+        mock_sample_selection.return_value = [0]
+        # When harvestUnpaywall is executed
+        harvester_2_publications_sample.harvestUnpaywall(filepath, reprocess=True)
+
+        # Then processBatch is executed on
+        mock_processBatch.assert_called_with([expected_url], [expected_filename], [expected_entrie])
 
     @mock.patch.object(uuid, 'uuid4')
     @mock.patch.object(OAHarvester, 'processBatch')
