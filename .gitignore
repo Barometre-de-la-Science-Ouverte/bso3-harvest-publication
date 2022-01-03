@@ -143,6 +143,7 @@ target
 *.tar.gz
 *.gz
 data/
+tmp/
 !data/.gitkeep
 my_config.*
 OAHarvesterStreaming.py

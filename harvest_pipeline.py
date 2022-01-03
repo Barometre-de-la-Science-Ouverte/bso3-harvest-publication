@@ -16,11 +16,11 @@ def harvest_partitions(harvester, partitions_dir):
 
 if __name__ == '__main__':
     archive_path = load_metadata()
-    partitions_dir = f'{os.path.dirname(archive_path)}/partitions/'
-    create_partition(archive_path, output=partitions_dir, nb_bins=10)
+    # partitions_dir = f'{os.path.dirname(archive_path)}/partitions/'
+    # create_partition(archive_path, output=partitions_dir, nb_bins=10)
 
     config_harvester = json.load(open(CONFIG_PATH, 'r'))
-    harvester = OAHarvester(config_harvester, thumbnail=False, sample=10)
+    harvester = OAHarvester(config_harvester, thumbnail=False, sample=100)
 
-    harvest_partitions(harvester, partitions_dir)
+    harvester.harvestUnpaywall(archive_path)
     harvester.diagnostic()
