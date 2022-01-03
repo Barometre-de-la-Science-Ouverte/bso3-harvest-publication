@@ -20,6 +20,7 @@ filename_2_publications = [
 
 entries_2_publications = [
     {'id': '8bd660e0-3a6c-4e1e-af55-f85df59c26a6',
+     'doi': '10.1016/j.ijcard.2019.06.030',
      'url': 'https://hal.archives-ouvertes.fr/hal-02159827/file/2019%20gavotto%20etal.%2c%20factor%20associated%20with.pdf',
      'pmh_id': 'oai:HAL:hal-02159827v1', 'is_best': True, 'license': None, 'oa_date': None,
      'updated': '2021-08-07T19:46:58.684476', 'version': 'submittedVersion',
@@ -30,6 +31,7 @@ entries_2_publications = [
      'repository_institution': 'Aix Marseille UniversitÃ© - HAL AMU', 'license_normalized': 'no license',
      'repository_normalized': 'HAL'},
     {'id': 'fb55ffd9-7188-4807-9b3f-e8fa647c9627', 'url': 'http://europepmc.org/articles/pmc6690844?pdf=render',
+     'doi': '10.1377/hlthaff.2018.05165',
      'pmh_id': 'oai:europepmc.org:N4RTCr4p2TpW2odDVyTa', 'is_best': True, 'license': None, 'oa_date': None,
      'updated': None, 'version': 'acceptedVersion', 'evidence': 'oa repository (via OAI-PMH doi match)',
      'host_type': 'repository', 'endpoint_id': 'b5e840539009389b1a6',
