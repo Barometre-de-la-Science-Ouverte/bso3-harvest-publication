@@ -247,9 +247,10 @@ class OAHarvester(object):
             # Prioritize PMC and HAL pdf over publisher one for higher chance of successful download
             for oa_location in latest_observation['oa_locations']:
                 if 'repository_normalized' in oa_location and (oa_location['repository_normalized'] == "PubMed Central" or oa_location['repository_normalized'] == "HAL") and oa_location['url_for_pdf'] != None:
-                    return oa_location['url_for_pdf'], {'id': entry['id'], **oa_location}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+                    return oa_location['url_for_pdf'], {'id': entry['id'], 'doi': entry['doi'], **oa_location}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
                 elif oa_location['is_best'] and oa_location['url_for_pdf']:
-                        return oa_location['url_for_pdf'], {'id': entry['id'], **oa_location}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+                        return oa_location['url_for_pdf'], {'id': entry['id'], 'doi': entry['doi'], **oa_location}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+        raise Continue
 
     def _get_batch_generator(self, filepath, count, reprocess, batch_size=100, filter_out=[]):
         """Reads gzip file and returns batches of processed entries"""
@@ -275,8 +276,7 @@ class OAHarvester(object):
         # LMDB write transaction must be performed in the thread that created the transaction, so
         # better to have the following lmdb updates out of the paralell process
         entries = []
-        for result in results:
-            local_entry = result[1]
+        for result, local_entry in results:
             # conservative check if the downloaded file is of size 0 with a status code sucessful (code: 0),
             # it should not happen *in theory*
             # and check mime type
@@ -293,7 +293,8 @@ class OAHarvester(object):
                     valid_file = True
                     local_entry["valid_fulltext_xml"] = True
 
-            if (result[0] is None or result[0] == "0" or result[0] == "success") and valid_file:
+            if (result is None or result == "0" or result == "success") and valid_file:
+                logging.info(json.dumps({"Stats": {"is_harvested":True, "entry": local_entry}}))
                 # update DB
                 with self.env.begin(write=True) as txn:
                     txn.put(local_entry['id'].encode(encoding='UTF-8'),
@@ -304,7 +305,8 @@ class OAHarvester(object):
 
                 entries.append(local_entry)
             else:
-                logger.info("register harvesting failure: " + result[0])
+                logging.info(json.dumps({"Stats": {"is_harvested":False, "entry": local_entry}}))
+                logger.info("register harvesting failure: " + result)
 
                 # update DB
                 with self.env.begin(write=True) as txn:
@@ -315,7 +317,7 @@ class OAHarvester(object):
                 #    txn_doi.put(local_entry['doi'].encode(encoding='UTF-8'), local_entry['id'].encode(encoding='UTF-8'))
 
                 with self.env_fail.begin(write=True) as txn_fail:
-                    txn_fail.put(local_entry['id'].encode(encoding='UTF-8'), _serialize_pickle({"result": result[0], "url": local_entry['url_for_pdf']}))
+                    txn_fail.put(local_entry['id'].encode(encoding='UTF-8'), _serialize_pickle({"result": result, "url": local_entry['url_for_pdf']}))
 
                 # if an empty pdf or tar file is present, we clean it
                 local_filename = os.path.join(DATA_PATH, local_entry['id'] + ".pdf")
@@ -619,12 +621,12 @@ def _sample_selection(nb_samples, count):
         """
         Random selection corresponding to the requested sample size
         """
-        if nb_samples > 0:
+        if nb_samples > 0 and nb_samples < count:
             selection = sample(range(count), nb_samples)
             selection.sort()
             return selection
         else:
-            raise IndexError('Sample must be greater than 0')
+            raise IndexError('Sample must be greater than 0 and less than the total number of items to sample from')
 
 
 def _apply_selection(batch, selection, current_idx):
@@ -825,7 +827,11 @@ def _download(url, filename, local_entry):
 
 
 def _process_request(scraper, url):
-    file_data = scraper.get(url)
+    if "cairn" in url:
+        headers = {'User-Agent': 'MESRI-Barometre-de-la-Science-Ouverte'}
+        file_data = scraper.get(url, headers=headers)
+    else:
+        file_data = scraper.get(url)
     if file_data.status_code == 200:
         if file_data.text[:5] == '%PDF-':
             return file_data.content
