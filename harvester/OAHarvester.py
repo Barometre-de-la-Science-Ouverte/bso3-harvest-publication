@@ -255,7 +255,7 @@ class OAHarvester(object):
     def _get_batch_generator(self, filepath, count, reprocess, batch_size=100, filter_out=[]):
         """Reads gzip file and returns batches of processed entries"""
         batch = []
-        with gzip.open(filepath, 'rt') as gz:
+        with gzip.open(filepath, 'rt', encoding='utf-8') as gz:
             for line in tqdm(gz, total=count):
                 try:
                     url, entry, filename = self._process_entry(json.loads(line), reprocess, filter_out)
