@@ -13,4 +13,4 @@ typing
 pandas
 testing.postgresql
 python-keystoneclient==4.3.0
-python-magic-bin==0.4.14
+python-magic==0.4.15
