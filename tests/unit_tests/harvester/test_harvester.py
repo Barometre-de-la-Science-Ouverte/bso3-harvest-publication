@@ -31,14 +31,14 @@ class HarvesterSampleSelection(TestCase):
     def test_when_sample_is_4_then_return_list_of_size_4(self):
         nb_sample = 4
         count = 22
-        samples = _sample_selection(nb_sample, count)
+        samples = _sample_selection(nb_sample, count, sample_seed=1)
         self.assertEqual(len(samples), nb_sample)
 
     def test_when_sample_is_0_then_raise_index_error_exception(self):
         sample = 0
         count = 4
         with self.assertRaises(IndexError):
-            samples = _sample_selection(sample, count)
+            samples = _sample_selection(sample, count, sample_seed=1)
 
 
 class HarvesterApplySelection(TestCase):

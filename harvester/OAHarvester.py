@@ -7,29 +7,28 @@ import pickle
 import shutil
 import subprocess
 import tarfile
-import magic
 import time
 import urllib
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from random import sample, choices
-from config.path_config import DATA_PATH
 from datetime import date
+from random import sample, choices, seed
 
 import cloudscraper
-from bs4 import BeautifulSoup
 import lmdb
+import magic
 import requests
+import urllib3
+from bs4 import BeautifulSoup
 from tqdm import tqdm
+
+from config.path_config import DATA_PATH
 from infrastructure.storage import swift
 from logger import logger
-import urllib3
-
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-# init LMDB
 map_size = 10 * 1024 * 1024 * 1024
-logging.basicConfig(filename='../harvester.log', filemode='w', level=logging.DEBUG)
+logging.basicConfig(filename='../logs/harvester.log', filemode='w', level=logging.DEBUG)
 
 logging.getLogger("keystoneclient").setLevel(logging.ERROR)
 logging.getLogger("swiftclient").setLevel(logging.ERROR)
@@ -56,28 +55,22 @@ class Continue(Exception):
 
 class OAHarvester(object):
 
-    def __init__(self, config, thumbnail=False, sample=None):
+    def __init__(self, config, thumbnail=False, sample=None, sample_seed=None):
         self.config = config
 
-        # standard lmdb environment for storing biblio entries by uuid
-        self.env = None
+        self.env = None  # standard lmdb env for storing biblio entries by uuid
+        self.env_doi = None  # lmdb env for storing mapping between doi/pmcid and uuid
+        self.env_fail = None  # lmdb env for keeping track of failures
+        self.thumbnail = thumbnail  # bool indicating if we generate thumbnails of front page of PDF
+        self._init_lmdb()  # init db
+        self.sample = sample  # if not None : only harvest this amount of sample of PDFs
+        self._sample_seed = sample_seed  # sample seed
+        self.swift = None  # swift configuration
 
-        # lmdb environment for storing mapping between doi/pmcid and uuid
-        self.env_doi = None
-
-        # lmdb environment for keeping track of failures
-        self.env_fail = None
-
-        # boolean indicating if we want to generate thumbnails of front page of PDF 
-        self.thumbnail = thumbnail
-        self._init_lmdb()
-
-        # if a sample value is provided, indicate that we only harvest the indicated number of PDF
-        self.sample = sample
-
-        self.swift = None
-        if "swift" in self.config and len(self.config["swift"]) > 0 and "swift_container" in self.config and len(
-                self.config["swift_container"]) > 0:
+        # condition
+        is_swift_config = ("swift" in self.config) and len(self.config["swift"]) > 0 and (
+                    "swift_container" in self.config) and (len(self.config["swift_container"]) > 0)
+        if is_swift_config:
             self.swift = swift.Swift(self.config)
 
     def _init_lmdb(self):
@@ -113,7 +106,7 @@ class OAHarvester(object):
 
         count = _count_entries(gzip.open, filepath)
         if self.sample:
-            selection = _sample_selection(self.sample, count)
+            selection = _sample_selection(self.sample, count, self._sample_seed)
             current_idx = 0
         batch_gen = self._get_batch_generator(filepath, count, reprocess, batch_size_pdf, filter_out)
         for batch in batch_gen:
@@ -149,10 +142,10 @@ class OAHarvester(object):
         selection = None
 
         count = _count_entries(open, filepath)
-        
+
         if self.sample is not None:
             selection = _sample_selection(self.sample, count)
-        
+
         with open(filepath, 'rt') as fp:
             position = 0
             for line in tqdm(fp, total=count):
@@ -246,10 +239,14 @@ class OAHarvester(object):
         if latest_observation['is_oa']:
             # Prioritize PMC and HAL pdf over publisher one for higher chance of successful download
             for oa_location in latest_observation['oa_locations']:
-                if 'repository_normalized' in oa_location and (oa_location['repository_normalized'] == "PubMed Central" or oa_location['repository_normalized'] == "HAL") and oa_location['url_for_pdf'] != None:
-                    return oa_location['url_for_pdf'], {'id': entry['id'], 'doi': entry['doi'], **oa_location}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+                if 'repository_normalized' in oa_location and (
+                        oa_location['repository_normalized'] == "PubMed Central" or oa_location[
+                    'repository_normalized'] == "HAL") and oa_location['url_for_pdf'] != None:
+                    return oa_location['url_for_pdf'], {'id': entry['id'], 'doi': entry['doi'],
+                                                        **oa_location}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
                 elif oa_location['is_best'] and oa_location['url_for_pdf']:
-                        return oa_location['url_for_pdf'], {'id': entry['id'], 'doi': entry['doi'], **oa_location}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+                    return oa_location['url_for_pdf'], {'id': entry['id'], 'doi': entry['doi'],
+                                                        **oa_location}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
         raise Continue
 
     def _get_batch_generator(self, filepath, count, reprocess, batch_size=100, filter_out=[]):
@@ -294,7 +291,7 @@ class OAHarvester(object):
                     local_entry["valid_fulltext_xml"] = True
 
             if (result is None or result == "0" or result == "success") and valid_file:
-                logging.info(json.dumps({"Stats": {"is_harvested":True, "entry": local_entry}}))
+                logging.info(json.dumps({"Stats": {"is_harvested": True, "entry": local_entry}}))
                 # update DB
                 with self.env.begin(write=True) as txn:
                     txn.put(local_entry['id'].encode(encoding='UTF-8'),
@@ -305,7 +302,7 @@ class OAHarvester(object):
 
                 entries.append(local_entry)
             else:
-                logging.info(json.dumps({"Stats": {"is_harvested":False, "entry": local_entry}}))
+                logging.info(json.dumps({"Stats": {"is_harvested": False, "entry": local_entry}}))
                 logger.info("register harvesting failure: " + result)
 
                 # update DB
@@ -317,7 +314,8 @@ class OAHarvester(object):
                 #    txn_doi.put(local_entry['doi'].encode(encoding='UTF-8'), local_entry['id'].encode(encoding='UTF-8'))
 
                 with self.env_fail.begin(write=True) as txn_fail:
-                    txn_fail.put(local_entry['id'].encode(encoding='UTF-8'), _serialize_pickle({"result": result, "url": local_entry['url_for_pdf']}))
+                    txn_fail.put(local_entry['id'].encode(encoding='UTF-8'),
+                                 _serialize_pickle({"result": result, "url": local_entry['url_for_pdf']}))
 
                 # if an empty pdf or tar file is present, we clean it
                 local_filename = os.path.join(DATA_PATH, local_entry['id'] + ".pdf")
@@ -423,7 +421,7 @@ class OAHarvester(object):
 
             except:
                 logger.error("Error writing on SWIFT object storage")
-        
+
         else:
             # save under local storage indicated by data_path in the config json
             try:
@@ -617,16 +615,17 @@ class OAHarvester(object):
         print(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
 
 
-def _sample_selection(nb_samples, count):
-        """
+def _sample_selection(nb_samples, count, sample_seed):
+    """
         Random selection corresponding to the requested sample size
         """
-        if nb_samples > 0 and nb_samples < count:
-            selection = sample(range(count), nb_samples)
-            selection.sort()
-            return selection
-        else:
-            raise IndexError('Sample must be greater than 0 and less than the total number of items to sample from')
+    if 0 < nb_samples < count:
+        seed(sample_seed)
+        selection = sample(range(count), nb_samples)
+        selection.sort()
+        return selection
+    else:
+        raise IndexError('Sample must be greater than 0 and less than the total number of items to sample from')
 
 
 def _apply_selection(batch, selection, current_idx):

@@ -15,10 +15,11 @@ def harvest_partitions(harvester, partitions_dir):
 
 
 if __name__ == '__main__':
-    archive_path = load_metadata()
+    # archive_path = load_metadata()
+    archive_path = './tmp/bso-publications-staging_20211119_sample_5k.jsonl.gz'
 
     config_harvester = json.load(open(CONFIG_PATH, 'r'))
-    harvester = OAHarvester(config_harvester, thumbnail=False, sample=10)
+    harvester = OAHarvester(config_harvester, thumbnail=False, sample=100, sample_seed=1)
 
     harvester.harvestUnpaywall(archive_path)
     harvester.diagnostic()
