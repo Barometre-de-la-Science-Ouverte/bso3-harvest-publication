@@ -65,6 +65,14 @@ def list_files(container: str, path: str = '') -> List:
         print(e)
 
 
+def delete_object(container: str, folder: str) -> None:
+    connection = get_connection()
+    cont = connection.get_container(container)
+    for n in [e['name'] for e in cont[1] if folder in e['name']]:
+        print(n)
+        connection.delete_object(container, n)
+
+
 def download_object(container: str, filename: str, out: str) -> None:
     logger.debug(f'Downloading {filename} from {container} to {out}')
     cmd = init_cmd + f' download {container} {filename} -o {out}'
