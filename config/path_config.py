@@ -9,3 +9,4 @@ LOG_PATH = os.path.join(PROJECT_DIRNAME, os.path.join('logs', 'logger.log'))
 
 # Urls
 OVH_AUTH_URL = 'https://auth.cloud.ovh.net/v3'
+CONTAINER_METADATA = 'bso_dump'
