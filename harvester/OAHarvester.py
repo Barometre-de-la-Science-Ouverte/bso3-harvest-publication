@@ -22,13 +22,14 @@ import urllib3
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from config.path_config import DATA_PATH
+from config.path_config import DATA_PATH, PROJECT_DIRNAME
 from infrastructure.storage import swift
 from logger import logger
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 map_size = 10 * 1024 * 1024 * 1024
-logging.basicConfig(filename='logs/harvester.log', filemode='w', level=logging.DEBUG)
+log_path = os.path.join(PROJECT_DIRNAME,'logs', 'harvester.log')
+logging.basicConfig(filename=log_path, filemode='w', level=logging.DEBUG)
 
 logging.getLogger("keystoneclient").setLevel(logging.ERROR)
 logging.getLogger("swiftclient").setLevel(logging.ERROR)
