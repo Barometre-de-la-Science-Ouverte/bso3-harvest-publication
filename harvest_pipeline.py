@@ -9,11 +9,9 @@ if __name__ == '__main__':
     # archive_path = load_metadata()
 
     config_harvester = json.load(open(CONFIG_PATH, 'r'))
-    harvester = OAHarvester(config_harvester, thumbnail=False, sample=3000, sample_seed=1)
+    harvester = OAHarvester(config_harvester, thumbnail=False, sample=5, sample_seed=1)
 
-    filenames = [os.path.join('tmp', 'BSO', 'domaines', f) for f in os.listdir('tmp/BSO/domaines')]
+    metadata_file = 'tmp/bso-publications-staging_20211119_sample_5k.jsonl.gz'
 
-    # harvesting
-    for file in filenames:
-        harvester.harvestUnpaywall(file)
-        harvester.diagnostic()
+    harvester.harvestUnpaywall(metadata_file)
+    harvester.diagnostic()
