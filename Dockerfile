@@ -9,17 +9,21 @@ FROM python:3.8
 # setting locale is likely useless but to be sure
 ENV LANG C.UTF-8
 
-USER root
+# USER root
 
 RUN python3 -m pip install pip --upgrade
 
-# copy project
-COPY *.py /opt/
-COPY config/config.json /opt/
-COPY requirements.txt /opt/
-RUN mkdir /opt/data
+WORKDIR /src
 
-WORKDIR /opt
+# copy project
+COPY *.py /src/
+COPY config/config.json /src/
+COPY requirements.txt /src/
+
+RUN mkdir /src/data
+RUN mkdir /src/tmp
+COPY /tmp/* /src/tmp/
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 # for interactive CLI usage of the image 
