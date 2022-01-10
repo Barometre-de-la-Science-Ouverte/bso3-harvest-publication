@@ -1,13 +1,11 @@
 import json
+import os
 
 from flask import Flask, jsonify
 
-from config.path_config import CONFIG_PATH
+from config.path_config import CONFIG_PATH, PROJECT_DIRNAME
 from harvester.OAHarvester import OAHarvester
-from load_metadata import load_metadata
-
-# DATE_FORMAT = '%Y/%m/%d'
-# DEFAULT_TIMEOUT = 36000
+# from load_metadata import load_metadata
 
 app = Flask(__name__)
 
@@ -16,7 +14,8 @@ def run_task_unpaywall():
     """
     Harvest data from unpaywall
     """
-    archive_path = load_metadata()
+    # archive_path = load_metadata()
+    archive_path = os.path.join(PROJECT_DIRNAME, 'tmp', 'bso-publications-staging_20211119_sample_5k.jsonl.gz')
     config_harvester = json.load(open(CONFIG_PATH, 'r'))
     harvester = OAHarvester(config_harvester, thumbnail=False, sample=100, sample_seed=1)
     harvester.harvestUnpaywall(archive_path)
