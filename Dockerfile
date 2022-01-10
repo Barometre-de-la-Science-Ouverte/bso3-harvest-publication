@@ -16,7 +16,7 @@ RUN python3 -m pip install pip --upgrade
 WORKDIR /src
 
 # copy project
-COPY *.py /src/
+COPY **.py /src/
 COPY config/config.json /src/
 COPY requirements.txt /src/
 
