@@ -16,15 +16,16 @@ RUN python3 -m pip install pip --upgrade
 WORKDIR /src
 
 # copy project
-COPY **.py /src/
-COPY config/config.json /src/
-COPY requirements.txt /src/
+COPY config.json .
+COPY requirements.txt .
 
 RUN mkdir /src/data
 RUN mkdir /src/tmp
 COPY /tmp/* /src/tmp/
 
 RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
 
 # for interactive CLI usage of the image 
 CMD ["bash"]
