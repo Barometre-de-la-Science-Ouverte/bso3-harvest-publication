@@ -152,5 +152,4 @@ dump.json*
 map.json*
 failures.csv
 config/config_local.json
-config.json
 

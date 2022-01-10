@@ -28,7 +28,7 @@ from logger import logger
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 map_size = 10 * 1024 * 1024 * 1024
-logging.basicConfig(filename='../logs/harvester.log', filemode='w', level=logging.DEBUG)
+logging.basicConfig(filename='logs/harvester.log', filemode='w', level=logging.DEBUG)
 
 logging.getLogger("keystoneclient").setLevel(logging.ERROR)
 logging.getLogger("swiftclient").setLevel(logging.ERROR)

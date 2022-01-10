@@ -96,3 +96,13 @@ def get_objects(container: str, path: str) -> list:
         print(e)
         df = pd.DataFrame([])
     return df.to_dict('records')
+
+
+def put_object(container: str, path: str) -> list:
+    try:
+        connection = get_connection()
+        df = pd.read_json(BytesIO(connection.get_object(container, path)[1]), compression='gzip')
+    except Exception as e:
+        print(e)
+        df = pd.DataFrame([])
+    return df.to_dict('records')

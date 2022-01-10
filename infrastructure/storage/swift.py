@@ -41,6 +41,7 @@ class Swift(object):
 
     def _init_swift_options(self):
         options = {}
+        print(self.config["swift"])
         for key in self.config["swift"]:
             if len(self.config["swift"][key].strip()) > 0:
                 options[key] = self.config["swift"][key]
@@ -70,6 +71,7 @@ class Swift(object):
                     else:
                         logger.error("%s" % error)
         except SwiftError:
+            print('error uploading file to SWIFT container')
             logger.exception("error uploading file to SWIFT container")
 
     def upload_files_to_swift(self, file_paths, dest_path=None):
@@ -90,6 +92,7 @@ class Swift(object):
 
         try:
             for result in self.swift.upload(self.config["swift_container"], objs):
+                print(result)
                 if not result['success']:
                     error = result['error']
                     if result['action'] == "upload_object":
