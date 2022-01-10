@@ -7,20 +7,17 @@ from sqlalchemy.engine import Engine
 
 from config.path_config import CONFIG_PATH, PROJECT_DIRNAME
 
-if os.path.isfile(CONFIG_PATH + '/config_local.json'):
-    with open(CONFIG_PATH + '/config_local.json') as f:
-        config_env = json.load(f)
-else:
-    with open(PROJECT_DIRNAME + '/config.json') as f:
-        config_env = json.load(f)
+with open(PROJECT_DIRNAME + '/config.json') as f:
+    config_env = json.load(f)
 
+IS_DB_LOCAL = str(config_env['is_db_local'])
 DB_USER = config_env['db_user']
 DB_PASSWORD = config_env['db_password']
 DB_HOST = config_env['db_host']
 DB_PORT = config_env['db_port']
 DB_NAME = config_env['db_name']
 
-if os.path.isfile(CONFIG_PATH + '/config_local.json'):
+if IS_DB_LOCAL == "1":
     from testing.postgresql import Postgresql
 
     db: Postgresql = Postgresql()
