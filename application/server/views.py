@@ -2,7 +2,7 @@ from flask import Flask, jsonify
 
 import load_metadata
 from config.harvester_config import config_harvester, NB_SAMPLE_TO_HARVEST
-from config.path_config import INPUT_METADATA_PATH
+from config.path_config import LOCAL_METADATA_PATH
 from config.storage_config import METADATA_DUMP, DESTINATION_DIR_METADATA
 from harvester.OAHarvester import OAHarvester
 from load_metadata import load_metadata
@@ -21,7 +21,7 @@ def run_task_unpaywall():
     if len(METADATA_DUMP) > 0:
         metadata_file = load_metadata(METADATA_DUMP, DESTINATION_DIR_METADATA)
     else:
-        metadata_file = INPUT_METADATA_PATH
+        metadata_file = LOCAL_METADATA_PATH
 
     harvester.harvestUnpaywall(metadata_file)
 
