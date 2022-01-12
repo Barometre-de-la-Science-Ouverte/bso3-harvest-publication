@@ -21,7 +21,7 @@ COPY requirements.txt .
 
 RUN mkdir /src/data
 RUN mkdir /src/tmp
-COPY /tmp/* /src/tmp/
+COPY /tmp /src/tmp
 
 RUN pip install --no-cache-dir -r requirements.txt
 
