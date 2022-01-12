@@ -1,6 +1,6 @@
 import os
 import shutil
-from config.storage_config import PUBLICATIONS_DUMP
+from config.storage_config import METADATA_DUMP, PUBLICATIONS_DUMP
 
 from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
 
@@ -23,7 +23,9 @@ class Swift(object):
                     for item in page["listing"]:
                         i_name = item["name"]
                         container_names.append(i_name)
-                        if i_name == PUBLICATIONS_DUMP:
+                        if i_name == METADATA_DUMP:
+                            print("using input SWIFT", METADATA_DUMP, "container:", item)
+                        elif i_name == PUBLICATIONS_DUMP:
                             print("using output SWIFT", PUBLICATIONS_DUMP, "container:", item)
                 else:
                     logger.error("error listing SWIFT object storage containers")

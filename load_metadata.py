@@ -10,7 +10,7 @@ def load_metadata(input_container, destination_dir):
     Returns the path of the file once downloaded
     """
     swift_handler = Swift(config_harvester)
-    latest_publications_staging = 'bso-publication-20211214.jsonl.gz'
+    latest_publications_staging = 'bso-publications-20211214.jsonl.gz'
 
     if not os.path.isdir(destination_dir):
         os.makedirs(destination_dir)

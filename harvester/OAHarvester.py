@@ -70,8 +70,7 @@ class OAHarvester(object):
         self.input_swift = None  # swift
 
         # condition
-        is_swift_config = ("swift" in self.config) and len(self.config["swift"]) > 0 and (
-                "swift_container" in self.config) and (len(self.config["swift_container"]) > 0)
+        is_swift_config = ("swift" in self.config) and len(self.config["swift"]) > 0
         if is_swift_config:
             self.swift = swift.Swift(self.config)
 
