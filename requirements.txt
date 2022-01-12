@@ -14,4 +14,3 @@ pandas
 testing.postgresql
 python-keystoneclient==4.3.0
 flask
-
