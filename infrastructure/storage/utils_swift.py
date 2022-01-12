@@ -13,7 +13,6 @@ from logger import logger
 path_bso3_env = os.getenv('PATH_ENV_FILE_BSO3')
 load_dotenv(path_bso3_env)
 
-SWIFT_SIZE = 10000
 key = os.getenv('OS_PASSWORD')
 project_name = os.getenv('OS_PROJECT_NAME')
 project_id = os.getenv('OS_TENANT_ID')
