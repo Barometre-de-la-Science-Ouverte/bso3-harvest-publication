@@ -1,29 +1,30 @@
-import json
-import os
-
 from flask import Flask, jsonify
 
-from config.path_config import CONFIG_PATH, PROJECT_DIRNAME
+import load_metadata
+from config.harvester_config import config_harvester, NB_SAMPLE_TO_HARVEST
+from config.path_config import INPUT_METADATA_PATH
+from config.storage_config import METADATA_DUMP, DESTINATION_DIR_METADATA
 from harvester.OAHarvester import OAHarvester
-# from load_metadata import load_metadata
+from load_metadata import load_metadata
 
 app = Flask(__name__)
+
 
 @app.route('/unpaywall', methods=['GET'])
 def run_task_unpaywall():
     """
     Harvest data from unpaywall
     """
-    # archive_path = load_metadata()
-    archive_path = os.path.join(PROJECT_DIRNAME, 'tmp', 'bso-publications-staging_20211119_sample_5k.jsonl.gz')
-    config_harvester = json.load(open(CONFIG_PATH, 'r'))
-    harvester = OAHarvester(config_harvester, thumbnail=False, sample=5, sample_seed=1)
-    harvester.harvestUnpaywall(archive_path)
-    """
-    with Connection(redis.from_url(current_app.config['REDIS_URL'])):
-        q = Queue('unpaywall', default_timeout=DEFAULT_TIMEOUT)
-        task = q.enqueue(harvester.harvestUnpaywall, archive_path)
-    """
+
+    harvester = OAHarvester(config_harvester, thumbnail=False, sample=NB_SAMPLE_TO_HARVEST, sample_seed=1)
+
+    if len(METADATA_DUMP) > 0:
+        metadata_file = load_metadata(METADATA_DUMP, DESTINATION_DIR_METADATA)
+    else:
+        metadata_file = INPUT_METADATA_PATH
+
+    harvester.harvestUnpaywall(metadata_file)
+
     response_object = {
         'status': 'success'
     }
