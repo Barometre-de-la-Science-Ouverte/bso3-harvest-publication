@@ -1,13 +1,13 @@
-import gzip
 import os
-from typing import List
+from io import BytesIO
+
 import pandas as pd
 import swiftclient
-from time import sleep
-from logger import logger
 from dotenv import load_dotenv
+from typing import List
+
 from config.path_config import OVH_AUTH_URL
-from io import BytesIO, TextIOWrapper
+from logger import logger
 
 # load env variables
 path_bso3_env = os.getenv('PATH_ENV_FILE_BSO3')
@@ -33,7 +33,6 @@ init_cmd = f'swift --os-auth-url {OVH_AUTH_URL} --auth-version 3 \
       --os-region-name {region_name}'
 
 conn = None
-buckets = ['bso_dump', 'glutton_oa_harvesting_v2', 'glutton_oa_harvesting_test']
 
 
 def get_connection() -> swiftclient.Connection:

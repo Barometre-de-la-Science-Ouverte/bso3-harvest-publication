@@ -1,13 +1,15 @@
-import csv
-import json
-
-from config.path_config import CONFIG_PATH
+import load_metadata
+from config.harvester_config import config_harvester, NB_SAMPLE_TO_HARVEST
+from config.path_config import INPUT_METADATA_PATH
+from config.storage_config import METADATA_DUMP, DESTINATION_DIR_METADATA
 from harvester.OAHarvester import OAHarvester
 
 if __name__ == '__main__':
-    config_harvester = json.load(open(CONFIG_PATH, 'r'))
-    harvester = OAHarvester(config_harvester, thumbnail=False, sample=3_000, sample_seed=1)
+    harvester = OAHarvester(config_harvester, thumbnail=False, sample=NB_SAMPLE_TO_HARVEST, sample_seed=1)
 
-    metadata_file = './tmp/domaines/Medical_research.jsonl.gz'
+    if len(METADATA_DUMP) > 0:
+        metadata_file = load_metadata(METADATA_DUMP, DESTINATION_DIR_METADATA)
+    else:
+        metadata_file = INPUT_METADATA_PATH
 
     harvester.harvestUnpaywall(metadata_file)

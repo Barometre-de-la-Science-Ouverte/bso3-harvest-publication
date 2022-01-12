@@ -27,5 +27,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# for interactive CLI usage of the image 
+# for interactive CLI usage of the image
 CMD ["bash"]
