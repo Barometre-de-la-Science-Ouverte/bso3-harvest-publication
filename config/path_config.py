@@ -7,5 +7,3 @@ DATA_PATH = os.path.join(PROJECT_DIRNAME, 'data')
 LOG_PATH = os.path.join(PROJECT_DIRNAME, os.path.join('logs', 'logger.log'))
 INPUT_METADATA_PATH = 'tmp/bso-publications-staging_20211119_sample_5k.jsonl.gz'
 
-# Urls
-OVH_AUTH_URL = 'https://auth.cloud.ovh.net/v3'
