@@ -12,4 +12,4 @@ if __name__ == '__main__':
     else:
         metadata_file = INPUT_METADATA_PATH
 
-    harvester.harvestUnpaywall(metadata_file)
+    # harvester.harvestUnpaywall(metadata_file)
