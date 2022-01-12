@@ -84,7 +84,8 @@ A configuration file must be completed, by default the file `config.json` will b
     "crossref_email": "",
     "region": "",
     "swift": {},
-    "swift_container": ""
+    "metadata_dump": "",
+    "publications_dump": ""
 }
 ```
 

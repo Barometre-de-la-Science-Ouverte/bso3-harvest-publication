@@ -23,12 +23,13 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 from config.path_config import DATA_PATH, PROJECT_DIRNAME
+from config.storage_config import PUBLICATIONS_DUMP
 from infrastructure.storage import swift
 from logger import logger
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 map_size = 10 * 1024 * 1024 * 1024
-log_path = os.path.join(PROJECT_DIRNAME,'logs', 'harvester.log')
+log_path = os.path.join(PROJECT_DIRNAME, 'logs', 'harvester.log')
 logging.basicConfig(filename=log_path, filemode='w', level=logging.DEBUG)
 
 logging.getLogger("keystoneclient").setLevel(logging.ERROR)
@@ -66,7 +67,7 @@ class OAHarvester(object):
         self._init_lmdb()  # init db
         self.sample = sample  # if not None : only harvest this amount of sample of PDFs
         self._sample_seed = sample_seed  # sample seed
-        self.swift = None  # swift configuration
+        self.input_swift = None  # swift
 
         # condition
         is_swift_config = ("swift" in self.config) and len(self.config["swift"]) > 0 and (
@@ -304,9 +305,6 @@ class OAHarvester(object):
                     txn.put(local_entry['id'].encode(encoding='UTF-8'),
                             _serialize_pickle(_create_map_entry(local_entry)))
 
-                    # with self.env_doi.begin(write=True) as txn_doi:
-                #    txn_doi.put(local_entry['doi'].encode(encoding='UTF-8'), local_entry['id'].encode(encoding='UTF-8'))
-
                 entries.append(local_entry)
             else:
                 logging.info(json.dumps({"Stats": {"is_harvested": False, "entry": local_entry}}))
@@ -316,9 +314,6 @@ class OAHarvester(object):
                 with self.env.begin(write=True) as txn:
                     txn.put(local_entry['id'].encode(encoding='UTF-8'),
                             _serialize_pickle(_create_map_entry(local_entry)))
-
-                    # with self.env_doi.begin(write=True) as txn_doi:
-                #    txn_doi.put(local_entry['doi'].encode(encoding='UTF-8'), local_entry['id'].encode(encoding='UTF-8'))
 
                 with self.env_fail.begin(write=True) as txn_fail:
                     txn_fail.put(local_entry['id'].encode(encoding='UTF-8'),
@@ -424,7 +419,7 @@ class OAHarvester(object):
                         files_to_upload.append(thumb_file_large)
 
                 if len(files_to_upload) > 0:
-                    self.swift.upload_files_to_swift(files_to_upload, dest_path)
+                    self.swift.upload_files_to_swift(PUBLICATIONS_DUMP, files_to_upload, dest_path)
 
             except:
                 logger.error("Error writing on SWIFT object storage")
@@ -485,89 +480,6 @@ class OAHarvester(object):
         except IOError:
             logger.exception("temporary file cleaning failed")
 
-    def dump(self, dump_file, fail_file=None):
-        """
-        Write a catalogue for the harvested Open Access resources, mapping all the OA UUID with strong identifiers
-        (doi, pimd, ...). Optionally, write an additional file with only havesting failures for OA entries.
-        """
-
-        # init lmdb transactions
-        txn = self.env.begin(write=True)
-
-        nb_total = txn.stat()['entries']
-        print("number of entries with OA link:", nb_total)
-
-        file_out_fail = None
-        if fail_file is not None:
-            try:
-                file_out_fail = open(fail_file, 'w')
-            except:
-                logger.exception("Could not open dump file for harvesting fail failure report")
-
-        with open(dump_file, 'w') as file_out:
-            # iterate over lmdb
-            cursor = txn.cursor()
-            for key, value in cursor:
-                if txn.get(key) is None:
-                    continue
-                map_entry = _deserialize_pickle(txn.get(key))
-                map_entry["id"] = key.decode(encoding='UTF-8')
-
-                json_local_entry = json.dumps(map_entry)
-                file_out.write(json_local_entry)
-                file_out.write("\n")
-
-                if file_out_fail is not None:
-                    if 'resources' in json_local_entry and not 'pdf' in json_local_entry['resources'] and not 'xml' in \
-                                                                                                              json_local_entry[
-                                                                                                                  'resources']:
-                        file_out_fail.write(json.dumps(map_entry))
-                        file_out_fail.write("\n")
-
-        if file_out_fail is not None:
-            file_out_fail.close()
-
-        if self.config["compression"]:
-            subprocess.check_call(['gzip', '-f', dump_file])
-            dump_file += ".gz"
-            if fail_file is not None:
-                subprocess.check_call(['gzip', '-f', fail_file])
-                fail_file += ".gz"
-
-        if self.swift is not None:
-            # we back-up existing map file on the SWIFT container
-            dump_file_name = os.path.basename(dump_file)
-            shutil.move(dump_file, dump_file + ".new")
-            try:
-                path_for_old = os.path.join(DATA_PATH, dump_file_name + ".old")
-                # TBD: check if the file exists to avoid the 404 exception
-                self.swift.download_file(dump_file_name, path_for_old)
-                self.swift.upload_file_to_swift(path_for_old, None)
-            except:
-                logger.debug("no map file on SWIFT object storage")
-            shutil.move(dump_file + ".new", dump_file)
-
-            # new map file to SWIFT object storage
-            try:
-                if os.path.isfile(dump_file):
-                    self.swift.upload_file_to_swift(dump_file, None)
-            except:
-                logger.error("Error writing on SWIFT object storage")
-
-        # always save under local storage indicated by data_path in the config json, and backup the previous one
-        try:
-            # back-up previous map file: rename existing one as .old
-            dump_file_name = os.path.basename(dump_file)
-            if os.path.isfile(os.path.join(DATA_PATH, dump_file_name)):
-                shutil.move(os.path.join(DATA_PATH, dump_file_name),
-                            os.path.join(DATA_PATH, dump_file_name + ".old"))
-
-            if os.path.isfile(dump_file):
-                shutil.copyfile(dump_file, os.path.join(DATA_PATH, dump_file_name))
-
-        except IOError:
-            logger.exception("invalid path")
-
     def reset(self):
         """
         Remove the local lmdb keeping track of the state of advancement of the harvesting and
@@ -606,7 +518,7 @@ class OAHarvester(object):
         # if used, SWIFT object storage
         if self.swift is not None:
             try:
-                self.swift.remove_all_files()
+                self.swift.remove_all_files(PUBLICATIONS_DUMP)
             except:
                 logger.error("Error resetting SWIFT object storage")
 

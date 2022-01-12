@@ -1,5 +1,5 @@
 import os
-import shutil
+from config.storage_config import PUBLICATIONS_DUMP
 
 from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
 
@@ -22,22 +22,23 @@ class Swift(object):
                     for item in page["listing"]:
                         i_name = item["name"]
                         container_names.append(i_name)
-                        if i_name == self.config["swift_container"]:
-                            print("using SWIFT", self.config["swift_container"], "container:", item)
+                        if i_name == PUBLICATIONS_DUMP:
+                            print("using output SWIFT", PUBLICATIONS_DUMP, "container:", item)
                 else:
                     logger.error("error listing SWIFT object storage containers")
 
         except SwiftError as e:
             logger.exception("error listing containers")
 
-        if self.config["swift_container"] not in container_names:
+        if PUBLICATIONS_DUMP not in container_names:
             # create the container
             try:
-                self.swift.post(container=self.config["swift_container"])
+                self.swift.post(container=PUBLICATIONS_DUMP)
             except SwiftError:
-                logger.exception("error creating SWIFT object storage container " + self.config["swift_container"])
+                logger.exception(
+                    "error creating SWIFT object storage container " + PUBLICATIONS_DUMP)
         else:
-            logger.debug("container already exists on SWIFT object storage: " + self.config["swift_container"])
+            logger.debug("container already exists on SWIFT object storage: " + PUBLICATIONS_DUMP)
 
     def _init_swift_options(self):
         options = {}
@@ -47,34 +48,7 @@ class Swift(object):
                 options[key] = self.config["swift"][key]
         return options
 
-    def upload_file_to_swift(self, file_path, dest_path=None):
-        """
-        Upload the given file to current SWIFT object storage container
-        """
-        objs = []
-
-        # file object
-        file_name = os.path.basename(file_path)
-        object_name = file_name
-        if dest_path is not None:
-            object_name = dest_path + "/" + file_name
-
-        obj = SwiftUploadObject(file_path, object_name=object_name)
-        objs.append(obj)
-        try:
-            for result in self.swift.upload(self.config["swift_container"], objs):
-                if not result['success']:
-                    error = result['error']
-                    if result['action'] == "upload_object":
-                        logger.error("Failed to upload object %s to container %s: %s" % (
-                            self.config["swift_container"], result['object'], error))
-                    else:
-                        logger.error("%s" % error)
-        except SwiftError:
-            print('error uploading file to SWIFT container')
-            logger.exception("error uploading file to SWIFT container")
-
-    def upload_files_to_swift(self, file_paths, dest_path=None):
+    def upload_files_to_swift(self, container, file_paths, dest_path=None):
         """
         Bulk upload of a list of files to current SWIFT object storage container under the same destination path
         """
@@ -91,90 +65,35 @@ class Swift(object):
             objs.append(obj)
 
         try:
-            for result in self.swift.upload(self.config["swift_container"], objs):
+            for result in self.swift.upload(container, objs):
                 print(result)
                 if not result['success']:
                     error = result['error']
                     if result['action'] == "upload_object":
                         logger.error("Failed to upload object %s to container %s: %s" % (
-                            self.config["swift_container"], result['object'], error))
+                            container, result['object'], error))
                     else:
                         logger.error("%s" % error)
         except SwiftError:
             logger.exception("error uploading file to SWIFT container")
 
-    def download_file(self, file_path, dest_path):
-        """
-        Download a file given a path and returns the download destination file path.
-        """
-        objs = [file_path]
-        try:
-            for down_res in self.swift.download(container=self.config["swift_container"], objects=objs):
-                if down_res['success']:
-                    # print("'%s' downloaded" % down_res['object'])
-                    local_path = down_res['path']
-                    # print(local_path)
-                    shutil.move(local_path, dest_path)
-                else:
-                    logger.error("'%s' download failed" % down_res['object'])
-        except SwiftError:
-            logger.exception("error downloading file from SWIFT container")
-
-    def get_swift_list(self, dir_name=None):
-        """
-        Return all contents of a given dir in SWIFT object storage.
-        Goes through the pagination to obtain all file names.
-
-        afaik, this is terribly inefficient, as we have to go through all the objects of the storage.
-        """
-        result = []
-        try:
-            list_parts_gen = self.swift.list(container=self.config["swift_container"])
-            for page in list_parts_gen:
-                if page["success"]:
-                    for item in page["listing"]:
-                        if dir_name is None or item["name"].startswith(dir_name):
-                            result.append(item["name"])
-                else:
-                    logger.error(page["error"])
-        except SwiftError as e:
-            logger.error(e.value)
-        return result
-
-    def remove_file(self, file_path):
-        """
-        Remove an existing file on the SWIFT object storage
-        """
-        try:
-            objs = [file_path]
-            for result in self.swift.delete(self.config["swift_container"], objs):
-                if not result['success']:
-                    error = result['error']
-                    if result['action'] == "delete_object":
-                        logger.error("Failed to delete object %s from container %s: %s" % (
-                            self.config["swift_container"], result['object'], error))
-                    else:
-                        logger.error("%s" % error)
-        except SwiftError:
-            logger.exception("error removing file from SWIFT container")
-
-    def remove_all_files(self):
+    def remove_all_files(self, container):
         """
         Remove all the existing files on the SWIFT object storage
         """
         try:
-            list_parts_gen = self.swift.list(container=self.config["swift_container"])
+            list_parts_gen = self.swift.list(container=container)
             for page in list_parts_gen:
                 if page["success"]:
                     to_delete = []
                     for item in page["listing"]:
                         to_delete.append(item["name"])
-                    for del_res in self.swift.delete(container=self.config["swift_container"], objects=to_delete):
+                    for del_res in self.swift.delete(container=container, objects=to_delete):
                         if not del_res['success']:
                             error = del_res['error']
                             if del_res['action'] == "delete_object":
                                 logger.error("Failed to delete object %s from container %s: %s" % (
-                                    self.config["swift_container"], del_res['object'], error))
+                                    container, del_res['object'], error))
                             else:
                                 logger.error("%s" % error)
         except SwiftError:
