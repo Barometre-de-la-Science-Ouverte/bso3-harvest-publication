@@ -17,7 +17,7 @@ def run_task_unpaywall():
     # archive_path = load_metadata()
     archive_path = os.path.join(PROJECT_DIRNAME, 'tmp', 'bso-publications-staging_20211119_sample_5k.jsonl.gz')
     config_harvester = json.load(open(CONFIG_PATH, 'r'))
-    harvester = OAHarvester(config_harvester, thumbnail=False, sample=100, sample_seed=1)
+    harvester = OAHarvester(config_harvester, thumbnail=False, sample=5, sample_seed=1)
     harvester.harvestUnpaywall(archive_path)
     """
     with Connection(redis.from_url(current_app.config['REDIS_URL'])):
