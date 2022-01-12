@@ -10,16 +10,18 @@ import pandas as pd
 DATA_PATH = './data'
 
 
-def make_stats_file_from_logs(log_filepath, stats_filepath):
+def extract_stats_from_logs(log_filepath):
     with open(log_filepath, "r") as f:
-        stats = [json.loads(line.lstrip('INFO:root:').rstrip('\n')) for line in f.readlines() if line.startswith('INFO:root:{"Stats"')]
-    with open(stats_filepath, "w") as f:
-        for line in stats:
+        return [json.loads(line.lstrip('INFO:root:').rstrip('\n'))['Stats'] for line in f.readlines() if line.startswith('INFO:root:{"Stats"')]
+
+def write_jsonl(data, filepath):
+    with open(filepath, "w") as f:
+        for line in data:
             f.write(json.dumps(line) + '\n')
 
 def read_stats_file(file_path):
     with open(file_path, "r") as f:
-        return [json.loads(line)["Stats"] for line in f.readlines()]
+        return [json.loads(line) for line in f.readlines()]
 
 def summary(stats):
     nb_harvested = sum([int(stat['is_harvested']) for stat in stats])
@@ -35,8 +37,9 @@ def domain_stats(stats):
 
 if __name__ == "__main__":
     log_filepath = './logs/harvester.log'
-    stats_filepath = "./logs/stats.jsonl"
-    make_stats_file_from_logs(log_filepath, stats_filepath)
-    stats = read_stats_file(stats_filepath)
+    stats_filepath = './logs/stats.jsonl'
+    stats = extract_stats_from_logs(log_filepath)
+    write_jsonl(stats, stats_filepath)
+    # stats = read_stats_file(stats_filepath)
     summary(stats)
     domain_stats(stats).to_csv('domains_stats.csv')
