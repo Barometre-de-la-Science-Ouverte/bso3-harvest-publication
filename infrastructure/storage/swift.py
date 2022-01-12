@@ -1,4 +1,5 @@
 import os
+import shutil
 from config.storage_config import PUBLICATIONS_DUMP
 
 from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
@@ -98,3 +99,38 @@ class Swift(object):
                                 logger.error("%s" % error)
         except SwiftError:
             logger.exception("error removing all files from SWIFT container")
+
+    def download_file(self, container, file_path, dest_path):
+        """
+        Download a file given a path and returns the download destination file path.
+        """
+        objs = [file_path]
+        try:
+            for down_res in self.swift.download(container=container, objects=objs):
+                if down_res['success']:
+                    local_path = down_res['path']
+                    shutil.move(local_path, dest_path)
+                else:
+                    logger.error("'%s' download failed" % down_res['object'])
+        except SwiftError:
+            logger.exception("error downloading file from SWIFT container")
+
+    def get_swift_list(self, container, dir_name=None):
+        """
+        Return all contents of a given dir in SWIFT object storage.
+        Goes through the pagination to obtain all file names.
+        afaik, this is terribly inefficient, as we have to go through all the objects of the storage.
+        """
+        result = []
+        try:
+            list_parts_gen = self.swift.list(container=container)
+            for page in list_parts_gen:
+                if page["success"]:
+                    for item in page["listing"]:
+                        if dir_name is None or item["name"].startswith(dir_name):
+                            result.append(item["name"])
+                else:
+                    logger.error(page["error"])
+        except SwiftError as e:
+            logger.error(e.value)
+        return result
