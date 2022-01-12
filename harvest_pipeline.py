@@ -1,4 +1,4 @@
-import load_metadata
+from load_metadata import load_metadata
 from config.harvester_config import config_harvester, NB_SAMPLE_TO_HARVEST
 from config.path_config import INPUT_METADATA_PATH
 from config.storage_config import METADATA_DUMP, DESTINATION_DIR_METADATA

@@ -28,7 +28,7 @@ from infrastructure.storage import swift
 from logger import logger
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-map_size = 10 * 1024 * 1024 * 1024
+map_size = 5 * 1024 * 1024 * 1024 #
 log_path = os.path.join(PROJECT_DIRNAME, 'logs', 'harvester.log')
 logging.basicConfig(filename=log_path, filemode='w', level=logging.DEBUG)
 
