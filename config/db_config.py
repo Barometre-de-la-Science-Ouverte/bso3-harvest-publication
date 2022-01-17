@@ -4,9 +4,6 @@ from sqlalchemy.engine import Engine
 
 from config.harvester_config import config_harvester
 
-# lmdb config
-LMDB_RESERVATION_SIZE = 5 * 1024 * 1024
-
 # postgre config
 IS_DB_LOCAL = str(config_harvester['is_db_local'])
 DB_USER = config_harvester['db_user']

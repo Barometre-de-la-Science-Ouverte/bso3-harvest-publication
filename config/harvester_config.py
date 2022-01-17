@@ -1,5 +1,6 @@
 import json
 import os
+from dotenv import load_dotenv
 from config.path_config import CONFIG_PATH, CONFIG_PATH_TEST
 
 try:
@@ -7,5 +8,36 @@ try:
 except FileNotFoundError:
     config_harvester = json.load(open(CONFIG_PATH_TEST, 'r'))
 
-NB_SAMPLE_TO_HARVEST = config_harvester['nb_samples_to_harvest']
+try:
+    load_dotenv()
+except:
+    print('File .env not found')
 
+# Add env var secrets & pwd for swift - ovh
+config_harvester['swift'] = {}
+config_harvester['swift']['auth_version'] = os.getenv('AUTH_VERSION')
+config_harvester['swift']['auth_url'] = os.getenv('AUTH_URL')
+config_harvester['swift']['user'] = os.getenv('USER')
+config_harvester['swift']['os_username'] = os.getenv('OS_USERNAME')
+config_harvester['swift']['os_password'] = os.getenv('OS_PASSWORD')
+config_harvester['swift']['key'] = os.getenv('KEY')
+config_harvester['swift']['os_user_domain_name'] = os.getenv('OS_USER_DOMAIN_NAME')
+config_harvester['swift']['os_project_domain_name'] = os.getenv('OS_PROJECT_DOMAIN_NAME')
+config_harvester['swift']['os_project_name'] = os.getenv('OS_PROJECT_NAME')
+config_harvester['swift']['os_project_id'] = os.getenv('OS_PROJECT_ID')
+config_harvester['swift']['os_region_name'] = os.getenv('OS_REGION_NAME')
+config_harvester['swift']['os_auth_url'] = os.getenv('OS_AUTH_URL')
+
+# Add env var secrets & pwd for database - postgre
+config_harvester['db'] = {}
+config_harvester['db']['db_user'] = os.getenv('DB_USER')
+config_harvester['db']['db_password'] = os.getenv('DB_PASSWORD')
+config_harvester['db']['db_host'] = os.getenv('DB_HOST')
+config_harvester['db']['db_port'] = os.getenv('DB_PORT')
+
+# Add env var secrets & pwd for app - flask
+config_harvester['app'] = {}
+config_harvester['app']['flask_app'] = os.getenv('FLASK_APP')
+config_harvester['app']['flask_env'] = os.getenv('FLASK_ENV')
+config_harvester['app']['flask_ip'] = os.getenv('FLASK_IP')
+config_harvester['app']['flask_port'] = os.getenv('FLASK_PORT')

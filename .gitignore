@@ -146,7 +146,6 @@ data/
 tmp/
 !data/.gitkeep
 my_config.*
-config.json
 OAHarvesterStreaming.py
 dump.json*
 map.json*

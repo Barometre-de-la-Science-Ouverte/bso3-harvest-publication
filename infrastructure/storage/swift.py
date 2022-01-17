@@ -1,10 +1,13 @@
 import os
 import shutil
-from config.storage_config import METADATA_DUMP, PUBLICATIONS_DUMP
+from config.harvester_config import config_harvester
 
 from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
 
 from logger import logger
+
+METADATA_DUMP = config_harvester['metadata_dump']
+PUBLICATIONS_DUMP = config_harvester['publications_dump']
 
 
 class Swift(object):
@@ -45,7 +48,6 @@ class Swift(object):
 
     def _init_swift_options(self):
         options = {}
-        print(self.config["swift"])
         for key in self.config["swift"]:
             if len(self.config["swift"][key].strip()) > 0:
                 options[key] = self.config["swift"][key]

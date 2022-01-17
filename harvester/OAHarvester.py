@@ -10,9 +10,9 @@ import tarfile
 import time
 import urllib
 import uuid
-from multiprocessing import cpu_count
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
+from multiprocessing import cpu_count
 from random import sample, choices, seed
 
 import cloudscraper
@@ -24,8 +24,6 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 from config.path_config import DATA_PATH, PROJECT_DIRNAME
-from config.storage_config import PUBLICATIONS_DUMP
-from config.db_config import LMDB_RESERVATION_SIZE
 from infrastructure.storage import swift
 from logger import logger
 
@@ -39,8 +37,7 @@ logging.getLogger("swiftclient").setLevel(logging.ERROR)
 biblio_glutton_url = None
 crossref_base = None
 crossref_email = None
-
-nb_threads = 2 * cpu_count()
+NB_THREADS = 2 * cpu_count()
 
 """
 Harvester for PDF available in open access. a LMDB index is used to keep track of the harvesting process and
@@ -68,9 +65,14 @@ class OAHarvester(object):
         self.env_fail = None  # lmdb env for keeping track of failures
         self.thumbnail = thumbnail  # bool indicating if we generate thumbnails of front page of PDF
         self._init_lmdb()  # init db
-        self.sample = sample  # if not None : only harvest this amount of sample of PDFs
         self._sample_seed = sample_seed  # sample seed
+        self.sample = sample
         self.input_swift = None  # swift
+        self.batch_size = self.config['batch_size']
+
+        # ovh storage metadata input dump and output publications dump
+        self.storage_metadata = config['metadata_dump']
+        self.storage_publications = config['publications_dump']
 
         # condition
         is_swift_config = ("swift" in self.config) and len(self.config["swift"]) > 0
@@ -87,15 +89,16 @@ class OAHarvester(object):
             else:
                 logger.debug("Successfully created the directory %s" % DATA_PATH)
 
+        lmdb_size = self.config['lmdb_size_Go'] * 1024 * 1024
         # open in write mode
         envFilePath = os.path.join(DATA_PATH, 'entries')
-        self.env = lmdb.open(envFilePath, map_size=LMDB_RESERVATION_SIZE)
+        self.env = lmdb.open(envFilePath, map_size=lmdb_size)
 
         envFilePath = os.path.join(DATA_PATH, 'doi')
-        self.env_doi = lmdb.open(envFilePath, map_size=LMDB_RESERVATION_SIZE)
+        self.env_doi = lmdb.open(envFilePath, map_size=lmdb_size)
 
         envFilePath = os.path.join(DATA_PATH, 'fail')
-        self.env_fail = lmdb.open(envFilePath, map_size=LMDB_RESERVATION_SIZE)
+        self.env_fail = lmdb.open(envFilePath, map_size=lmdb_size)
 
     def harvestUnpaywall(self, filepath, reprocess=False, filter_out=[]):
         """
@@ -130,7 +133,7 @@ class OAHarvester(object):
         upload resources on S3 and update the json description of the entries
         """
         if 'batch_size' in self.config:
-            batch_size_pdf = self.config['batch_size']
+            batch_size_pdf = self.batch_size
         else:
             batch_size_pdf = 100
 
@@ -172,10 +175,9 @@ class OAHarvester(object):
                     n += batch_size_pdf
 
                 # one PMC entry per line
-                print(line)
                 tokens = line.split('\t')
                 subpath = tokens[0]
-                print(tokens)
+
                 pmcid = tokens[2]
                 pmid = str(tokens[3])
                 ind = pmid.find(":")
@@ -203,7 +205,7 @@ class OAHarvester(object):
 
                 if subpath is not None:
                     tar_url = pmc_base + subpath
-                    # print(tar_url)
+
                     urls.append(tar_url)
 
                     # entry['id'] = str(uuid.uuid4())
@@ -277,7 +279,7 @@ class OAHarvester(object):
             yield batch
 
     def processBatch(self, urls, filenames, entries):  # , txn, txn_doi, txn_fail):
-        with ThreadPoolExecutor(max_workers=12) as executor:
+        with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
             results = executor.map(_download, urls, filenames, entries, timeout=30)
 
         # LMDB write transaction must be performed in the thread that created the transaction, so
@@ -333,7 +335,7 @@ class OAHarvester(object):
                     os.remove(local_filename)
 
         # finally we can parallelize the thumbnail/upload/file cleaning steps for this batch
-        with ThreadPoolExecutor(max_workers=nb_threads) as executor:
+        with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
             results = executor.map(self.manageFiles, entries, timeout=30)
 
     def getUUIDByIdentifier(self, identifier):
@@ -421,7 +423,7 @@ class OAHarvester(object):
                         files_to_upload.append(thumb_file_large)
 
                 if len(files_to_upload) > 0:
-                    self.swift.upload_files_to_swift(PUBLICATIONS_DUMP, files_to_upload, dest_path)
+                    self.swift.upload_files_to_swift(self.storage_publications, files_to_upload, dest_path)
 
             except:
                 logger.error("Error writing on SWIFT object storage")
@@ -520,7 +522,7 @@ class OAHarvester(object):
         # if used, SWIFT object storage
         if self.swift is not None:
             try:
-                self.swift.remove_all_files(PUBLICATIONS_DUMP)
+                self.swift.remove_all_files(self.storage_publications)
             except:
                 logger.error("Error resetting SWIFT object storage")
 

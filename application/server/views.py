@@ -1,14 +1,17 @@
+import os
+
 from flask import Flask, jsonify
 
 import load_metadata
-from config.harvester_config import config_harvester, NB_SAMPLE_TO_HARVEST
-from config.path_config import LOCAL_METADATA_PATH
-from config.storage_config import METADATA_DUMP, DESTINATION_DIR_METADATA
+from config.harvester_config import config_harvester
+from config.path_config import METADATA_FILE, DESTINATION_DIR_METADATA
 from harvester.OAHarvester import OAHarvester
 from load_metadata import load_metadata
 
-app = Flask(__name__)
+METADATA_DUMP = config_harvester['metadata_dump']
+NB_SAMPLES = config_harvester['nb_samples_to_harvest']
 
+app = Flask(__name__)
 
 @app.route('/unpaywall', methods=['GET'])
 def run_task_unpaywall():
@@ -16,12 +19,14 @@ def run_task_unpaywall():
     Harvest data from unpaywall
     """
 
-    harvester = OAHarvester(config_harvester, thumbnail=False, sample=NB_SAMPLE_TO_HARVEST, sample_seed=1)
+    harvester = OAHarvester(config_harvester, thumbnail=False, sample=NB_SAMPLES, sample_seed=1)
 
     if len(METADATA_DUMP) > 0:
-        metadata_file = load_metadata(METADATA_DUMP, DESTINATION_DIR_METADATA)
+        metadata_file = load_metadata(metadata_container=METADATA_DUMP,
+                                      metadata_file=METADATA_FILE,
+                                      destination_dir=DESTINATION_DIR_METADATA)
     else:
-        metadata_file = LOCAL_METADATA_PATH
+        metadata_file = os.path.join(DESTINATION_DIR_METADATA, METADATA_FILE)
 
     harvester.harvestUnpaywall(metadata_file)
 
