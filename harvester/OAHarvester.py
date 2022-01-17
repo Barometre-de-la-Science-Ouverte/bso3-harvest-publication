@@ -10,6 +10,7 @@ import tarfile
 import time
 import urllib
 import uuid
+from multiprocessing import cpu_count
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from random import sample, choices, seed
@@ -38,6 +39,8 @@ logging.getLogger("swiftclient").setLevel(logging.ERROR)
 biblio_glutton_url = None
 crossref_base = None
 crossref_email = None
+
+nb_threads = 2 * cpu_count()
 
 """
 Harvester for PDF available in open access. a LMDB index is used to keep track of the harvesting process and
@@ -330,7 +333,7 @@ class OAHarvester(object):
                     os.remove(local_filename)
 
         # finally we can parallelize the thumbnail/upload/file cleaning steps for this batch
-        with ThreadPoolExecutor(max_workers=12) as executor:
+        with ThreadPoolExecutor(max_workers=nb_threads) as executor:
             results = executor.map(self.manageFiles, entries, timeout=30)
 
     def getUUIDByIdentifier(self, identifier):

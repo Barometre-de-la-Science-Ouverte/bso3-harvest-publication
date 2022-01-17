@@ -15,6 +15,7 @@ DB_HOST = config_harvester['db_host']
 DB_PORT = config_harvester['db_port']
 DB_NAME = config_harvester['db_name']
 
+"""
 if IS_DB_LOCAL == "1":
     from testing.postgresql import Postgresql
 
@@ -41,3 +42,5 @@ harvested_status_table = Table(
 )
 
 meta.create_all(engine)
+
+"""
