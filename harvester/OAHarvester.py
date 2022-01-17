@@ -24,11 +24,11 @@ from tqdm import tqdm
 
 from config.path_config import DATA_PATH, PROJECT_DIRNAME
 from config.storage_config import PUBLICATIONS_DUMP
+from config.db_config import LMDB_RESERVATION_SIZE
 from infrastructure.storage import swift
 from logger import logger
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-map_size = 5 * 1024 * 1024 * 1024
 log_path = os.path.join(PROJECT_DIRNAME, 'logs', 'harvester.log')
 logging.basicConfig(filename=log_path, filemode='w', level=logging.DEBUG)
 
@@ -86,13 +86,13 @@ class OAHarvester(object):
 
         # open in write mode
         envFilePath = os.path.join(DATA_PATH, 'entries')
-        self.env = lmdb.open(envFilePath, map_size=map_size)
+        self.env = lmdb.open(envFilePath, map_size=LMDB_RESERVATION_SIZE)
 
         envFilePath = os.path.join(DATA_PATH, 'doi')
-        self.env_doi = lmdb.open(envFilePath, map_size=map_size)
+        self.env_doi = lmdb.open(envFilePath, map_size=LMDB_RESERVATION_SIZE)
 
         envFilePath = os.path.join(DATA_PATH, 'fail')
-        self.env_fail = lmdb.open(envFilePath, map_size=map_size)
+        self.env_fail = lmdb.open(envFilePath, map_size=LMDB_RESERVATION_SIZE)
 
     def harvestUnpaywall(self, filepath, reprocess=False, filter_out=[]):
         """

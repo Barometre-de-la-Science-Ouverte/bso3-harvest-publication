@@ -1,21 +1,19 @@
-import json
-import os
-
 import psycopg2
 from sqlalchemy import create_engine, MetaData, Table, Column, String, DateTime, Boolean
 from sqlalchemy.engine import Engine
 
-from config.path_config import CONFIG_PATH, PROJECT_DIRNAME
+from config.harvester_config import config_harvester
 
-with open(PROJECT_DIRNAME + '/config.json') as f:
-    config_env = json.load(f)
+# lmdb config
+LMDB_RESERVATION_SIZE = 5 * 1024 * 1024
 
-IS_DB_LOCAL = str(config_env['is_db_local'])
-DB_USER = config_env['db_user']
-DB_PASSWORD = config_env['db_password']
-DB_HOST = config_env['db_host']
-DB_PORT = config_env['db_port']
-DB_NAME = config_env['db_name']
+# postgre config
+IS_DB_LOCAL = str(config_harvester['is_db_local'])
+DB_USER = config_harvester['db_user']
+DB_PASSWORD = config_harvester['db_password']
+DB_HOST = config_harvester['db_host']
+DB_PORT = config_harvester['db_port']
+DB_NAME = config_harvester['db_name']
 
 if IS_DB_LOCAL == "1":
     from testing.postgresql import Postgresql
@@ -43,5 +41,3 @@ harvested_status_table = Table(
 )
 
 meta.create_all(engine)
-
-

@@ -14,5 +14,6 @@
     "db_password": "",
     "db_host": "db",
     "db_port": "",
-    "db_name": "postgres_db"
+    "db_name": "postgres_db",
+    "is_db_local": 1
 }
