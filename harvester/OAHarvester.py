@@ -68,6 +68,7 @@ class OAHarvester(object):
         self._sample_seed = sample_seed  # sample seed
         self.sample = sample
         self.input_swift = None  # swift
+        self.swift = None
         self.batch_size = self.config['batch_size']
 
         # ovh storage metadata input dump and output publications dump
@@ -341,125 +342,113 @@ class OAHarvester(object):
         with self.env_doi.begin() as txn:
             return txn.get(identifier.encode(encoding='UTF-8'))
 
-    def manageFiles(self, local_entry):
-        # TODO split into >=3 functions thumbnail/upload/file cleaning
-        local_filename = os.path.join(DATA_PATH, local_entry['id'] + ".pdf")
-        local_filename_nxml = os.path.join(DATA_PATH, local_entry['id'] + ".nxml")
-
-        # for metadata
-        local_filename_json = os.path.join(DATA_PATH, local_entry['id'] + ".json")
-        # generate thumbnails
-        if self.thumbnail:
-            try:
-                generate_thumbnail(local_filename)
-            except:
-                logger.exception("error with thumbnail generation: " + local_entry['id'])
-
-        dest_path = os.path.join(generateStoragePath(local_entry['id']), local_entry['id'])
-
-        thumb_file_small = local_filename.replace('.pdf', '-thumb-small.png')
-        thumb_file_medium = local_filename.replace('.pdf', '-thumb-medium.png')
-        thumb_file_large = local_filename.replace('.pdf', '-thumb-large.png')
+    def _generate_thumbnails(self, local_filename, thumb_file_small, local_entry, **kwargs):
+        try:
+            generate_thumbnail(local_filename)
+        except:
+            logger.exception("error with thumbnail generation: " + local_entry['id'])
 
         if os.path.isfile(thumb_file_small):
             local_entry["valid_thumbnails"] = True
 
-        # write metadata file
+    def _compress_files(self, local_filename, local_filename_nxml,
+                        local_filename_json, thumb_file_small, thumb_file_medium,
+                        thumb_file_large, local_entry, compression_suffix='.gz', **kwargs):
+        try:
+            if os.path.isfile(local_filename):
+                compress(local_filename)
+                local_filename += compression_suffix
+
+            if os.path.isfile(local_filename_nxml):
+                compress(local_filename_nxml)
+                local_filename_nxml += compression_suffix
+
+            if os.path.isfile(local_filename_json):
+                compress(local_filename_json)
+                local_filename_json += compression_suffix
+
+            if self.thumbnail:
+                if os.path.isfile(thumb_file_small):
+                    compress(thumb_file_small)
+                    thumb_file_small += compression_suffix
+
+                if os.path.isfile(thumb_file_medium):
+                    compress(thumb_file_medium)
+                    thumb_file_medium += compression_suffix
+
+                if os.path.isfile(thumb_file_large):
+                    compress(thumb_file_large)
+                    thumb_file_large += compression_suffix
+        except:
+            logger.error("Error compressing resource files for " + local_entry['id'])
+
+    def _write_metadata_file(self, local_filename_json, local_entry, **kwargs):
         with open(local_filename_json, 'w') as outfile:
             json.dump(local_entry, outfile)
 
-        compression_suffix = ""
-        if self.config["compression"]:
-            compression_suffix = ".gz"
+    def _upload_files(self, local_filename, local_filename_nxml, local_filename_json,
+                      thumb_file_small, thumb_file_medium, thumb_file_large, dest_path, **kwargs):
+        """Uploads all the resources associated to the entry to SWIFT object storage"""
+        try:
+            files_to_upload = []
+            if os.path.isfile(local_filename):
+                files_to_upload.append(local_filename)
+            if os.path.isfile(local_filename_nxml):
+                files_to_upload.append(local_filename_nxml)
+            if os.path.isfile(local_filename_json):
+                files_to_upload.append(local_filename_json)
 
-            try:
-                if os.path.isfile(local_filename):
-                    subprocess.check_call(['gzip', '-f', local_filename])
-                    local_filename += compression_suffix
+            if self.thumbnail:
+                if os.path.isfile(thumb_file_small):
+                    files_to_upload.append(thumb_file_small)
 
-                if os.path.isfile(local_filename_nxml):
-                    subprocess.check_call(['gzip', '-f', local_filename_nxml])
-                    local_filename_nxml += compression_suffix
+                if os.path.isfile(thumb_file_medium):
+                    files_to_upload.append(thumb_file_medium)
 
-                if os.path.isfile(local_filename_json):
-                    subprocess.check_call(['gzip', '-f', local_filename_json])
-                    local_filename_json += compression_suffix
+                if os.path.isfile(thumb_file_large):
+                    files_to_upload.append(thumb_file_large)
 
-                if self.thumbnail:
-                    if os.path.isfile(thumb_file_small):
-                        subprocess.check_call(['gzip', '-f', thumb_file_small])
-                        thumb_file_small += compression_suffix
+            if len(files_to_upload) > 0:
+                self.swift.upload_files_to_swift(self.storage_publications, files_to_upload, dest_path)
 
-                    if os.path.isfile(thumb_file_medium):
-                        subprocess.check_call(['gzip', '-f', thumb_file_medium])
-                        thumb_file_medium += compression_suffix
+        except:
+            logger.error("Error writing on SWIFT object storage")
 
-                    if os.path.isfile(thumb_file_large):
-                        subprocess.check_call(['gzip', '-f', thumb_file_large])
-                        thumb_file_large += compression_suffix
-            except:
-                logger.error("Error compressing resource files for " + local_entry['id'])
+    def _save_files_locally(self, dest_path, local_filename, local_entry,
+                      local_filename_nxml, local_filename_json, thumb_file_small,
+                      thumb_file_medium, thumb_file_large, compression_suffix, **kwargs):
+        try:
+            local_dest_path = os.path.join(DATA_PATH, dest_path)
+            os.makedirs(local_dest_path, exist_ok=True)
+            if os.path.isfile(local_filename):
+                shutil.copyfile(local_filename,
+                                os.path.join(local_dest_path, local_entry['id'] + ".pdf" + compression_suffix))
+            if os.path.isfile(local_filename_nxml):
+                shutil.copyfile(local_filename_nxml,
+                                os.path.join(local_dest_path, local_entry['id'] + ".nxml" + compression_suffix))
+            if os.path.isfile(local_filename_json):
+                shutil.copyfile(local_filename_json,
+                                os.path.join(local_dest_path, local_entry['id'] + ".json" + compression_suffix))
 
-        if self.swift is not None:
-            # to SWIFT object storage, we can do a bulk upload for all the resources associated to the entry
-            try:
-                files_to_upload = []
-                if os.path.isfile(local_filename):
-                    files_to_upload.append(local_filename)
-                if os.path.isfile(local_filename_nxml):
-                    files_to_upload.append(local_filename_nxml)
-                if os.path.isfile(local_filename_json):
-                    files_to_upload.append(local_filename_json)
+            if self.thumbnail:
+                if os.path.isfile(thumb_file_small):
+                    shutil.copyfile(thumb_file_small, os.path.join(local_dest_path, local_entry[
+                        'id'] + "-thumb-small.png") + compression_suffix)
 
-                if self.thumbnail:
-                    if os.path.isfile(thumb_file_small):
-                        files_to_upload.append(thumb_file_small)
+                if os.path.isfile(thumb_file_medium):
+                    shutil.copyfile(thumb_file_medium, os.path.join(local_dest_path, local_entry[
+                        'id'] + "-thumb-medium.png") + compression_suffix)
 
-                    if os.path.isfile(thumb_file_medium):
-                        files_to_upload.append(thumb_file_medium)
+                if os.path.isfile(thumb_file_large):
+                    shutil.copyfile(thumb_file_large, os.path.join(local_dest_path, local_entry[
+                        'id'] + "-thumb-larger.png") + compression_suffix)
 
-                    if os.path.isfile(thumb_file_large):
-                        files_to_upload.append(thumb_file_large)
+        except IOError:
+            logger.exception("invalid path")
 
-                if len(files_to_upload) > 0:
-                    self.swift.upload_files_to_swift(self.storage_publications, files_to_upload, dest_path)
-
-            except:
-                logger.error("Error writing on SWIFT object storage")
-
-        else:
-            # save under local storage indicated by data_path in the config json
-            try:
-                local_dest_path = os.path.join(DATA_PATH, dest_path)
-
-                os.makedirs(local_dest_path, exist_ok=True)
-                if os.path.isfile(local_filename):
-                    shutil.copyfile(local_filename,
-                                    os.path.join(local_dest_path, local_entry['id'] + ".pdf" + compression_suffix))
-                if os.path.isfile(local_filename_nxml):
-                    shutil.copyfile(local_filename_nxml,
-                                    os.path.join(local_dest_path, local_entry['id'] + ".nxml" + compression_suffix))
-                if os.path.isfile(local_filename_json):
-                    shutil.copyfile(local_filename_json,
-                                    os.path.join(local_dest_path, local_entry['id'] + ".json" + compression_suffix))
-
-                if self.thumbnail:
-                    if os.path.isfile(thumb_file_small):
-                        shutil.copyfile(thumb_file_small, os.path.join(local_dest_path, local_entry[
-                            'id'] + "-thumb-small.png") + compression_suffix)
-
-                    if os.path.isfile(thumb_file_medium):
-                        shutil.copyfile(thumb_file_medium, os.path.join(local_dest_path, local_entry[
-                            'id'] + "-thumb-medium.png") + compression_suffix)
-
-                    if os.path.isfile(thumb_file_large):
-                        shutil.copyfile(thumb_file_large, os.path.join(local_dest_path, local_entry[
-                            'id'] + "-thumb-larger.png") + compression_suffix)
-
-            except IOError:
-                logger.exception("invalid path")
-
-        # clean pdf and thumbnail files
+    def _clean_up_files(self, local_filename, local_entry,
+                      local_filename_nxml, local_filename_json, thumb_file_small,
+                      thumb_file_medium, thumb_file_large, **kwargs):
         try:
             if os.path.isfile(local_filename):
                 os.remove(local_filename)
@@ -482,6 +471,29 @@ class OAHarvester(object):
                     os.remove(thumb_file_large)
         except IOError:
             logger.exception("temporary file cleaning failed")
+
+    def manageFiles(self, local_entry):
+        filepaths = {
+            "dest_path": os.path.join(generateStoragePath(local_entry['id']), local_entry['id']),
+            "local_filename": os.path.join(DATA_PATH, local_entry['id'] + ".pdf"),
+            "local_filename_nxml": os.path.join(DATA_PATH, local_entry['id'] + ".nxml"),
+            "local_filename_json": os.path.join(DATA_PATH, local_entry['id'] + ".json"),
+            "thumb_file_small": os.path.join(DATA_PATH, local_entry['id'] + '-thumb-small.png'),
+            "thumb_file_medium": os.path.join(DATA_PATH, local_entry['id'] + '-thumb-medium.png'),
+            "thumb_file_large": os.path.join(DATA_PATH, local_entry['id'] + '-thumb-large.png'),
+        }
+        if self.thumbnail:
+            self._generate_thumbnails(**filepaths, local_entry=local_entry)
+        self._write_metadata_file(filepaths['local_filename_json'], local_entry)
+        compression_suffix = ""
+        if self.config["compression"]:
+            compression_suffix = ".gz"
+            self._compress_files(**filepaths, local_entry=local_entry, compression_suffix=compression_suffix)
+        if self.swift:
+            self._upload_files(**filepaths)
+        else:
+            self._save_files_locally(**filepaths, local_entry=local_entry, compression_suffix=compression_suffix)
+        self._clean_up_files(**filepaths, local_entry=local_entry)
 
     def reset(self):
         """
@@ -535,6 +547,13 @@ class OAHarvester(object):
             nb_total = txn.stat()['entries']
         logger.info(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
         print(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
+
+
+def compress(file):
+    deflated_file = file + '.gz'
+    with open(file, 'rb') as f_in:
+        with gzip.open(deflated_file, 'wb') as f_out:
+            f_out.write(f_in.read())
 
 
 def _sample_selection(nb_samples, count, sample_seed):
