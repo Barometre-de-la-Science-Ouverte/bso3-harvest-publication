@@ -89,7 +89,7 @@ class OAHarvester(object):
             else:
                 logger.debug("Successfully created the directory %s" % DATA_PATH)
 
-        lmdb_size = self.config['lmdb_size_Go'] * 1024 * 1024
+        lmdb_size = self.config['lmdb_size_Go'] * 1024 * 1024 * 1024
         # open in write mode
         envFilePath = os.path.join(DATA_PATH, 'entries')
         self.env = lmdb.open(envFilePath, map_size=lmdb_size)
