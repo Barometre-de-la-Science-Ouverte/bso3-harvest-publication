@@ -1,13 +1,16 @@
+import abc
 import gzip
 import json
+from subprocess import CalledProcessError
 import unittest
 import os
 from unittest import TestCase, mock
 import uuid
 
-from harvester.OAHarvester import OAHarvester, _count_entries, _sample_selection, _check_entry, Continue, _apply_selection
-from tests.unit_tests.fixtures.harvester import harvester_2_publications, harvester_2_publications_sample, entries_2_publications, \
-    filename_2_publications, urls_2_publications, ids_2_publications, FIXTURES_PATH
+from harvester.OAHarvester import (OAHarvester, _count_entries,\
+                                  _sample_selection, _check_entry, Continue,\
+                                  _apply_selection, compress, generateStoragePath)
+from tests.unit_tests.fixtures.harvester import *
 
 
 class HarvesterCountEntries(TestCase):
@@ -217,6 +220,130 @@ class HarvestUnpaywall(TestCase):
         # Then
         self.assertEquals(entry['id'], expected_id)
 
+class HarvesterManageFiles(TestCase):
+
+    def setUp(self):
+        self.entry = local_entry = entries_2_publications[0]
+        self.DATA_PATH = os.path.join(FIXTURES_PATH, 'manageFiles')
+        self.filepaths = {
+            "dest_path": os.path.join(generateStoragePath(local_entry['id']), local_entry['id']),
+            "local_filename": os.path.join(self.DATA_PATH, local_entry['id'] + ".pdf"),
+            "local_filename_nxml": os.path.join(self.DATA_PATH, local_entry['id'] + ".nxml"),
+            "local_filename_json": os.path.join(self.DATA_PATH, local_entry['id'] + ".json"),
+            "thumb_file_small": os.path.join(self.DATA_PATH, local_entry['id'] + '-thumb-small.png'),
+            "thumb_file_medium": os.path.join(self.DATA_PATH, local_entry['id'] + '-thumb-medium.png'),
+            "thumb_file_large": os.path.join(self.DATA_PATH, local_entry['id'] + '-thumb-large.png'),
+        }
+    
+    def test_generate_thumbnails(self):
+        # On n'utilise pas thumbnail
+        pass
+
+    def test_write_metadata_file(self):
+        # Given
+        local_filename_json = os.path.join(FIXTURES_PATH, 'metadata.json.test')
+        # When
+        harvester_2_publications._write_metadata_file(local_filename_json, self.entry)
+        # Then
+        self.assertTrue(os.path.exists(local_filename_json))
+        with open(local_filename_json, 'r') as f:
+            actual_file_content = json.load(f)
+        self.assertEquals(self.entry, actual_file_content)
+        os.remove(local_filename_json)
+
+    def test_compress_files(self):
+        # Given
+        # When
+        harvester_2_publications._compress_files(**self.filepaths, local_entry=self.entry, compression_suffix='.gz')
+        # Then
+        for var_name, file in self.filepaths.items():
+            if var_name in ['dest_path', 'thumb_file_small', 'thumb_file_medium', 'thumb_file_large']:
+                # thumbnail pas testé car self.Thumbnail = False
+                continue
+            compressed_file = file + '.gz'
+            self.assertTrue(os.path.exists(compressed_file))
+            os.remove(compressed_file)
+
+        pass
+    
+    def test_upload_files(self):
+        # Given
+        harvester_2_publications.swift = abc
+        harvester_2_publications.swift.upload_files_to_swift = mock.MagicMock()
+        # When
+        harvester_2_publications._upload_files(**self.filepaths)
+        # Then
+        harvester_2_publications.swift.upload_files_to_swift.assert_called_with(\
+            harvester_2_publications.storage_publications,\
+            [
+                self.filepaths['local_filename'],
+                self.filepaths['local_filename_nxml'],
+                self.filepaths['local_filename_json'],
+            ],\
+            self.filepaths['dest_path'])
+
+    @mock.patch('harvester.OAHarvester.shutil.copyfile')
+    @mock.patch('harvester.OAHarvester.os.makedirs')
+    def test_save_files_locally(self, mock_makedirs, mock_copyfile):
+        # Given
+        local_dest_path = os.path.join(DATA_PATH, self.filepaths['dest_path'])
+        compression_suffix = ''
+        # When
+        harvester_2_publications._save_files_locally(**self.filepaths, local_entry=self.entry, compression_suffix=compression_suffix)
+        # Then
+        mock_makedirs.assert_called_with(local_dest_path, exist_ok=True)
+        mock_copyfile.assert_called_with(self.filepaths['local_filename_json'], os.path.join(local_dest_path, self.entry['id'] + ".json" + compression_suffix))
+
+    @mock.patch('harvester.OAHarvester.os.remove')
+    def test_clean_up_files(self, mock_remove):
+        # Given
+        # When
+        harvester_2_publications._clean_up_files(**self.filepaths, local_entry=self.entry)
+        # Then
+        mock_remove.assert_called_with(self.filepaths['local_filename_json'])
+
+    @mock.patch('harvester.OAHarvester.OAHarvester._clean_up_files')
+    @mock.patch('harvester.OAHarvester.OAHarvester._save_files_locally')
+    @mock.patch('harvester.OAHarvester.OAHarvester._upload_files')
+    @mock.patch('harvester.OAHarvester.OAHarvester._compress_files')
+    @mock.patch('harvester.OAHarvester.OAHarvester._write_metadata_file')
+    @mock.patch('harvester.OAHarvester.OAHarvester._generate_thumbnails')
+    def test_manageFiles(self, mock_generate_thumbnails, mock_write_metadata_file,
+                         mock_compress_files, mock_upload_files, mock_save_files_locally,
+                         mock_clean_up_files):
+        # Given
+        # When
+        harvester_2_publications.manageFiles(self.entry) 
+        # Then
+        if harvester_2_publications.thumbnail:
+            mock_generate_thumbnails.assert_called()
+        mock_write_metadata_file.assert_called()
+        if harvester_2_publications.config["compression"]:
+            mock_compress_files.assert_called()
+        if harvester_2_publications.swift:
+            mock_upload_files.assert_called()
+        else:
+            mock_save_files_locally.assert_called()
+        mock_clean_up_files.assert_called()
+
+
+        
+
+class HarvesterCompress(TestCase):
+
+    def test_compress(self):
+        # Given
+        expected_pdf_file_compressed = pdf_file + '.gz'
+        with open(pdf_file, 'rb') as f:
+            expected_file_content = f.read()
+        # When
+        compress(pdf_file)
+        # Then
+        self.assertTrue(os.path.exists(expected_pdf_file_compressed))
+        with gzip.open(expected_pdf_file_compressed, 'rb') as f:
+            actual_file_content = f.read()
+        self.assertEquals(expected_file_content, actual_file_content)
+        os.remove(expected_pdf_file_compressed)
 
 if __name__ == '__main__':
     unittest.main()

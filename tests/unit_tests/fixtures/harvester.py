@@ -42,3 +42,5 @@ entries_2_publications = [
 ]
 
 ids_2_publications = ['8bd660e0-3a6c-4e1e-af55-f85df59c26a6', 'fb55ffd9-7188-4807-9b3f-e8fa647c9627']
+
+pdf_file = os.path.join(FIXTURES_PATH, 'original.pdf')
