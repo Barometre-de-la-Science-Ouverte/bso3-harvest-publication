@@ -28,8 +28,8 @@ from infrastructure.storage import swift
 from logger import logger
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-log_path = os.path.join(PROJECT_DIRNAME, 'logs', 'harvester.log')
-logging.basicConfig(filename=log_path, filemode='w', level=logging.DEBUG)
+# log_path = os.path.join(PROJECT_DIRNAME,'logs', 'harvester.log')
+# logging.basicConfig(filename=log_path, filemode='w', level=logging.DEBUG)
 
 logging.getLogger("keystoneclient").setLevel(logging.ERROR)
 logging.getLogger("swiftclient").setLevel(logging.ERROR)
@@ -303,7 +303,7 @@ class OAHarvester(object):
                     local_entry["valid_fulltext_xml"] = True
 
             if (result is None or result == "0" or result == "success") and valid_file:
-                logging.info(json.dumps({"Stats": {"is_harvested": True, "entry": local_entry}}))
+                logger.info(json.dumps({"Stats": {"is_harvested": True, "entry": local_entry}}))
                 # update DB
                 with self.env.begin(write=True) as txn:
                     txn.put(local_entry['id'].encode(encoding='UTF-8'),
@@ -311,8 +311,7 @@ class OAHarvester(object):
 
                 entries.append(local_entry)
             else:
-                logging.info(json.dumps({"Stats": {"is_harvested": False, "entry": local_entry}}))
-                logger.info("register harvesting failure: " + result)
+                logger.info(json.dumps({"Stats": {"is_harvested": False, "entry": local_entry}}))
 
                 # update DB
                 with self.env.begin(write=True) as txn:
@@ -534,7 +533,7 @@ class OAHarvester(object):
             nb_fails = txn_fail.stat()['entries']
         with self.env.begin(write=True) as txn:
             nb_total = txn.stat()['entries']
-        logging.info(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
+        logger.info(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
         print(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
 
 

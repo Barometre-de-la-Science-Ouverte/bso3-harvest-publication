@@ -5,8 +5,8 @@ time_handler = logging.handlers.TimedRotatingFileHandler(LOG_PATH, when='D', int
 time_handler.suffix = '%Y-%m-%d.log'
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 time_handler.setFormatter(formatter)
-time_handler.setLevel(logging.WARNING)
+time_handler.setLevel(logging.DEBUG)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 logger.addHandler(time_handler)
