@@ -1,8 +1,5 @@
-import csv
 import json
-import os
-import pickle
-from datetime import date, datetime
+import re
 
 import lmdb
 import pandas as pd
@@ -12,7 +9,12 @@ DATA_PATH = './data'
 
 def extract_stats_from_logs(log_filepath):
     with open(log_filepath, "r") as f:
-        return [json.loads(line.lstrip('INFO:root:').rstrip('\n'))['Stats'] for line in f.readlines() if line.startswith('INFO:root:{"Stats"')]
+        jsonl_stats = []
+        for line in f.readlines():
+            stat_json = re.findall("^.*? - INFO - (\{.*\})\\n$", line)
+            if stat_json:
+                jsonl_stats.append(json.loads(stat_json[0])['Stats'])
+        return jsonl_stats
 
 def write_jsonl(data, filepath):
     with open(filepath, "w") as f:
@@ -25,8 +27,9 @@ def read_stats_file(file_path):
 
 def summary(stats):
     nb_harvested = sum([int(stat['is_harvested']) for stat in stats])
-    nb_total = sum([1 for stat in stats])
-    print(f"{nb_harvested}/{nb_total} (~{round(nb_harvested/nb_total, 2) * 100}%)")
+    nb_total = sum([1 for _ in stats])
+    if nb_total != 0:
+        print(f"{nb_harvested}/{nb_total} (~{round(nb_harvested/nb_total, 2) * 100}%)")
 
 def domain_stats(stats):
     b = [[stat['entry']['url'], stat['is_harvested']] for stat in stats]
