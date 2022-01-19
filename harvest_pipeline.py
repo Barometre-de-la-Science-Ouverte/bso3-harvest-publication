@@ -6,9 +6,10 @@ from load_metadata import load_metadata
 
 
 METADATA_DUMP = config_harvester['metadata_dump']
+
 # NB_SAMPLES = config_harvester['nb_samples_to_harvest']
-NB_SAMPLES = 2
-harvester = OAHarvester(config_harvester, thumbnail=False, sample=NB_SAMPLES, sample_seed=1)
+NB_SAMPLES = 10
+harvester = OAHarvester(config_harvester, thumbnail=False, sample=NB_SAMPLES, sample_seed=4)
 
 if __name__ == '__main__':
 
