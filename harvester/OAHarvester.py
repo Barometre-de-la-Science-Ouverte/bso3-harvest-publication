@@ -508,6 +508,8 @@ class OAHarvester(object):
         if self.config["compression"]:
             compression_suffix = ".gz"
             self._compress_files(**filepaths, local_entry_id=local_entry['id'], compression_suffix=compression_suffix)
+            filepaths = {k: (filepaths[k] + compression_suffix if k != "dest_path" else filepaths[k]) for k in
+                         filepaths}
         if self.swift:
             self._upload_files(**filepaths)
         else:

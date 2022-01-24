@@ -8,7 +8,7 @@ from load_metadata import load_metadata
 METADATA_DUMP = config_harvester['metadata_dump']
 
 NB_SAMPLES = config_harvester['nb_samples_to_harvest']
-harvester = OAHarvester(config_harvester, thumbnail=False, sample=NB_SAMPLES, sample_seed=410)
+harvester = OAHarvester(config_harvester, thumbnail=False, sample=NB_SAMPLES, sample_seed=411)
 
 if __name__ == '__main__':
 
