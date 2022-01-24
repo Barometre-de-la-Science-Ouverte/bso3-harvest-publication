@@ -64,7 +64,7 @@ class HarvesterApplySelection(TestCase):
         for batch_n, batch in enumerate(batches):
             trimmed_down_list = _apply_selection(batch, mock_selection, current_idx)
             # Then
-            self.assertEquals(len([i for i in mock_selection if current_idx <= i < current_idx + len(batch)]), len(trimmed_down_list))
+            self.assertEqual(len([i for i in mock_selection if current_idx <= i < current_idx + len(batch)]), len(trimmed_down_list))
             for e in trimmed_down_list:
                 self.assertIn(e, batch)
                 self.assertIn(batch.index(e), mock_selection)
@@ -218,7 +218,8 @@ class HarvestUnpaywall(TestCase):
         # When
         _check_entry(entry, entry['doi'], harvester_2_publications.getUUIDByIdentifier, reprocess=False, env=harvester_2_publications.env, env_doi=harvester_2_publications.env_doi)
         # Then
-        self.assertEquals(entry['id'], expected_id)
+        self.assertEqual(entry['id'], expected_id)
+
 
 class HarvesterManageFiles(TestCase):
 
@@ -248,23 +249,22 @@ class HarvesterManageFiles(TestCase):
         self.assertTrue(os.path.exists(local_filename_json))
         with open(local_filename_json, 'r') as f:
             actual_file_content = json.load(f)
-        self.assertEquals(self.entry, actual_file_content)
+        self.assertEqual(self.entry, actual_file_content)
         os.remove(local_filename_json)
 
     def test_compress_files(self):
         # Given
         # When
-        harvester_2_publications._compress_files(**self.filepaths, local_entry=self.entry, compression_suffix='.gz')
+        with mock.patch('harvester.OAHarvester.os.remove'):
+            harvester_2_publications._compress_files(**self.filepaths, local_entry_id=self.entry['id'], compression_suffix='.gz')
         # Then
         for var_name, file in self.filepaths.items():
             if var_name in ['dest_path', 'thumb_file_small', 'thumb_file_medium', 'thumb_file_large']:
-                # thumbnail pas testé car self.Thumbnail = False
+                # thumbnail pas testé car self.Thumbnail=False
                 continue
             compressed_file = file + '.gz'
             self.assertTrue(os.path.exists(compressed_file))
             os.remove(compressed_file)
-
-        pass
     
     def test_upload_files(self):
         # Given
@@ -289,7 +289,7 @@ class HarvesterManageFiles(TestCase):
         local_dest_path = os.path.join(DATA_PATH, self.filepaths['dest_path'])
         compression_suffix = ''
         # When
-        harvester_2_publications._save_files_locally(**self.filepaths, local_entry=self.entry, compression_suffix=compression_suffix)
+        harvester_2_publications._save_files_locally(**self.filepaths, local_entry_id=self.entry['id'], compression_suffix=compression_suffix)
         # Then
         mock_makedirs.assert_called_with(local_dest_path, exist_ok=True)
         mock_copyfile.assert_called_with(self.filepaths['local_filename_json'], os.path.join(local_dest_path, self.entry['id'] + ".json" + compression_suffix))
@@ -298,7 +298,7 @@ class HarvesterManageFiles(TestCase):
     def test_clean_up_files(self, mock_remove):
         # Given
         # When
-        harvester_2_publications._clean_up_files(**self.filepaths, local_entry=self.entry)
+        harvester_2_publications._clean_up_files(**self.filepaths, local_entry_id=self.entry['id'])
         # Then
         mock_remove.assert_called_with(self.filepaths['local_filename_json'])
 
@@ -327,8 +327,6 @@ class HarvesterManageFiles(TestCase):
         mock_clean_up_files.assert_called()
 
 
-        
-
 class HarvesterCompress(TestCase):
 
     def test_compress(self):
@@ -342,8 +340,9 @@ class HarvesterCompress(TestCase):
         self.assertTrue(os.path.exists(expected_pdf_file_compressed))
         with gzip.open(expected_pdf_file_compressed, 'rb') as f:
             actual_file_content = f.read()
-        self.assertEquals(expected_file_content, actual_file_content)
+        self.assertEqual(expected_file_content, actual_file_content)
         os.remove(expected_pdf_file_compressed)
+
 
 if __name__ == '__main__':
     unittest.main()

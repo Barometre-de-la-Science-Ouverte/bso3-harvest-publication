@@ -49,7 +49,7 @@ class Swift(object):
     def _init_swift_options(self):
         options = {}
         for key in self.config["swift"]:
-            if len(self.config["swift"][key].strip()) > 0:
+            if self.config["swift"][key] and len(self.config["swift"][key].strip()) > 0:
                 options[key] = self.config["swift"][key]
         return options
 

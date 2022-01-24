@@ -250,16 +250,29 @@ class OAHarvester(object):
         """Parse entry to get url, entry, filename"""
         latest_observation = entry['oa_details'][get_nth_key(entry['oa_details'], -1)]
         if latest_observation['is_oa']:
-            # Prioritize PMC and HAL pdf over publisher one for higher chance of successful download
+            urls_for_pdf = {}
+            oa_locations = {}
             for oa_location in latest_observation['oa_locations']:
-                if 'repository_normalized' in oa_location and (
-                        oa_location['repository_normalized'] == "PubMed Central" or oa_location[
-                    'repository_normalized'] == "HAL") and oa_location['url_for_pdf'] != None:
-                    return oa_location['url_for_pdf'], {'id': entry['id'], 'doi': entry['doi'],
-                                                        **oa_location}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
-                elif oa_location['is_best'] and oa_location['url_for_pdf']:
-                    return oa_location['url_for_pdf'], {'id': entry['id'], 'doi': entry['doi'],
-                                                        **oa_location}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+                if oa_location['url_for_pdf']:
+                    if 'repository_normalized' in oa_location and (oa_location['repository_normalized'] == "PubMed Central" or oa_location['repository_normalized'] == "HAL"):
+                        urls_for_pdf[0] = [oa_location['url_for_pdf']]
+                        oa_locations[0] = [oa_location]
+                    elif oa_location['is_best'] and oa_location['url_for_pdf']:
+                        urls_for_pdf[1] = [oa_location['url_for_pdf']]
+                        oa_locations[1] = [oa_location]
+                    else:
+                        if 2 in oa_locations:
+                            oa_locations[2].append(oa_location)
+                        else:
+                            oa_locations[2] = [oa_location]
+                        if 2 in urls_for_pdf:
+                            urls_for_pdf[2].append(oa_location['url_for_pdf'])
+                        else:
+                            urls_for_pdf[2] = [oa_location['url_for_pdf']]
+            urls_for_pdf = [url for url_list_idx in sorted(urls_for_pdf) for url in urls_for_pdf[url_list_idx]]
+            oa_locations = [oa_location for oa_locations_idx in sorted(oa_locations) for oa_location in oa_locations[oa_locations_idx]]
+            if urls_for_pdf and oa_locations:
+                return urls_for_pdf, {'id': entry['id'], 'doi': entry['doi'], "oa_locations": oa_locations}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
         raise Continue
 
     def _get_batch_generator(self, filepath, count, reprocess, batch_size=100, filter_out=[]):
@@ -353,34 +366,40 @@ class OAHarvester(object):
 
     def _compress_files(self, local_filename, local_filename_nxml,
                         local_filename_json, thumb_file_small, thumb_file_medium,
-                        thumb_file_large, local_entry, compression_suffix='.gz', **kwargs):
+                        thumb_file_large, local_entry_id, compression_suffix='.gz', **kwargs):
         try:
             if os.path.isfile(local_filename):
                 compress(local_filename)
+                os.remove(local_filename)
                 local_filename += compression_suffix
 
             if os.path.isfile(local_filename_nxml):
                 compress(local_filename_nxml)
+                os.remove(local_filename_nxml)
                 local_filename_nxml += compression_suffix
 
             if os.path.isfile(local_filename_json):
                 compress(local_filename_json)
+                os.remove(local_filename_json)
                 local_filename_json += compression_suffix
 
             if self.thumbnail:
                 if os.path.isfile(thumb_file_small):
                     compress(thumb_file_small)
+                    os.remove(thumb_file_small)
                     thumb_file_small += compression_suffix
 
                 if os.path.isfile(thumb_file_medium):
                     compress(thumb_file_medium)
+                    os.remove(thumb_file_medium)
                     thumb_file_medium += compression_suffix
 
                 if os.path.isfile(thumb_file_large):
                     compress(thumb_file_large)
+                    os.remove(thumb_file_large)
                     thumb_file_large += compression_suffix
         except:
-            logger.error("Error compressing resource files for " + local_entry['id'])
+            logger.error("Error compressing resource files for " + local_entry_id)
 
     def _write_metadata_file(self, local_filename_json, local_entry, **kwargs):
         with open(local_filename_json, 'w') as outfile:
@@ -414,7 +433,7 @@ class OAHarvester(object):
         except:
             logger.error("Error writing on SWIFT object storage")
 
-    def _save_files_locally(self, dest_path, local_filename, local_entry,
+    def _save_files_locally(self, dest_path, local_filename, local_entry_id,
                       local_filename_nxml, local_filename_json, thumb_file_small,
                       thumb_file_medium, thumb_file_large, compression_suffix, **kwargs):
         try:
@@ -422,31 +441,31 @@ class OAHarvester(object):
             os.makedirs(local_dest_path, exist_ok=True)
             if os.path.isfile(local_filename):
                 shutil.copyfile(local_filename,
-                                os.path.join(local_dest_path, local_entry['id'] + ".pdf" + compression_suffix))
+                                os.path.join(local_dest_path, local_entry_id + ".pdf" + compression_suffix))
             if os.path.isfile(local_filename_nxml):
                 shutil.copyfile(local_filename_nxml,
-                                os.path.join(local_dest_path, local_entry['id'] + ".nxml" + compression_suffix))
+                                os.path.join(local_dest_path, local_entry_id + ".nxml" + compression_suffix))
             if os.path.isfile(local_filename_json):
                 shutil.copyfile(local_filename_json,
-                                os.path.join(local_dest_path, local_entry['id'] + ".json" + compression_suffix))
+                                os.path.join(local_dest_path, local_entry_id + ".json" + compression_suffix))
 
             if self.thumbnail:
                 if os.path.isfile(thumb_file_small):
-                    shutil.copyfile(thumb_file_small, os.path.join(local_dest_path, local_entry[
-                        'id'] + "-thumb-small.png") + compression_suffix)
+                    shutil.copyfile(thumb_file_small, os.path.join(local_dest_path, local_entry_id
+                    + "-thumb-small.png") + compression_suffix)
 
                 if os.path.isfile(thumb_file_medium):
-                    shutil.copyfile(thumb_file_medium, os.path.join(local_dest_path, local_entry[
-                        'id'] + "-thumb-medium.png") + compression_suffix)
+                    shutil.copyfile(thumb_file_medium, os.path.join(local_dest_path, local_entry_id
+                    + "-thumb-medium.png") + compression_suffix)
 
                 if os.path.isfile(thumb_file_large):
-                    shutil.copyfile(thumb_file_large, os.path.join(local_dest_path, local_entry[
-                        'id'] + "-thumb-larger.png") + compression_suffix)
+                    shutil.copyfile(thumb_file_large, os.path.join(local_dest_path, local_entry_id
+                    + "-thumb-larger.png") + compression_suffix)
 
         except IOError:
             logger.exception("invalid path")
 
-    def _clean_up_files(self, local_filename, local_entry,
+    def _clean_up_files(self, local_filename, local_entry_id,
                       local_filename_nxml, local_filename_json, thumb_file_small,
                       thumb_file_medium, thumb_file_large, **kwargs):
         try:
@@ -458,7 +477,7 @@ class OAHarvester(object):
                 os.remove(local_filename_json)
 
             # possible tar.gz remaining from PMC resources
-            local_filename_tar = os.path.join(DATA_PATH, local_entry['id'] + ".tar.gz")
+            local_filename_tar = os.path.join(DATA_PATH, local_entry_id + ".tar.gz")
             if os.path.isfile(local_filename_tar):
                 os.remove(local_filename_tar)
 
@@ -488,12 +507,12 @@ class OAHarvester(object):
         compression_suffix = ""
         if self.config["compression"]:
             compression_suffix = ".gz"
-            self._compress_files(**filepaths, local_entry=local_entry, compression_suffix=compression_suffix)
+            self._compress_files(**filepaths, local_entry_id=local_entry['id'], compression_suffix=compression_suffix)
         if self.swift:
             self._upload_files(**filepaths)
         else:
-            self._save_files_locally(**filepaths, local_entry=local_entry, compression_suffix=compression_suffix)
-        self._clean_up_files(**filepaths, local_entry=local_entry)
+            self._save_files_locally(**filepaths, local_entry_id=local_entry['id'], compression_suffix=compression_suffix)
+        self._clean_up_files(**filepaths, local_entry_id=local_entry['id'])
 
     def reset(self):
         """
@@ -721,11 +740,13 @@ def get_nth_key(dictionary, n=0):
     raise IndexError("dictionary index out of range")
 
 
-def _download(url, filename, local_entry):
+def _download(urls, filename, local_entry):
     # optional biblio-glutton look-up
     global biblio_glutton_url
     global crossref_base
     global crossref_email
+
+    result = _download_cloudflare_scraper(urls, filename)
 
     if biblio_glutton_url is not None:
         local_doi = None
@@ -754,12 +775,6 @@ def _download(url, filename, local_entry):
             if not "istexId" in local_entry and "istexId" in glutton_record:
                 local_entry["istexId"] = glutton_record["istexId"]
 
-    # result = _download_requests(url, filename)
-    # if result != "success":
-    #     result = _download_wget(url, filename)
-    # if result != "success":
-    result = _download_cloudflare_scraper(url, filename)
-
     if os.path.isfile(filename) and filename.endswith(".tar.gz"):
         _manage_pmc_archives(filename)
 
@@ -783,17 +798,19 @@ def _process_request(scraper, url):
     return
 
 
-def _download_cloudflare_scraper(url, filename):
+def _download_cloudflare_scraper(urls, filename):
     result = "fail"
-    try:
-        scraper = cloudscraper.create_scraper(interpreter='nodejs')
-        content = _process_request(scraper, url)
-        if content:
-            with open(filename, 'wb') as f_out:
-                f_out.write(content)
-            result = "success"
-    except Exception:
-        logger.exception("Download failed for {0} with CloudScraper".format(url))
+    for url in urls:
+        try:
+            scraper = cloudscraper.create_scraper(interpreter='nodejs')
+            content = _process_request(scraper, url)
+            if content:
+                with open(filename, 'wb') as f_out:
+                    f_out.write(content)
+                result = "success"
+                break
+        except Exception:
+            logger.exception("Download failed for {0} with CloudScraper".format(url))
     return result
 
 
