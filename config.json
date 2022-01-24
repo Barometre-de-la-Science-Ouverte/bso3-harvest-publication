@@ -8,7 +8,7 @@
     "crossref_email": "patrice.lopez@science-miner.com",
     "metadata_dump": "bso_dump",
     "publications_dump": "bso3_publications_dump",
-    "nb_samples_to_harvest": 5,
+    "nb_samples_to_harvest": 100,
     "lmdb_size_Go": 10,
     "is_db_local": 1
 }

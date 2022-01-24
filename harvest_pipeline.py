@@ -7,9 +7,8 @@ from load_metadata import load_metadata
 
 METADATA_DUMP = config_harvester['metadata_dump']
 
-# NB_SAMPLES = config_harvester['nb_samples_to_harvest']
-NB_SAMPLES = 10
-harvester = OAHarvester(config_harvester, thumbnail=False, sample=NB_SAMPLES, sample_seed=4)
+NB_SAMPLES = config_harvester['nb_samples_to_harvest']
+harvester = OAHarvester(config_harvester, thumbnail=False, sample=NB_SAMPLES, sample_seed=410)
 
 if __name__ == '__main__':
 
@@ -20,4 +19,5 @@ if __name__ == '__main__':
     else:
         metadata_local_file = os.path.join(DESTINATION_DIR_METADATA, METADATA_FILE)
 
-    harvester.harvestUnpaywall(metadata_local_file)
+    harvester.harvestUnpaywall(metadata_local_file, reprocess=True)
+    harvester.diagnostic()
