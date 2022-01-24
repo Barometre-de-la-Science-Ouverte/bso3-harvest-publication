@@ -253,7 +253,7 @@ class OAHarvester(object):
             urls_for_pdf = {}
             oa_locations = {}
             for oa_location in latest_observation['oa_locations']:
-                if oa_location['url_for_pdf']:
+                if ('url_for_pdf' in oa_location) and oa_location['url_for_pdf']:
                     if 'repository_normalized' in oa_location and (oa_location['repository_normalized'] == "PubMed Central" or oa_location['repository_normalized'] == "HAL"):
                         urls_for_pdf[0] = [oa_location['url_for_pdf']]
                         oa_locations[0] = [oa_location]
@@ -334,7 +334,10 @@ class OAHarvester(object):
 
                 with self.env_fail.begin(write=True) as txn_fail:
                     txn_fail.put(local_entry['id'].encode(encoding='UTF-8'),
-                                 _serialize_pickle({"result": result, "url": local_entry['url_for_pdf']}))
+                                 _serialize_pickle({
+                                     "result": result,
+                                     "url": local_entry['url_for_pdf'] if 'url_for_pdf' in local_entry else 'no url' 
+                                    }))
 
                 # if an empty pdf or tar file is present, we clean it
                 local_filename = os.path.join(DATA_PATH, local_entry['id'] + ".pdf")
