@@ -19,5 +19,5 @@ if __name__ == '__main__':
     else:
         metadata_local_file = os.path.join(DESTINATION_DIR_METADATA, METADATA_FILE)
 
-    harvester.harvestUnpaywall(metadata_local_file, reprocess=True)
+    harvester.harvestUnpaywall(metadata_local_file)
     harvester.diagnostic()

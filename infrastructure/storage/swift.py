@@ -71,7 +71,6 @@ class Swift(object):
 
         try:
             for result in self.swift.upload(container, objs):
-                print(result)
                 if not result['success']:
                     error = result['error']
                     if result['action'] == "upload_object":
