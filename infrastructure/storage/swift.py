@@ -5,9 +5,12 @@ from config.harvester_config import config_harvester
 from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
 
 from logger import logger
+from application.server.main.logger import get_logger
 
 METADATA_DUMP = config_harvester['metadata_dump']
 PUBLICATIONS_DUMP = config_harvester['publications_dump']
+
+logger = get_logger(__name__)
 
 
 class Swift(object):
@@ -107,6 +110,7 @@ class Swift(object):
         """
         Download a file given a path and returns the download destination file path.
         """
+        logger.debug(f'downloading {file_path} from container {container} into {dest_path}')
         objs = [file_path]
         try:
             for down_res in self.swift.download(container=container, objects=objs):

@@ -15,4 +15,3 @@ LOG_PATH = os.path.join(PROJECT_DIRNAME, os.path.join('logs', 'logger.log'))
 
 # Metadata paths
 DESTINATION_DIR_METADATA = os.path.join(PROJECT_DIRNAME, 'tmp')
-METADATA_FILE = 'bso-publications-20211214.jsonl.gz'  # 'bso-publications-staging_20211119_sample_5k.jsonl.gz'
