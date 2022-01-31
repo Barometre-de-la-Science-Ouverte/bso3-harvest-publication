@@ -1,18 +1,18 @@
-import os
-import requests
 import redis
-
 from flask import Blueprint, current_app, jsonify, render_template, request
 from rq import Connection, Queue
+
 from application.server.main.tasks import create_task_unpaywall
 
 default_timeout = 43200000
 
 main_blueprint = Blueprint('main', __name__, )
 
+
 @main_blueprint.route('/', methods=['GET'])
 def home():
     return render_template('home.html')
+
 
 @main_blueprint.route('/harvest', methods=['POST'])
 def run_task_unpaywall():
@@ -29,13 +29,6 @@ def run_task_unpaywall():
             'task_id': task.get_id()
         }
     }
-    return jsonify(response_object)
-
-
-    response_object = {
-        'status': 'success'
-    }
-
     return jsonify(response_object), 202
 
 
