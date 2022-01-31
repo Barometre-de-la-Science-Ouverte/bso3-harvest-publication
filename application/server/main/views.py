@@ -64,11 +64,13 @@ def run_task_process():
     partition_size = args.get('partition_size', 1_000)
     break_after_one = args.get('break_after_one', True)
     storage_handler = Swift(config_harvester)
+    args['storage_handler'] = storage_handler
     partitions = get_partitions(storage_handler, partition_size)
     with Connection(redis.from_url(current_app.config['REDIS_URL'])):
         q = Queue(name='pdf-processor', default_timeout=default_timeout)
         for partition in partitions:
-            task = q.enqueue(create_task_process, storage_handler, partition)
+            args['partition'] = partition
+            task = q.enqueue(create_task_process, args)
             if break_after_one:
                 break
     response_object = {

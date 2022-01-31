@@ -35,8 +35,11 @@ def create_task_unpaywall(args):
     harvester.harvestUnpaywall(metadata_file)
 
 
-def create_task_process(_swift, files):
-    download_files(_swift, PUBLICATIONS_DOWNLOAD_DIR, files)
+def create_task_process(args):
+    storage_handler = args['storage_handler']
+    partition = args['partition']
+
+    download_files(storage_handler, PUBLICATIONS_DOWNLOAD_DIR, partition)
     run_grobid(CONFIG_PATH_GROBID, PUBLICATIONS_DOWNLOAD_DIR, GrobidClient)
     run_softcite(CONFIG_PATH_SOFTCITE, PUBLICATIONS_DOWNLOAD_DIR, smc)
-    upload_and_clean_up(_swift, PUBLICATIONS_DOWNLOAD_DIR)
+    upload_and_clean_up(storage_handler, PUBLICATIONS_DOWNLOAD_DIR)
