@@ -1,10 +1,12 @@
 import argparse
-import json
 import os
-from typing import List
-from infrastructure.storage.swift import Swift
 from glob import glob
-from config.path_config import CONFIG_PATH_OVH, PUBLICATIONS_DOWNLOAD_DIR
+
+from typing import List
+
+from config.harvester_config import config_harvester
+from config.path_config import PUBLICATIONS_DOWNLOAD_DIR
+from infrastructure.storage.swift import Swift
 
 
 def generateStoragePath(identifier):
@@ -45,7 +47,6 @@ if __name__ == "__main__":
     upload = args.upload
     download = args.download
 
-    config_harvester = json.load(open(CONFIG_PATH_OVH, 'r'))
     _swift = Swift(config_harvester)
     if download:
         download_files(_swift, PUBLICATIONS_DOWNLOAD_DIR)

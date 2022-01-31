@@ -14,18 +14,15 @@ except:
 
 # Add env var secrets & pwd for swift - ovh
 config_harvester['swift'] = {}
-# config_harvester['swift']['auth_version'] = os.getenv('AUTH_VERSION')
-# config_harvester['swift']['auth_url'] = os.getenv('AUTH_URL')
-# config_harvester['swift']['user'] = os.getenv('USER')
 config_harvester['swift']['os_username'] = os.getenv('OS_USERNAME')
 config_harvester['swift']['os_password'] = os.getenv('OS_PASSWORD')
-# config_harvester['swift']['key'] = os.getenv('KEY')
 config_harvester['swift']['os_user_domain_name'] = os.getenv('OS_USER_DOMAIN_NAME')
 config_harvester['swift']['os_project_domain_name'] = os.getenv('OS_PROJECT_DOMAIN_NAME')
 config_harvester['swift']['os_project_name'] = os.getenv('OS_PROJECT_NAME')
 config_harvester['swift']['os_project_id'] = os.getenv('OS_PROJECT_ID')
 config_harvester['swift']['os_region_name'] = os.getenv('OS_REGION_NAME')
 config_harvester['swift']['os_auth_url'] = os.getenv('OS_AUTH_URL')
+config_harvester['swift_container'] = config_harvester['publications_dump']
 
 # Add env var secrets & pwd for database - postgre
 config_harvester['db'] = {}
