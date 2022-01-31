@@ -66,7 +66,7 @@ class OAHarvester(object):
         self.thumbnail = thumbnail  # bool indicating if we generate thumbnails of front page of PDF
         self._init_lmdb()  # init db
         self._sample_seed = sample_seed  # sample seed
-        self.sample = sample
+        self.sample = sample if sample != -1 else None
         self.input_swift = None  # swift
         self.swift = None
         self.batch_size = self.config['batch_size']

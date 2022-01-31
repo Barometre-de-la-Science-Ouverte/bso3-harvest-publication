@@ -29,7 +29,7 @@ def download_files(_swift, dest_dir, files):
 
 def upload_and_clean_up(_swift, local_dir):
     files = glob(local_dir + '*')
-    upload_files = [(file, generateStoragePath(os.path.basename(file)))
+    upload_files = [(file, os.path.join('processed', generateStoragePath(os.path.basename(file)), os.path.basename(file)))
         for file in files if not (file.endswith('.pdf') or file.endswith('.pdf.gz'))]
     _swift.upload_files_to_swift(upload_files)
     for file in files:

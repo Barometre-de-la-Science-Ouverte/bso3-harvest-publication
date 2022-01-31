@@ -39,7 +39,7 @@ def run_task_unpaywall():
     return jsonify(response_object), 202
 
 
-@main_blueprint.route('/tasks/<task_id>', methods=['GET'])
+@main_blueprint.route('/harvester_tasks/<task_id>', methods=['GET'])
 def get_status(task_id):
     with Connection(redis.from_url(current_app.config['REDIS_URL'])):
         q = Queue('pdf-harvester')
@@ -65,12 +65,15 @@ def run_task_process():
     """
     args = request.get_json(force=True)
     partition_size = args.get('partition_size', 1_000)
+    break_after_one = args.get('break_after_one', True)
     storage_handler = Swift(config_harvester)
     partitions = get_partitions(storage_handler, partition_size)
     with Connection(redis.from_url(current_app.config['REDIS_URL'])):
-        q = Queue(name='pdf-harvester', default_timeout=default_timeout)
+        q = Queue(name='pdf-processor', default_timeout=default_timeout)
         for partition in partitions:
             task = q.enqueue(create_task_process, storage_handler, partition)
+            if break_after_one:
+                break
     response_object = {
         'status': 'success',
         'data': {
@@ -80,10 +83,10 @@ def run_task_process():
     return jsonify(response_object)
 
 
-@main_blueprint.route('/tasks/<task_id>', methods=['GET'])
+@main_blueprint.route('/processor_tasks/<task_id>', methods=['GET'])
 def get_status(task_id):
     with Connection(redis.from_url(current_app.config['REDIS_URL'])):
-        q = Queue('pdf-harvester')
+        q = Queue('pdf-processor')
         task = q.fetch_job(task_id)
     if task:
         response_object = {
