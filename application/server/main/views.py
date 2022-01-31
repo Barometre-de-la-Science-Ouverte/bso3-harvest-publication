@@ -1,15 +1,12 @@
-import os
-
 import redis
-import requests
-from application.server.main.tasks import (create_task_process,
-                                           create_task_unpaywall)
 from flask import Blueprint, current_app, jsonify, render_template, request
-from infrastructure.storage.swift import Swift
-from ovh_handler import get_partitions
 from rq import Connection, Queue
 
+from application.server.main.tasks import (create_task_process,
+                                           create_task_unpaywall)
 from config.harvester_config import config_harvester
+from infrastructure.storage.swift import Swift
+from ovh_handler import get_partitions
 
 default_timeout = 43200000
 
