@@ -1,6 +1,6 @@
 import os
 from config.harvester_config import config_harvester
-from config.path_config import METADATA_FILE, DESTINATION_DIR_METADATA
+from config.path_config import METADATA_LOCAL_FILE, DESTINATION_DIR_METADATA
 from harvester.OAHarvester import OAHarvester
 from load_metadata import load_metadata
 
@@ -14,10 +14,10 @@ if __name__ == '__main__':
 
     if len(METADATA_DUMP) > 0:
         metadata_local_file = load_metadata(metadata_container=METADATA_DUMP,
-                                            metadata_file=METADATA_FILE,
+                                            metadata_file=METADATA_LOCAL_FILE,
                                             destination_dir=DESTINATION_DIR_METADATA)
     else:
-        metadata_local_file = os.path.join(DESTINATION_DIR_METADATA, METADATA_FILE)
+        metadata_local_file = os.path.join(DESTINATION_DIR_METADATA, METADATA_LOCAL_FILE)
 
     harvester.harvestUnpaywall(metadata_local_file)
     harvester.diagnostic()
