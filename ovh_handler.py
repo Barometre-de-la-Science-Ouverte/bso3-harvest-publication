@@ -13,11 +13,11 @@ def generateStoragePath(identifier):
     return os.path.join(identifier[:2], identifier[2:4], identifier[4:6], identifier[6:8])
 
 
-def get_partitions(_swift:Swift, partition_size:int) -> List:
+def get_partitions(_swift: Swift, partition_size: int) -> List:
     """Return a list a partitions of gzipped or flat pdf files"""
     files = _swift.get_swift_list()
     files = [file for file in files if (file.endswith('.pdf.gz') or file.endswith('.pdf'))]
-    partitions = [files[i:i+partition_size] for i in range(0, len(files), partition_size)]
+    partitions = [files[i:i + partition_size] for i in range(0, len(files), partition_size)]
     return partitions
 
 
@@ -29,7 +29,8 @@ def download_files(_swift, dest_dir, files):
 
 def upload_and_clean_up(_swift, local_dir):
     files = glob(local_dir + '*')
-    upload_files = [(file, os.path.join('processed', generateStoragePath(os.path.basename(file)), os.path.basename(file)))
+    upload_files = [
+        (file, os.path.join('processed', generateStoragePath(os.path.basename(file)), os.path.basename(file)))
         for file in files if not (file.endswith('.pdf') or file.endswith('.pdf.gz'))]
     _swift.upload_files_to_swift(upload_files)
     for file in files:
@@ -43,8 +44,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     upload = args.upload
     download = args.download
-    
-    config_harvester = json.load(open(CONFIG_PATH_OVH,'r'))
+
+    config_harvester = json.load(open(CONFIG_PATH_OVH, 'r'))
     _swift = Swift(config_harvester)
     if download:
         download_files(_swift, PUBLICATIONS_DOWNLOAD_DIR)

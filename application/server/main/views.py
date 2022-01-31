@@ -37,7 +37,7 @@ def run_task_unpaywall():
 
 
 @main_blueprint.route('/harvester_tasks/<task_id>', methods=['GET'])
-def get_status(task_id):
+def get_status_harvester(task_id):
     with Connection(redis.from_url(current_app.config['REDIS_URL'])):
         q = Queue('pdf-harvester')
         task = q.fetch_job(task_id)
@@ -81,7 +81,7 @@ def run_task_process():
 
 
 @main_blueprint.route('/processor_tasks/<task_id>', methods=['GET'])
-def get_status(task_id):
+def get_status_processing(task_id):
     with Connection(redis.from_url(current_app.config['REDIS_URL'])):
         q = Queue('pdf-processor')
         task = q.fetch_job(task_id)
