@@ -1,3 +1,4 @@
+import os
 import load_metadata
 from config.harvester_config import config_harvester
 from config.path_config import DESTINATION_DIR_METADATA
@@ -18,7 +19,7 @@ def create_task_unpaywall(args):
                                       metadata_file=metadata_file,
                                       destination_dir=DESTINATION_DIR_METADATA)
     else:
-        metadata_file = os.path.join(DESTINATION_DIR_METADATA, METADATA_FILE)
+        metadata_file = os.path.join(DESTINATION_DIR_METADATA, metadata_file)
 
     harvester = OAHarvester(config_harvester, thumbnail=False, sample=nb_samples, sample_seed=1)
     harvester.harvestUnpaywall(metadata_file)
