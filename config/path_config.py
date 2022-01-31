@@ -9,6 +9,10 @@ CONFIG_PATH_TEST = os.path.join(PROJECT_DIRNAME, 'tests', 'unit_tests', 'config_
 
 # Data path
 DATA_PATH = os.path.join(PROJECT_DIRNAME, 'data')
+PUBLICATIONS_DOWNLOAD_DIR = os.path.join(PROJECT_DIRNAME, 'downloaded_publications/')
+CONFIG_PATH_GROBID = os.path.join(PROJECT_DIRNAME, 'config/config_grobid.json')
+CONFIG_PATH_SOFTCITE = os.path.join(PROJECT_DIRNAME, 'config/config_softcite.json')
+CONFIG_PATH_OVH = os.path.join(PROJECT_DIRNAME, 'config/config_ovh.json')
 
 # Log path
 LOG_PATH = os.path.join(PROJECT_DIRNAME, os.path.join('logs', 'logger.log'))
