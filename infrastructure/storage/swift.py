@@ -106,12 +106,15 @@ class Swift(object):
         except SwiftError:
             logger.exception("error removing all files from SWIFT container")
 
-    def download_file(self, container, file_path, dest_path):
+    def download_files(self, container, file_path, dest_path):
         """
         Download a file given a path and returns the download destination file path.
         """
         logger.debug(f'downloading {file_path} from container {container} into {dest_path}')
-        objs = [file_path]
+        if type(file_path) == str:
+            objs = [file_path]
+        elif type(file_path) == list:
+            objs = file_path
         try:
             for down_res in self.swift.download(container=container, objects=objs):
                 if down_res['success']:

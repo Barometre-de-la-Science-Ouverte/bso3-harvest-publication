@@ -14,5 +14,5 @@ def load_metadata(metadata_container, metadata_file, destination_dir):
     if not os.path.isdir(destination_dir):
         os.makedirs(destination_dir)
     if not os.path.exists(f'{destination_dir}/{metadata_file}'):
-        swift_handler.download_file(metadata_container, metadata_file, destination_dir)
+        swift_handler.download_files(metadata_container, metadata_file, destination_dir)
     return f'{destination_dir}/{metadata_file}'
