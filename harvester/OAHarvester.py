@@ -23,7 +23,7 @@ import urllib3
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from config.path_config import DATA_PATH, PROJECT_DIRNAME
+from config.path_config import DATA_PATH
 from infrastructure.storage import swift
 from logger import logger
 
@@ -254,7 +254,9 @@ class OAHarvester(object):
             oa_locations = {}
             for oa_location in latest_observation['oa_locations']:
                 if ('url_for_pdf' in oa_location) and oa_location['url_for_pdf']:
-                    if 'repository_normalized' in oa_location and (oa_location['repository_normalized'] == "PubMed Central" or oa_location['repository_normalized'] == "HAL"):
+                    if 'repository_normalized' in oa_location and (
+                            oa_location['repository_normalized'] == "PubMed Central" or oa_location[
+                        'repository_normalized'] == "HAL"):
                         urls_for_pdf[0] = [oa_location['url_for_pdf']]
                         oa_locations[0] = [oa_location]
                     elif oa_location['is_best'] and oa_location['url_for_pdf']:
@@ -270,9 +272,11 @@ class OAHarvester(object):
                         else:
                             urls_for_pdf[2] = [oa_location['url_for_pdf']]
             urls_for_pdf = [url for url_list_idx in sorted(urls_for_pdf) for url in urls_for_pdf[url_list_idx]]
-            oa_locations = [oa_location for oa_locations_idx in sorted(oa_locations) for oa_location in oa_locations[oa_locations_idx]]
+            oa_locations = [oa_location for oa_locations_idx in sorted(oa_locations) for oa_location in
+                            oa_locations[oa_locations_idx]]
             if urls_for_pdf and oa_locations:
-                return urls_for_pdf, {'id': entry['id'], 'doi': entry['doi'], "oa_locations": oa_locations}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+                return urls_for_pdf, {'id': entry['id'], 'doi': entry['doi'],
+                                      "oa_locations": oa_locations}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
         raise Continue
 
     def _get_batch_generator(self, filepath, count, reprocess, batch_size=100, filter_out=[]):
@@ -336,8 +340,8 @@ class OAHarvester(object):
                     txn_fail.put(local_entry['id'].encode(encoding='UTF-8'),
                                  _serialize_pickle({
                                      "result": result,
-                                     "url": local_entry['url_for_pdf'] if 'url_for_pdf' in local_entry else 'no url' 
-                                    }))
+                                     "url": local_entry['url_for_pdf'] if 'url_for_pdf' in local_entry else 'no url'
+                                 }))
 
                 # if an empty pdf or tar file is present, we clean it
                 local_filename = os.path.join(DATA_PATH, local_entry['id'] + ".pdf")
@@ -437,8 +441,8 @@ class OAHarvester(object):
             logger.error("Error writing on SWIFT object storage")
 
     def _save_files_locally(self, dest_path, local_filename, local_entry_id,
-                      local_filename_nxml, local_filename_json, thumb_file_small,
-                      thumb_file_medium, thumb_file_large, compression_suffix, **kwargs):
+                            local_filename_nxml, local_filename_json, thumb_file_small,
+                            thumb_file_medium, thumb_file_large, compression_suffix, **kwargs):
         try:
             local_dest_path = os.path.join(DATA_PATH, dest_path)
             os.makedirs(local_dest_path, exist_ok=True)
@@ -455,22 +459,22 @@ class OAHarvester(object):
             if self.thumbnail:
                 if os.path.isfile(thumb_file_small):
                     shutil.copyfile(thumb_file_small, os.path.join(local_dest_path, local_entry_id
-                    + "-thumb-small.png") + compression_suffix)
+                                                                   + "-thumb-small.png") + compression_suffix)
 
                 if os.path.isfile(thumb_file_medium):
                     shutil.copyfile(thumb_file_medium, os.path.join(local_dest_path, local_entry_id
-                    + "-thumb-medium.png") + compression_suffix)
+                                                                    + "-thumb-medium.png") + compression_suffix)
 
                 if os.path.isfile(thumb_file_large):
                     shutil.copyfile(thumb_file_large, os.path.join(local_dest_path, local_entry_id
-                    + "-thumb-larger.png") + compression_suffix)
+                                                                   + "-thumb-larger.png") + compression_suffix)
 
         except IOError:
             logger.exception("invalid path")
 
     def _clean_up_files(self, local_filename, local_entry_id,
-                      local_filename_nxml, local_filename_json, thumb_file_small,
-                      thumb_file_medium, thumb_file_large, **kwargs):
+                        local_filename_nxml, local_filename_json, thumb_file_small,
+                        thumb_file_medium, thumb_file_large, **kwargs):
         try:
             if os.path.isfile(local_filename):
                 os.remove(local_filename)
@@ -516,7 +520,8 @@ class OAHarvester(object):
         if self.swift:
             self._upload_files(**filepaths)
         else:
-            self._save_files_locally(**filepaths, local_entry_id=local_entry['id'], compression_suffix=compression_suffix)
+            self._save_files_locally(**filepaths, local_entry_id=local_entry['id'],
+                                     compression_suffix=compression_suffix)
         self._clean_up_files(**filepaths, local_entry_id=local_entry['id'])
 
     def reset(self):

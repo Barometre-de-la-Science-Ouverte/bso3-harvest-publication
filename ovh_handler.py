@@ -2,7 +2,7 @@ import argparse
 import json
 import os
 from typing import List
-from swift import Swift
+from infrastructure.storage.swift import Swift
 from glob import glob
 from config.path_config import CONFIG_PATH_OVH, PUBLICATIONS_DOWNLOAD_DIR
 
