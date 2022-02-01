@@ -64,22 +64,21 @@ def run_task_process():
     partition_size = args.get('partition_size', 1_000)
     break_after_one = args.get('break_after_one', True)
     storage_handler = Swift(config_harvester)
-    args['storage_handler'] = storage_handler
     partitions = get_partitions(storage_handler, partition_size)
+    response_objects = []
     with Connection(redis.from_url(current_app.config['REDIS_URL'])):
         q = Queue(name='pdf-processor', default_timeout=default_timeout)
         for partition in partitions:
-            args['partition'] = partition
-            task = q.enqueue(create_task_process, args)
+            task = q.enqueue(create_task_process, kwargs={'files': partition})
+            response_objects.append({
+                'status': 'success',
+                'data': {
+                    'task_id': task.get_id()
+                }
+            })
             if break_after_one:
                 break
-    response_object = {
-        'status': 'success',
-        'data': {
-            'task_id': task.get_id()
-        }
-    }
-    return jsonify(response_object)
+    return jsonify(response_objects)
 
 
 @main_blueprint.route('/processor_tasks/<task_id>', methods=['GET'])
