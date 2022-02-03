@@ -91,11 +91,12 @@ class HarvestUnpaywall(TestCase):
         mock_uuid4.side_effect = ids_2_publications
         mock_getUUIDByIdentifier.return_value = None
         mock_sample_selection.return_value = [0]
+
         # When harvestUnpaywall is executed
         harvester_2_publications_sample.harvestUnpaywall(filepath, reprocess=True)
 
         # Then processBatch is executed on
-        mock_processBatch.assert_called_with([expected_url], [expected_filename], [expected_entrie])
+        mock_processBatch.assert_called_with([expected_url], [expected_filename], [expected_entrie], '')
 
     @mock.patch.object(uuid, 'uuid4')
     @mock.patch.object(OAHarvester, 'processBatch')
@@ -113,7 +114,7 @@ class HarvestUnpaywall(TestCase):
         harvester_2_publications.harvestUnpaywall(filepath, reprocess=True)
 
         # Then processBatch is executed on
-        mock_processBatch.assert_called_with(expected_urls, expected_filenames, expected_entries)
+        mock_processBatch.assert_called_with(expected_urls, expected_filenames, expected_entries, '')
     
     @mock.patch.object(uuid, "uuid4")
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
