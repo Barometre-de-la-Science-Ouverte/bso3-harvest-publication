@@ -12,7 +12,7 @@
     "batch_size": 10,
     "sleep_time": 1,
     "concurrency": 4,
-    "timeout": 600,
+    "timeout": 3600,
     "log_file": "client.log",
     "log_level": "DEBUG",
     "biblio_glutton_url": ""
