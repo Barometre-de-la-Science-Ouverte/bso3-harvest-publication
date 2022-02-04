@@ -13,7 +13,8 @@ class OvhHandler(TestCase):
         # When
         prefix = generateStoragePath(filename)
         # Then
-        self.assertEqual(prefix, "12/34/56/78/123456789")
+        expected_prefix = os.path.join('12', '34', '56', '78', '123456789')
+        self.assertEqual(prefix, expected_prefix)
 
     @mock.patch.object(Swift, "download_files")
     @mock.patch.object(Swift, "get_swift_list")
