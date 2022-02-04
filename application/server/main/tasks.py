@@ -46,17 +46,21 @@ def create_task_unpaywall(args):
     # -----------------------------------------------------------------------------------------------------------------#
     elif metadata_folder != '':
         logger.debug(f'launching task with args {args}')
-        destination_dir = os.path.join(DESTINATION_DIR_METADATA, metadata_folder)
         list_local_files = []
         if len(METADATA_DUMP) > 0:
             files = swift_handler.get_swift_list(container=METADATA_DUMP, dir_name=metadata_folder)
             for file in files:
+                print('start for, with file :')
+                print(file)
                 metadata_file = load_metadata(metadata_container=METADATA_DUMP,
                                               metadata_file=file,
-                                              destination_dir=destination_dir)
+                                              destination_dir=DESTINATION_DIR_METADATA)
+                print('metadata file outputed by load_metadata:')
+                print(metadata_file)
                 list_local_files.append(metadata_file)
         else:
-            list_local_files = [f for f in os.listdir(destination_dir)]
+            destination_folder = os.path.join(DESTINATION_DIR_METADATA, metadata_folder)
+            list_local_files = [os.path.join(destination_folder, f) for f in os.listdir(destination_folder)]
 
         for file in list_local_files:
             print('file:')
@@ -64,8 +68,8 @@ def create_task_unpaywall(args):
             end_file_name = os.path.basename(file)
             file_generic_name = end_file_name.split('.')[-1]
             destination_dir_output = os.path.join(metadata_folder, file_generic_name)
-            print('destination dir:')
-            print(destination_dir)
+            print('destination dir output:')
+            print(destination_dir_output)
             harvester = OAHarvester(config_harvester, thumbnail=False, sample=nb_samples, sample_seed=1)
             harvester.harvestUnpaywall(file, destination_dir=destination_dir_output)
 
