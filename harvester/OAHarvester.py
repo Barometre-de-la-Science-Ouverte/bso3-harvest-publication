@@ -1110,7 +1110,7 @@ def generateStoragePath(identifier):
     Convert a file name into a path with file prefix as directory paths:
     123456789 -> 12/34/56/123456789
     """
-    return os.path.join(identifier[:2], identifier[2:4], identifier[4:6], identifier[6:8])
+    return os.path.join(identifier[:2], identifier[2:4], identifier[4:6], identifier[6:8], identifier)
 
 
 def _load_config(path='./config.json'):
