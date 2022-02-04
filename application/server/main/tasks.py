@@ -47,6 +47,7 @@ def create_task_unpaywall(args):
     elif metadata_folder != '':
         logger.debug(f'launching task with args {args}')
         list_local_files = []
+        destination_dir_ovh = os.path.join(DESTINATION_DIR_METADATA, metadata_folder)
         if len(METADATA_DUMP) > 0:
             files = swift_handler.get_swift_list(container=METADATA_DUMP, dir_name=metadata_folder)
             for file in files:
@@ -54,7 +55,7 @@ def create_task_unpaywall(args):
                 print(file)
                 metadata_file = load_metadata(metadata_container=METADATA_DUMP,
                                               metadata_file=file,
-                                              destination_dir=DESTINATION_DIR_METADATA)
+                                              destination_dir=destination_dir_ovh)
                 print('metadata file outputed by load_metadata:')
                 print(metadata_file)
                 list_local_files.append(metadata_file)
