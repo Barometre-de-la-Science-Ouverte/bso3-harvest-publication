@@ -434,6 +434,8 @@ class OAHarvester(object):
                 if os.path.isfile(thumb_file_large):
                     files_to_upload.append(thumb_file_large)
 
+            logger.info(f'files_to_upload dict: {files_to_upload}')
+            logger.info(f'dest_path: {dest_path}')
             if len(files_to_upload) > 0:
                 self.swift.upload_files_to_swift(self.storage_publications, files_to_upload, dest_path)
 
@@ -501,6 +503,7 @@ class OAHarvester(object):
     def manageFiles(self, local_entry, destination_dir=''):
         if destination_dir != '':
             data_path = os.path.join(DATA_PATH, destination_dir)
+            logger.info(f'data path: {data_path}')
         else:
             data_path = DATA_PATH
         filepaths: dict = {
@@ -514,6 +517,7 @@ class OAHarvester(object):
         }
         if destination_dir != '':
             filepaths['dest_path'] = os.path.join(destination_dir, filepaths['dest_path'])
+            logger.info(f'filepaths dict: {filepaths}')
         if self.thumbnail:
             self._generate_thumbnails(**filepaths, local_entry=local_entry)
         self._write_metadata_file(filepaths['local_filename_json'], local_entry)
