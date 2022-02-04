@@ -101,7 +101,7 @@ class OAHarvester(object):
         envFilePath = os.path.join(DATA_PATH, 'fail')
         self.env_fail = lmdb.open(envFilePath, map_size=lmdb_size)
 
-    def harvestUnpaywall(self, filepath, reprocess=False, filter_out=[]):
+    def harvestUnpaywall(self, filepath, reprocess=False, filter_out=[], destination_dir=''):
         """
         Main method, use the Unpaywall dataset for getting pdf url for Open Access resources, 
         download in parallel PDF, generate thumbnails (if selected), upload resources locally 
@@ -125,7 +125,7 @@ class OAHarvester(object):
             urls = [e[0] for e in batch]
             entries = [e[1] for e in batch]
             filenames = [e[2] for e in batch]
-            self.processBatch(urls, filenames, entries)
+            self.processBatch(urls, filenames, entries, destination_dir)
 
     def harvestPMC(self, filepath, reprocess=False):
         """
@@ -296,7 +296,7 @@ class OAHarvester(object):
                     batch = []
             yield batch
 
-    def processBatch(self, urls, filenames, entries):  # , txn, txn_doi, txn_fail):
+    def processBatch(self, urls, filenames, entries, destination_dir=''):  # , txn, txn_doi, txn_fail):
         with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
             results = executor.map(_download, urls, filenames, entries, timeout=30)
 
@@ -356,7 +356,7 @@ class OAHarvester(object):
 
         # finally we can parallelize the thumbnail/upload/file cleaning steps for this batch
         with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
-            results = executor.map(self.manageFiles, entries, timeout=30)
+            results = executor.map(self.manageFiles, entries, destination_dir, timeout=30)
 
     def getUUIDByIdentifier(self, identifier):
         with self.env_doi.begin() as txn:
@@ -498,16 +498,22 @@ class OAHarvester(object):
         except IOError:
             logger.exception("temporary file cleaning failed")
 
-    def manageFiles(self, local_entry):
-        filepaths = {
+    def manageFiles(self, local_entry, destination_dir=''):
+        if destination_dir != '':
+            data_path = os.path.join(DATA_PATH, destination_dir)
+        else:
+            data_path = DATA_PATH
+        filepaths: dict = {
             "dest_path": os.path.join(generateStoragePath(local_entry['id']), local_entry['id']),
-            "local_filename": os.path.join(DATA_PATH, local_entry['id'] + ".pdf"),
-            "local_filename_nxml": os.path.join(DATA_PATH, local_entry['id'] + ".nxml"),
-            "local_filename_json": os.path.join(DATA_PATH, local_entry['id'] + ".json"),
-            "thumb_file_small": os.path.join(DATA_PATH, local_entry['id'] + '-thumb-small.png'),
-            "thumb_file_medium": os.path.join(DATA_PATH, local_entry['id'] + '-thumb-medium.png'),
-            "thumb_file_large": os.path.join(DATA_PATH, local_entry['id'] + '-thumb-large.png'),
+            "local_filename": os.path.join(data_path, local_entry['id'] + ".pdf"),
+            "local_filename_nxml": os.path.join(data_path, local_entry['id'] + ".nxml"),
+            "local_filename_json": os.path.join(data_path, local_entry['id'] + ".json"),
+            "thumb_file_small": os.path.join(data_path, local_entry['id'] + '-thumb-small.png'),
+            "thumb_file_medium": os.path.join(data_path, local_entry['id'] + '-thumb-medium.png'),
+            "thumb_file_large": os.path.join(data_path, local_entry['id'] + '-thumb-large.png'),
         }
+        if destination_dir != '':
+            filepaths['dest_path'] = os.path.join(destination_dir, filepaths['dest_path'])
         if self.thumbnail:
             self._generate_thumbnails(**filepaths, local_entry=local_entry)
         self._write_metadata_file(filepaths['local_filename_json'], local_entry)
