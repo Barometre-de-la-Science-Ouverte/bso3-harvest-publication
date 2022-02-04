@@ -58,8 +58,10 @@ def create_task_unpaywall(args):
             list_local_files = [f for f in os.listdir(destination_dir)]
 
         for file in list_local_files:
+            file_generic_name = file.split('.')[0]
+            destination_dir_output = os.path.join(metadata_folder, file_generic_name)
             harvester = OAHarvester(config_harvester, thumbnail=False, sample=nb_samples, sample_seed=1)
-            harvester.harvestUnpaywall(file, destination_dir=metadata_folder)
+            harvester.harvestUnpaywall(file, destination_dir=destination_dir_output)
 
 
 def create_task_process(files):
