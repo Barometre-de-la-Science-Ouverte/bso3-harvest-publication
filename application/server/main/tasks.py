@@ -1,4 +1,5 @@
 import os
+from time import time
 
 import load_metadata
 from application.server.main.logger import get_logger
@@ -38,6 +39,12 @@ def create_task_unpaywall(args):
 def create_task_process(files):
     _swift = Swift(config_harvester)
     download_files(_swift, PUBLICATIONS_DOWNLOAD_DIR, files)
+    start_time = time()
     run_grobid(CONFIG_PATH_GROBID, PUBLICATIONS_DOWNLOAD_DIR, GrobidClient)
+    time_grobid = time()
+    logger.info(f"Runtime for Grobid: {round(time_grobid - start_time, 3)}s for {len(files)} files")
     run_softcite(CONFIG_PATH_SOFTCITE, PUBLICATIONS_DOWNLOAD_DIR, smc)
+    time_softcite = time()
+    logger.info(f"Runtime for Softcite: {round(time_softcite - time_grobid, 3)}s for {len(files)} files")
+    logger.info(f"Total runtime: {round(time_softcite - start_time, 3)}s for {len(files)} files")
     upload_and_clean_up(_swift, PUBLICATIONS_DOWNLOAD_DIR)
