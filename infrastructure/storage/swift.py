@@ -1,11 +1,10 @@
-import os
 import shutil
-from config.harvester_config import config_harvester
 
 from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
 
-from logger import logger
 from application.server.main.logger import get_logger
+from config.harvester_config import config_harvester
+from logger import logger
 
 METADATA_DUMP = config_harvester['metadata_dump']
 PUBLICATIONS_DUMP = config_harvester['publications_dump']
@@ -61,8 +60,8 @@ class Swift(object):
         Bulk upload of a list of files to current SWIFT object storage container under the same destination path
         """
         # Slightly modified to be able to upload to more than one dest_path
-        objs = [SwiftUploadObject(file_path, object_name=dest_path)\
-            for file_path, dest_path in file_paths]
+        objs = [SwiftUploadObject(file_path, object_name=dest_path) \
+                for file_path, dest_path in file_paths]
 
         try:
             for result in self.swift.upload(container, objs):

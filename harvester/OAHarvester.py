@@ -28,8 +28,6 @@ from infrastructure.storage import swift
 from logger import logger
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-# log_path = os.path.join(PROJECT_DIRNAME,'logs', 'harvester.log')
-# logging.basicConfig(filename=log_path, filemode='w', level=logging.DEBUG)
 
 logging.getLogger("keystoneclient").setLevel(logging.ERROR)
 logging.getLogger("swiftclient").setLevel(logging.ERROR)
@@ -125,7 +123,6 @@ class OAHarvester(object):
             urls = [e[0] for e in batch]
             entries = [e[1] for e in batch]
             filenames = [e[2] for e in batch]
-            logger.info(f'destination dir before processBatch :::: {destination_dir}')
             self.processBatch(urls, filenames, entries, destination_dir)
 
     def harvestPMC(self, filepath, reprocess=False):
@@ -322,7 +319,7 @@ class OAHarvester(object):
                     local_entry["valid_fulltext_xml"] = True
 
             if (result is None or result == "0" or result == "success") and valid_file:
-                logger.info(json.dumps({"Stats": {"is_harvested": True, "entry": local_entry}}))
+                #logger.info(json.dumps({"Stats": {"is_harvested": True, "entry": local_entry}}))
                 # update DB
                 with self.env.begin(write=True) as txn:
                     txn.put(local_entry['id'].encode(encoding='UTF-8'),
@@ -330,7 +327,7 @@ class OAHarvester(object):
 
                 entries.append(local_entry)
             else:
-                logger.info(json.dumps({"Stats": {"is_harvested": False, "entry": local_entry}}))
+                #logger.info(json.dumps({"Stats": {"is_harvested": False, "entry": local_entry}}))
 
                 # update DB
                 with self.env.begin(write=True) as txn:
@@ -358,7 +355,6 @@ class OAHarvester(object):
         # finally we can parallelize the thumbnail/upload/file cleaning steps for this batch
         destination_dirs = len(entries) * [destination_dir]
         with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
-            logger.info(f'destination_dir before manageFiles ::: {destination_dir}')
             results = executor.map(self.manageFiles, entries, destination_dirs, timeout=30)
 
     def getUUIDByIdentifier(self, identifier):
@@ -437,9 +433,6 @@ class OAHarvester(object):
                 if os.path.isfile(thumb_file_large):
                     files_to_upload.append(thumb_file_large)
 
-            logger.info(f'files_to_upload dict: {files_to_upload}')
-            logger.info(f'dest_path: {dest_path}')
-            logger.info(f'args: {kwargs}')
             if len(files_to_upload) > 0:
                 self.swift.upload_files_to_swift(self.storage_publications, files_to_upload, dest_path)
 
@@ -533,7 +526,6 @@ class OAHarvester(object):
             filepaths = {k: (filepaths[k] + compression_suffix if k != "dest_path" else filepaths[k]) for k in
                          filepaths}
         if self.swift:
-            logger.info(f'filepaths dict before uploading: {filepaths}')
             self._upload_files(**filepaths)
         else:
             self._save_files_locally(**filepaths, local_entry_id=local_entry['id'],
