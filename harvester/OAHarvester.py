@@ -125,6 +125,7 @@ class OAHarvester(object):
             urls = [e[0] for e in batch]
             entries = [e[1] for e in batch]
             filenames = [e[2] for e in batch]
+            logger.info(f'destination dir before processBatch :::: {destination_dir}')
             self.processBatch(urls, filenames, entries, destination_dir)
 
     def harvestPMC(self, filepath, reprocess=False):
@@ -356,6 +357,7 @@ class OAHarvester(object):
 
         # finally we can parallelize the thumbnail/upload/file cleaning steps for this batch
         with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
+            logger.info(f'destination_dir before manageFiles ::: {destination_dir}')
             results = executor.map(self.manageFiles, entries, destination_dir, timeout=30)
 
     def getUUIDByIdentifier(self, identifier):

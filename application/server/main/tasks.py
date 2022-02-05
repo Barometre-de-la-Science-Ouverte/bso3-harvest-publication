@@ -14,9 +14,10 @@ from load_metadata import load_metadata
 from ovh_handler import download_files, upload_and_clean_up
 from run_grobid import run_grobid
 from run_softcite import run_softcite
+from logger import logger
 
 METADATA_DUMP = config_harvester['metadata_dump']
-logger = get_logger(__name__)
+logger_console = get_logger(__name__)
 
 
 def create_task_unpaywall(args):
@@ -27,13 +28,13 @@ def create_task_unpaywall(args):
     swift_handler = Swift(config_harvester)
 
     if (metadata_file == '') and (metadata_folder == ''):
-        logger.debug(f'One of the two arguments metadata_file of metadata_folder should be provided !')
+        logger_console.debug(f'One of the two arguments metadata_file of metadata_folder should be provided !')
     # -----------------------------------------------------------------------------------------------------------------#
     elif (metadata_file != '') and (metadata_folder != ''):
-        logger.debug(f'Only one of the two arguments metadata_file of metadata_folder should be provided !')
+        logger_console.debug(f'Only one of the two arguments metadata_file of metadata_folder should be provided !')
     # -----------------------------------------------------------------------------------------------------------------#
     elif metadata_file != '':
-        logger.debug(f'launching task with args {args}')
+        logger_console.debug(f'launching task with args {args}')
         if len(METADATA_DUMP) > 0:
             metadata_file = load_metadata(metadata_container=METADATA_DUMP,
                                           metadata_file=metadata_file,
@@ -44,7 +45,7 @@ def create_task_unpaywall(args):
         harvester.harvestUnpaywall(metadata_file)
     # -----------------------------------------------------------------------------------------------------------------#
     elif metadata_folder != '':
-        logger.debug(f'launching task with args {args}')
+        logger_console.debug(f'launching task with args {args}')
         list_local_files = []
         if len(METADATA_DUMP) > 0:
             files = swift_handler.get_swift_list(container=METADATA_DUMP, dir_name=metadata_folder)
@@ -60,8 +61,11 @@ def create_task_unpaywall(args):
 
         for file in list_local_files:
             end_file_name = os.path.basename(file)
+            logger.info(f'end file name ::: {end_file_name}')
             file_generic_name = end_file_name.split('.')[0]
+            logger.info(f'file_generic_name ::: {file_generic_name}')
             destination_dir_output = os.path.join(metadata_folder, file_generic_name)
+            logger.info(f'destination_dir :::: {destination_dir_output}')
             harvester = OAHarvester(config_harvester, thumbnail=False, sample=nb_samples, sample_seed=1)
             harvester.harvestUnpaywall(file, destination_dir=destination_dir_output)
 
@@ -72,9 +76,9 @@ def create_task_process(files):
     start_time = time()
     run_grobid(CONFIG_PATH_GROBID, PUBLICATIONS_DOWNLOAD_DIR, GrobidClient)
     time_grobid = time()
-    logger.info(f"Runtime for Grobid: {round(time_grobid - start_time, 3)}s for {len(files)} files")
+    logger_console.info(f"Runtime for Grobid: {round(time_grobid - start_time, 3)}s for {len(files)} files")
     run_softcite(CONFIG_PATH_SOFTCITE, PUBLICATIONS_DOWNLOAD_DIR, smc)
     time_softcite = time()
-    logger.info(f"Runtime for Softcite: {round(time_softcite - time_grobid, 3)}s for {len(files)} files")
-    logger.info(f"Total runtime: {round(time_softcite - start_time, 3)}s for {len(files)} files")
+    logger_console.info(f"Runtime for Softcite: {round(time_softcite - time_grobid, 3)}s for {len(files)} files")
+    logger_console.info(f"Total runtime: {round(time_softcite - start_time, 3)}s for {len(files)} files")
     upload_and_clean_up(_swift, PUBLICATIONS_DOWNLOAD_DIR)
