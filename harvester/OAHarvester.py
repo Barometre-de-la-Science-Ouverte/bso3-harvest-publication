@@ -436,6 +436,7 @@ class OAHarvester(object):
 
             logger.info(f'files_to_upload dict: {files_to_upload}')
             logger.info(f'dest_path: {dest_path}')
+            logger.info(f'args: {kwargs}')
             if len(files_to_upload) > 0:
                 self.swift.upload_files_to_swift(self.storage_publications, files_to_upload, dest_path)
 
@@ -501,9 +502,10 @@ class OAHarvester(object):
             logger.exception("temporary file cleaning failed")
 
     def manageFiles(self, local_entry, destination_dir=''):
+        logger.info(f'destination dir start manageFiles: {destination_dir}')
         if destination_dir != '':
             data_path = os.path.join(DATA_PATH, destination_dir)
-            logger.info(f'data path: {data_path}')
+            logger.info(f'data path after: {data_path}')
         else:
             data_path = DATA_PATH
         filepaths: dict = {
@@ -528,6 +530,7 @@ class OAHarvester(object):
             filepaths = {k: (filepaths[k] + compression_suffix if k != "dest_path" else filepaths[k]) for k in
                          filepaths}
         if self.swift:
+            logger.info(f'filepaths dict before uploading: {filepaths}')
             self._upload_files(**filepaths)
         else:
             self._save_files_locally(**filepaths, local_entry_id=local_entry['id'],

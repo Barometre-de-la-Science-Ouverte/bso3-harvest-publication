@@ -60,7 +60,7 @@ def create_task_unpaywall(args):
 
         for file in list_local_files:
             end_file_name = os.path.basename(file)
-            file_generic_name = end_file_name.split('.')[-1]
+            file_generic_name = end_file_name.split('.')[0]
             destination_dir_output = os.path.join(metadata_folder, file_generic_name)
             harvester = OAHarvester(config_harvester, thumbnail=False, sample=nb_samples, sample_seed=1)
             harvester.harvestUnpaywall(file, destination_dir=destination_dir_output)
