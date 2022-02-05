@@ -356,9 +356,10 @@ class OAHarvester(object):
                     os.remove(local_filename)
 
         # finally we can parallelize the thumbnail/upload/file cleaning steps for this batch
+        destination_dirs = len(entries) * [destination_dir]
         with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
             logger.info(f'destination_dir before manageFiles ::: {destination_dir}')
-            results = executor.map(self.manageFiles, entries, destination_dir, timeout=30)
+            results = executor.map(self.manageFiles, entries, destination_dirs, timeout=30)
 
     def getUUIDByIdentifier(self, identifier):
         with self.env_doi.begin() as txn:
