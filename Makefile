@@ -1,7 +1,17 @@
 DOCKER_IMAGE_NAME=dataesr/bso3-harvest-publication
 CURRENT_VERSION=$(shell cat application/__init__.py | cut -d "'" -f 2)
 
-docker-build:
+clean_up_files:
+	rm -rf logs/*
+	rm -rf downloaded_publications
+	rm -rf lmdb/entries_software
+	rm -rf data/
+	rm -rf __pycache__/
+	rm -rf */__pycache__/
+	rm -rf */*/__pycache__/
+	rm -rf */*/*/__pycache__/
+
+docker-build: clean_up_files
 	@echo Building a new docker image
 	docker build -t $(DOCKER_IMAGE_NAME):$(CURRENT_VERSION) -t $(DOCKER_IMAGE_NAME):latest .
 	@echo Docker image built
