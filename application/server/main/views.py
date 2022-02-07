@@ -62,14 +62,18 @@ def run_task_process():
     """
     args = request.get_json(force=True)
     partition_size = args.get('partition_size', 1_000)
+    do_grobid = args.get('do_grobid', True)
+    do_softcite = args.get('do_softcite', True)
+    partition_size = args.get('partition_size', 1_000)
+    sub_dir = args.get('sub_dir', '')
     break_after_one = args.get('break_after_one', True)
     storage_handler = Swift(config_harvester)
-    partitions = get_partitions(storage_handler, partition_size)
+    partitions = get_partitions(storage_handler, sub_dir, partition_size)
     response_objects = []
     with Connection(redis.from_url(current_app.config['REDIS_URL'])):
         q = Queue(name='pdf-processor', default_timeout=default_timeout)
         for partition in partitions:
-            task = q.enqueue(create_task_process, kwargs={'files': partition})
+            task = q.enqueue(create_task_process, kwargs={'files': partition, 'do_grobid': do_grobid, 'do_softcite': do_softcite})
             response_objects.append({
                 'status': 'success',
                 'data': {

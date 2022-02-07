@@ -67,14 +67,16 @@ def create_task_unpaywall(args):
             harvester.harvestUnpaywall(file, destination_dir=destination_dir_output)
 
 
-def create_task_process(files):
+def create_task_process(files, do_grobid, do_softcite):
     _swift = Swift(config_harvester)
     download_files(_swift, PUBLICATIONS_DOWNLOAD_DIR, files)
     start_time = time()
-    run_grobid(CONFIG_PATH_GROBID, PUBLICATIONS_DOWNLOAD_DIR, GrobidClient)
+    if do_grobid:
+        run_grobid(CONFIG_PATH_GROBID, PUBLICATIONS_DOWNLOAD_DIR, GrobidClient)
     time_grobid = time()
     logger_console.info(f"Runtime for Grobid: {round(time_grobid - start_time, 3)}s for {len(files)} files")
-    run_softcite(CONFIG_PATH_SOFTCITE, PUBLICATIONS_DOWNLOAD_DIR, smc)
+    if do_softcite:
+        run_softcite(CONFIG_PATH_SOFTCITE, PUBLICATIONS_DOWNLOAD_DIR, smc)
     time_softcite = time()
     logger_console.info(f"Runtime for Softcite: {round(time_softcite - time_grobid, 3)}s for {len(files)} files")
     logger_console.info(f"Total runtime: {round(time_softcite - start_time, 3)}s for {len(files)} files")
