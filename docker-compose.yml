@@ -1,45 +1,39 @@
 services:
   redis:
     image: redis:5.0.7-alpine
-    networks:
-      - bso-network
-
-  dashboard:
-    image: dataesr/dashboard-crawler:1.1
     ports:
-      - 9181:9181
+      - "6379:6379"
+  
+  dashboard: 
+    image: dataesr/dashboard-crawler:1.0
+    ports:
+      - "9181:9181"
     command: rq-dashboard -H redis
-    networks:
-      - bso-network
     depends_on:
       - redis
 
   worker:
-    build: .
+    image: dataesr/bso3-harvest-publication:latest
+    volumes:
+      - bso3-harvest-publication:/src
     privileged: true
-    command: >
-        /bin/sh -c "python3 manage.py run_worker"
-    environment:
-      APP_SETTINGS: application.server.config.DevelopmentConfig
-    networks:
-      - bso-network
+    command: python3 manage.py run_worker
+    env_file:
+      - .env
     depends_on:
       - redis
 
   web:
-    build: .
+    image: dataesr/bso3-harvest-publication:latest
     privileged: true
     ports:
-      - 5004:5000
+      - "5004:5000"
     command: python3 manage.py run -h 0.0.0.0
-    environment:
-      FLASK_DEBUG: 1
-      APP_SETTINGS: application.server.config.DevelopmentConfig
-    networks:
-      - bso-network
+    env_file:
+      - .env
     depends_on:
       - worker
 
-networks:
-  bso-network:
-    driver: bridge
+volumes:
+  bso3-harvest-publication:
+
