@@ -252,23 +252,24 @@ class OAHarvester(object):
             oa_locations = {}
             for oa_location in latest_observation['oa_locations']:
                 if ('url_for_pdf' in oa_location) and oa_location['url_for_pdf']:
-                    if 'repository_normalized' in oa_location and (
-                            oa_location['repository_normalized'] == "PubMed Central" or oa_location[
-                        'repository_normalized'] == "HAL"):
-                        urls_for_pdf[0] = [oa_location['url_for_pdf']]
-                        oa_locations[0] = [oa_location]
-                    elif oa_location['is_best'] and oa_location['url_for_pdf']:
-                        urls_for_pdf[1] = [oa_location['url_for_pdf']]
-                        oa_locations[1] = [oa_location]
+                    if 'repository_normalized' in oa_location and oa_location['repository_normalized'] == "arXiv":
+                        update_dict(urls_for_pdf, 0, oa_location['url_for_pdf'])
+                        update_dict(oa_locations, 0, oa_location)
+                    elif 'repository_normalized' in oa_location and oa_location['repository_normalized'] == "PubMed Central":
+                        update_dict(urls_for_pdf, 1, oa_location['url_for_pdf'])
+                        update_dict(oa_locations, 1, oa_location)
+                    elif 'repository_normalized' in oa_location and oa_location['repository_normalized'] == "HAL":
+                        update_dict(urls_for_pdf, 2, oa_location['url_for_pdf'])
+                        update_dict(oa_locations, 2, oa_location)
+                    elif 'repository_normalized' in oa_location and oa_location['host_type'] == "repository":
+                        update_dict(urls_for_pdf, 3, oa_location['url_for_pdf'])
+                        update_dict(oa_locations, 3, oa_location)
+                    elif 'wiley' in oa_location['url_for_pdf']:
+                        update_dict(urls_for_pdf, 4, oa_location['url_for_pdf'])
+                        update_dict(oa_locations, 4, oa_location)
                     else:
-                        if 2 in oa_locations:
-                            oa_locations[2].append(oa_location)
-                        else:
-                            oa_locations[2] = [oa_location]
-                        if 2 in urls_for_pdf:
-                            urls_for_pdf[2].append(oa_location['url_for_pdf'])
-                        else:
-                            urls_for_pdf[2] = [oa_location['url_for_pdf']]
+                        update_dict(urls_for_pdf, 5, oa_location['url_for_pdf'])
+                        update_dict(oa_locations, 5, oa_location)
             urls_for_pdf = [url for url_list_idx in sorted(urls_for_pdf) for url in urls_for_pdf[url_list_idx]]
             oa_locations = [oa_location for oa_locations_idx in sorted(oa_locations) for oa_location in
                             oa_locations[oa_locations_idx]]
@@ -584,6 +585,13 @@ class OAHarvester(object):
             nb_total = txn.stat()['entries']
         logger.info(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
         print(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
+
+
+def update_dict(mydict, key, value):
+    if key in mydict:
+        mydict[key].append(value)
+    else:
+        mydict[key] = [value]
 
 
 def compress(file):

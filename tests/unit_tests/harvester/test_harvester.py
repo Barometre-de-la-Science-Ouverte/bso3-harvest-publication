@@ -174,21 +174,23 @@ class HarvestUnpaywall(TestCase):
         self.assertEqual(url, expected_url)
         self.assertEqual(filename, expected_filename)
     
-    def test__parse_entry_when_new_entry(self):
+    def test__parse_entry(self):
         # Given
-        filepath = os.path.join(FIXTURES_PATH, 'dump_2_publications.jsonl.gz.test')
-        with gzip.open(filepath, 'rt') as fp:
-            file_content = [json.loads(line) for line in fp]
-        entry_in = file_content[0]
-        expected_url = urls_2_publications[0]
-        expected_entry = entries_2_publications[0]
-        expected_filename = filename_2_publications[0]
+        entry_filepath = os.path.join(FIXTURES_PATH, 'entry.json')
+        with open(entry_filepath, 'rt') as fp:
+            entry_in = json.load(fp)
+        parsed_entry_filepath = os.path.join(FIXTURES_PATH, 'parsed_entry.json')
+        with open(parsed_entry_filepath, 'rt') as fp:
+            entry_out = json.load(fp)
         entry_in['id'] = ids_2_publications[0]
+        expected_urls = urls_entry
+        expected_entry = entry_out
+        expected_filename = filename_2_publications[0]
         # When
-        url, entry, filename = harvester_2_publications._parse_entry(entry_in)
+        urls, entry, filename = harvester_2_publications._parse_entry(entry_in)
         # Then
         self.assertEqual(entry, expected_entry)
-        self.assertEqual(url, expected_url)
+        self.assertEqual(urls, expected_urls)
         self.assertEqual(filename, expected_filename)
     
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")

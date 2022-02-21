@@ -1,0 +1,653 @@
+{
+  "affiliations":[
+    {
+      "detected_countries":[
+        "cn"
+      ],
+      "name":"State Key Laboratory of Genetic Engineering, Collaborative Innovation Center of Genetics and Development, International Associated Laboratory of CNRS-Fudan-HUNAU on Plant Epigenome Research, Department of Biochemistry, Institute of Plant Biology, School of Life Sciences, Fudan University, Shanghai, 200438, China."
+    },
+    {
+      "detected_countries":[
+        "cn"
+      ],
+      "name":"State Key Laboratory of Genetic Engineering, Collaborative Innovation Center of Genetics and Development, Department of Biochemistry, Institute of Plant Biology, School of Life Sciences, Fudan University, Shanghai, 200438, China."
+    },
+    {
+      "detected_countries":[
+        "fr"
+      ],
+      "name":"Universite de Strasbourg, CNRS, IBMP UPR 2357, 67000, Strasbourg, France."
+    },
+    {
+      "detected_countries":[
+        "us"
+      ],
+      "name":"Systems Biology Center, National Heart Lung and Blood Institute, National Institutes of Health, Bethesda, MD, 20892, USA."
+    },
+    {
+      "detected_countries":[
+        "cn"
+      ],
+      "name":"National Key Laboratory of Plant Molecular Genetics, CAS Center for Excellence in Molecular Plant Sciences, Institute of Plant Physiology and Ecology, Shanghai Institutes for Biological Sciences, Chinese Academy of Sciences, Shanghai, 200032, China. zhangyijing@sibs.ac.cn."
+    },
+    {
+      "detected_countries":[
+        "cn"
+      ],
+      "name":"University of the Chinese Academy of Sciences, Beijing, 100049, China. zhangyijing@sibs.ac.cn."
+    },
+    {
+      "detected_countries":[
+        "cn"
+      ],
+      "name":"State Key Laboratory of Genetic Engineering, Collaborative Innovation Center of Genetics and Development, International Associated Laboratory of CNRS-Fudan-HUNAU on Plant Epigenome Research, Department of Biochemistry, Institute of Plant Biology, School of Life Sciences, Fudan University, Shanghai, 200438, China. aiwudong@fudan.edu.cn."
+    }
+  ],
+  "asjc_classification":[
+    {
+      "code_asjc":"1311",
+      "field":"Genetics",
+      "subject_area":"Life Sciences"
+    },
+    {
+      "code_asjc":"1312",
+      "field":"Molecular Biology",
+      "subject_area":"Life Sciences"
+    }
+  ],
+  "bso_classification":"Biology (fond.)",
+  "bsso_classification":{
+    "field":[
+      "Other Biological Sciences"
+    ],
+    "field_journal_title":[
+      "Other Biological Sciences"
+    ],
+    "models":[
+      "journal_title"
+    ],
+    "weighted_score":1.5
+  },
+  "coi":null,
+  "databank":[
+    
+  ],
+  "datasource":"pubmed_fr",
+  "detected_countries":[
+    "us",
+    "cn",
+    "fr"
+  ],
+  "doi":"10.1186/s13072-019-0285-6",
+  "domains":[
+    "health"
+  ],
+  "genre":"journal-article",
+  "grants":null,
+  "has_grant":false,
+  "is_paratext":false,
+  "issn_electronic":"1756-8935",
+  "issn_list":[
+    "1756-8935"
+  ],
+  "issn_print":null,
+  "journal_issn_l":"1756-8935",
+  "journal_issns":"1756-8935",
+  "journal_name":"Epigenetics & Chromatin",
+  "journal_title":"Epigenetics & chromatin",
+  "keywords":[
+    {
+      "keyword":"ChIP-seq"
+    },
+    {
+      "keyword":"Epigenetic mark"
+    },
+    {
+      "keyword":"Gene expression"
+    },
+    {
+      "keyword":"H3K4me2"
+    },
+    {
+      "keyword":"RNA-seq"
+    },
+    {
+      "keyword":"Rice"
+    }
+  ],
+  "lang":"en",
+  "mesh_headings":[
+    "Chromatin Immunoprecipitation__methods",
+    "DNA Methylation",
+    "Epigenesis, Genetic__genetics",
+    "Epigenetic Repression",
+    "Gene Expression Regulation, Plant",
+    "Genome, Plant",
+    "Histones__genetics",
+    "Lysine__metabolism",
+    "Plants__genetics",
+    "Transcription Initiation Site",
+    "Transcription, Genetic"
+  ],
+  "pmid":31266517,
+  "publication_date":"2019-07-02T00:00:00",
+  "publication_types":[
+    "Journal Article",
+    "Research Support, Non-U.S. Gov't"
+  ],
+  "publication_year":2019,
+  "published_date":"2019-07-02T00:00:00",
+  "publisher":"Springer Science and Business Media LLC",
+  "sdg_classification":[
+    
+  ],
+  "sources":[
+    "pubmed"
+  ],
+  "title":"H3K4me2 functions as a repressive epigenetic mark in plants.",
+  "url":"https://www.ncbi.nlm.nih.gov/pubmed/31266517",
+  "year":2019,
+  "has_apc":true,
+  "amount_apc_EUR":1900.3343333333332,
+  "apc_source":"openAPC_estimation_issn",
+  "amount_apc_openapc_EUR":1900.3343333333332,
+  "count_apc_openapc_key":30,
+  "amount_apc_doaj_EUR":2113.0776024954444,
+  "amount_apc_doaj":1890,
+  "currency_apc_doaj":"GBP",
+  "predatory_publisher":false,
+  "predatory_journal":false,
+  "publisher_normalized":"Springer",
+  "publisher_group":"Springer-Nature",
+  "publisher_dissemination":"Springer-Nature",
+  "genre_raw":"journal-article",
+  "french_affiliations_types":[
+    "cnrs",
+    "university"
+  ],
+  "author_useful_rank_fr":false,
+  "author_useful_rank_countries":[
+    "cn"
+  ],
+  "observation_dates":[
+    "2021Q3",
+    "2020",
+    "2019"
+  ],
+  "oa_details":{
+    "2019":{
+      "snapshot_date":"20191122",
+      "observation_date":"2019",
+      "is_oa":true,
+      "journal_is_in_doaj":true,
+      "journal_is_oa":true,
+      "licence_publisher":[
+        "cc-by"
+      ],
+      "licence_repositories":[
+        "cc-by"
+      ],
+      "repositories":[
+        "HAL",
+        "PubMed Central",
+        "univoak.eu"
+      ],
+      "repositories_url":[
+        "hal.archives-ouvertes.fr",
+        "univoak.eu",
+        "www.ncbi.nlm.nih.gov/pmc"
+      ],
+      "repositories_pmh":[
+        "HAL",
+        "univoak.eu"
+      ],
+      "repositories_institution":[
+        "4 institutions : Université de Strasbourg, Université de Haute Alsace, INSA Strasbourg, Bibliothèque Nationale et Universitaire de Strasbourg - univOAK"
+      ],
+      "oa_locations":[
+        {
+          "url":"https://epigeneticsandchromatin.biomedcentral.com/track/pdf/10.1186/s13072-019-0285-6",
+          "pmh_id":null,
+          "is_best":true,
+          "license":"cc-by",
+          "updated":"2019-10-30T09:13:10.443979",
+          "version":"publishedVersion",
+          "evidence":"open (via page says license)",
+          "host_type":"publisher",
+          "endpoint_id":null,
+          "url_for_pdf":"https://epigeneticsandchromatin.biomedcentral.com/track/pdf/10.1186/s13072-019-0285-6",
+          "url_for_landing_page":"https://doi.org/10.1186/s13072-019-0285-6",
+          "repository_institution":null,
+          "license_normalized":"cc-by"
+        },
+        {
+          "url":"https://doi.org/10.1186/s13072-019-0285-6",
+          "pmh_id":null,
+          "is_best":false,
+          "license":"cc-by",
+          "updated":"2019-11-18T11:38:05.757893",
+          "version":"publishedVersion",
+          "evidence":"oa journal (via doaj)",
+          "host_type":"publisher",
+          "endpoint_id":null,
+          "url_for_pdf":null,
+          "url_for_landing_page":"https://doi.org/10.1186/s13072-019-0285-6",
+          "repository_institution":null,
+          "license_normalized":"cc-by"
+        },
+        {
+          "url":"https://hal.archives-ouvertes.fr/hal-02298557/file/islandora_79998.pdf",
+          "pmh_id":"oai:HAL:hal-02298557v1",
+          "is_best":false,
+          "license":"cc-by",
+          "updated":"2019-11-04T01:51:14.705291",
+          "version":"publishedVersion",
+          "evidence":"oa repository (via OAI-PMH doi match)",
+          "host_type":"repository",
+          "endpoint_id":"310698334fa345bca38",
+          "url_for_pdf":"https://hal.archives-ouvertes.fr/hal-02298557/file/islandora_79998.pdf",
+          "url_for_landing_page":"https://hal.archives-ouvertes.fr/hal-02298557/file/islandora_79998.pdf",
+          "repository_institution":null,
+          "license_normalized":"cc-by",
+          "repository_normalized":"HAL"
+        },
+        {
+          "url":"https://univoak.eu/islandora/object/islandora%3a79998/datastream/pdf/view",
+          "pmh_id":"oai:univoak.eu:islandora_79998",
+          "is_best":false,
+          "license":"cc-by",
+          "updated":"2019-11-13T01:50:48.381301",
+          "version":"publishedVersion",
+          "evidence":"oa repository (via OAI-PMH doi match)",
+          "host_type":"repository",
+          "endpoint_id":"tnbztsfgya9meny5xkrm",
+          "url_for_pdf":"https://univoak.eu/islandora/object/islandora%3A79998/datastream/PDF/view",
+          "url_for_landing_page":"https://univoak.eu/islandora/object/islandora%3A79998",
+          "repository_institution":"4 institutions : Université de Strasbourg, Université de Haute Alsace, INSA Strasbourg, Bibliothèque Nationale et Universitaire de Strasbourg - univOAK",
+          "license_normalized":"cc-by",
+          "repository_normalized":"univoak.eu"
+        },
+        {
+          "url":"https://hal.archives-ouvertes.fr/hal-02298557/document",
+          "pmh_id":"oai:HAL:hal-02298557v1",
+          "is_best":false,
+          "license":"cc-by",
+          "updated":"2019-11-04T01:50:18.716319",
+          "version":"publishedVersion",
+          "evidence":"oa repository (via OAI-PMH doi match)",
+          "host_type":"repository",
+          "endpoint_id":"310698334fa345bca38",
+          "url_for_pdf":"https://hal.archives-ouvertes.fr/hal-02298557/document",
+          "url_for_landing_page":"https://hal.archives-ouvertes.fr/hal-02298557",
+          "repository_institution":null,
+          "license_normalized":"cc-by",
+          "repository_normalized":"HAL"
+        },
+        {
+          "url":"https://www.ncbi.nlm.nih.gov/pmc/articles/pmc6604379",
+          "pmh_id":null,
+          "is_best":false,
+          "license":null,
+          "updated":"2019-11-18T11:38:05.758027",
+          "version":"publishedVersion",
+          "evidence":"oa repository (via pmcid lookup)",
+          "host_type":"repository",
+          "endpoint_id":null,
+          "url_for_pdf":null,
+          "url_for_landing_page":"https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6604379",
+          "repository_institution":null,
+          "license_normalized":"no license",
+          "repository_normalized":"PubMed Central"
+        }
+      ],
+      "oa_colors":[
+        "green",
+        "gold"
+      ],
+      "oa_colors_with_priority_to_publisher":[
+        "gold"
+      ],
+      "oa_host_type":"publisher;repository"
+    },
+    "2020":{
+      "snapshot_date":"20201009",
+      "observation_date":"2020",
+      "is_oa":true,
+      "journal_is_in_doaj":true,
+      "journal_is_oa":true,
+      "licence_publisher":[
+        "cc-by"
+      ],
+      "licence_repositories":[
+        "cc-by"
+      ],
+      "repositories":[
+        "HAL",
+        "PubMed Central",
+        "univoak.eu"
+      ],
+      "repositories_url":[
+        "europepmc.org",
+        "hal.archives-ouvertes.fr",
+        "univoak.eu",
+        "www.ncbi.nlm.nih.gov/pmc"
+      ],
+      "repositories_pmh":[
+        "HAL",
+        "europepmc.org",
+        "univoak.eu"
+      ],
+      "repositories_institution":[
+        "4 institutions : Université de Strasbourg, Université de Haute Alsace, INSA Strasbourg, Bibliothèque Nationale et Universitaire de Strasbourg - univOAK",
+        "Archive ouverte HAL - HAL",
+        "PubMed Central - Europe PMC"
+      ],
+      "oa_locations":[
+        {
+          "url":"https://epigeneticsandchromatin.biomedcentral.com/track/pdf/10.1186/s13072-019-0285-6",
+          "pmh_id":null,
+          "is_best":true,
+          "license":"cc-by",
+          "oa_date":"2019-07-02",
+          "updated":"2020-06-28T02:55:07.023095",
+          "version":"publishedVersion",
+          "evidence":"open (via page says license)",
+          "host_type":"publisher",
+          "endpoint_id":null,
+          "url_for_pdf":"https://epigeneticsandchromatin.biomedcentral.com/track/pdf/10.1186/s13072-019-0285-6",
+          "url_for_landing_page":"https://doi.org/10.1186/s13072-019-0285-6",
+          "repository_institution":null,
+          "license_normalized":"cc-by"
+        },
+        {
+          "url":"https://doi.org/10.1186/s13072-019-0285-6",
+          "pmh_id":null,
+          "is_best":false,
+          "license":"cc-by",
+          "oa_date":"2019-07-02",
+          "updated":"2020-10-06T12:25:34.924785",
+          "version":"publishedVersion",
+          "evidence":"oa journal (via doaj)",
+          "host_type":"publisher",
+          "endpoint_id":null,
+          "url_for_pdf":null,
+          "url_for_landing_page":"https://doi.org/10.1186/s13072-019-0285-6",
+          "repository_institution":null,
+          "license_normalized":"cc-by"
+        },
+        {
+          "url":"http://europepmc.org/articles/pmc6604379?pdf=render",
+          "pmh_id":"oai:europepmc.org:NWg6fqu55q9eJazq7Cio",
+          "is_best":false,
+          "license":"cc-by",
+          "oa_date":null,
+          "updated":null,
+          "version":"publishedVersion",
+          "evidence":"oa repository (via OAI-PMH doi match)",
+          "host_type":"repository",
+          "endpoint_id":"b5e840539009389b1a6",
+          "url_for_pdf":"http://europepmc.org/articles/pmc6604379?pdf=render",
+          "url_for_landing_page":"http://europepmc.org/articles/pmc6604379",
+          "repository_institution":"PubMed Central - Europe PMC",
+          "license_normalized":"cc-by",
+          "repository_normalized":"PubMed Central"
+        },
+        {
+          "url":"https://hal.archives-ouvertes.fr/hal-02298557/file/islandora_79998.pdf",
+          "pmh_id":"oai:HAL:hal-02298557v1",
+          "is_best":false,
+          "license":"cc-by",
+          "oa_date":null,
+          "updated":"2020-06-10T12:33:07.922203",
+          "version":"publishedVersion",
+          "evidence":"oa repository (via OAI-PMH doi match)",
+          "host_type":"repository",
+          "endpoint_id":"4bd6f8f5107c0df6f48",
+          "url_for_pdf":"https://hal.archives-ouvertes.fr/hal-02298557/file/islandora_79998.pdf",
+          "url_for_landing_page":"https://hal.archives-ouvertes.fr/hal-02298557/file/islandora_79998.pdf",
+          "repository_institution":"Archive ouverte HAL - HAL",
+          "license_normalized":"cc-by",
+          "repository_normalized":"HAL"
+        },
+        {
+          "url":"https://univoak.eu/islandora/object/islandora%3a79998/datastream/pdf/view",
+          "pmh_id":"oai:univoak.eu:islandora_79998",
+          "is_best":false,
+          "license":"cc-by",
+          "oa_date":null,
+          "updated":"2020-09-13T14:31:37.368235",
+          "version":"publishedVersion",
+          "evidence":"oa repository (via OAI-PMH doi match)",
+          "host_type":"repository",
+          "endpoint_id":"tnbztsfgya9meny5xkrm",
+          "url_for_pdf":"https://univoak.eu/islandora/object/islandora%3A79998/datastream/PDF/view",
+          "url_for_landing_page":"https://univoak.eu/islandora/object/islandora%3A79998",
+          "repository_institution":"4 institutions : Université de Strasbourg, Université de Haute Alsace, INSA Strasbourg, Bibliothèque Nationale et Universitaire de Strasbourg - univOAK",
+          "license_normalized":"cc-by",
+          "repository_normalized":"univoak.eu"
+        },
+        {
+          "url":"https://hal.archives-ouvertes.fr/hal-02298557/document",
+          "pmh_id":"oai:HAL:hal-02298557v1",
+          "is_best":false,
+          "license":"cc-by",
+          "oa_date":null,
+          "updated":"2020-06-10T14:09:56.764192",
+          "version":"publishedVersion",
+          "evidence":"oa repository (via OAI-PMH doi match)",
+          "host_type":"repository",
+          "endpoint_id":"4bd6f8f5107c0df6f48",
+          "url_for_pdf":"https://hal.archives-ouvertes.fr/hal-02298557/document",
+          "url_for_landing_page":"https://hal.archives-ouvertes.fr/hal-02298557/document",
+          "repository_institution":"Archive ouverte HAL - HAL",
+          "license_normalized":"cc-by",
+          "repository_normalized":"HAL"
+        },
+        {
+          "url":"https://www.ncbi.nlm.nih.gov/pmc/articles/pmc6604379",
+          "pmh_id":null,
+          "is_best":false,
+          "license":null,
+          "oa_date":null,
+          "updated":"2020-10-06T12:25:34.925111",
+          "version":"publishedVersion",
+          "evidence":"oa repository (via pmcid lookup)",
+          "host_type":"repository",
+          "endpoint_id":null,
+          "url_for_pdf":null,
+          "url_for_landing_page":"https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6604379",
+          "repository_institution":null,
+          "license_normalized":"no license",
+          "repository_normalized":"PubMed Central"
+        }
+      ],
+      "oa_colors":[
+        "green",
+        "gold"
+      ],
+      "oa_colors_with_priority_to_publisher":[
+        "gold"
+      ],
+      "oa_host_type":"publisher;repository"
+    },
+    "2021Q3":{
+      "snapshot_date":"20210901",
+      "observation_date":"2021Q3",
+      "is_oa":true,
+      "journal_is_in_doaj":true,
+      "journal_is_oa":true,
+      "licence_publisher":[
+        "cc-by"
+      ],
+      "licence_repositories":[
+        "cc-by"
+      ],
+      "repositories":[
+        "HAL",
+        "PubMed Central",
+        "univoak.eu"
+      ],
+      "repositories_url":[
+        "europepmc.org",
+        "hal.archives-ouvertes.fr",
+        "univoak.eu",
+        "www.ncbi.nlm.nih.gov/pmc"
+      ],
+      "repositories_pmh":[
+        "HAL",
+        "europepmc.org",
+        "univoak.eu"
+      ],
+      "repositories_institution":[
+        "4 institutions : Université de Strasbourg, Université de Haute Alsace, INSA Strasbourg, Bibliothèque Nationale et Universitaire de Strasbourg - univOAK",
+        "Le Centre pour la Communication Scientifique Directe - HAL",
+        "PubMed Central - Europe PMC"
+      ],
+      "oa_locations":[
+        {
+          "url":"https://onlinelibrary.wiley.com/doi/pdfdirect/10.1111/jdv.15719",
+          "pmh_id":null,
+          "is_best":true,
+          "license":null,
+          "oa_date":null,
+          "updated":"2021-02-02T03:04:37.981717",
+          "version":"publishedVersion",
+          "evidence":"open (via free article)",
+          "host_type":"publisher",
+          "endpoint_id":null,
+          "url_for_pdf":"https://onlinelibrary.wiley.com/doi/pdfdirect/10.1111/jdv.15719",
+          "url_for_landing_page":"https://doi.org/10.1111/jdv.15719",
+          "repository_institution":null,
+          "license_normalized":"no license"
+        },
+        {
+          "url":"http://arxiv.org/pdf/1905.09044",
+          "pmh_id":"oai:arXiv.org:1905.09044",
+          "is_best":true,
+          "license":null,
+          "oa_date":null,
+          "updated":"2020-08-21T13:33:33.783240",
+          "version":"submittedVersion",
+          "evidence":"oa repository (via OAI-PMH doi match)",
+          "host_type":"repository",
+          "endpoint_id":"ca8f8d56758a80a4f86",
+          "url_for_pdf":"http://arxiv.org/pdf/1905.09044",
+          "url_for_landing_page":"http://arxiv.org/abs/1905.09044",
+          "repository_institution":"Cornell University - arXiv",
+          "license_normalized":"no license",
+          "repository_normalized":"arXiv"
+        },
+        {
+          "url":"https://epigeneticsandchromatin.biomedcentral.com/track/pdf/10.1186/s13072-019-0285-6",
+          "pmh_id":null,
+          "is_best":true,
+          "license":"cc-by",
+          "oa_date":"2019-07-02",
+          "updated":"2021-08-18T11:43:49.332540",
+          "version":"publishedVersion",
+          "evidence":"oa journal (via doaj)",
+          "host_type":"publisher",
+          "endpoint_id":null,
+          "url_for_pdf":"https://epigeneticsandchromatin.biomedcentral.com/track/pdf/10.1186/s13072-019-0285-6",
+          "url_for_landing_page":"https://doi.org/10.1186/s13072-019-0285-6",
+          "repository_institution":null,
+          "license_normalized":"cc-by"
+        },
+        {
+          "url":"http://europepmc.org/articles/pmc6604379?pdf=render",
+          "pmh_id":"oai:europepmc.org:NWg6fqu55q9eJazq7Cio",
+          "is_best":false,
+          "license":"cc-by",
+          "oa_date":null,
+          "updated":null,
+          "version":"publishedVersion",
+          "evidence":"oa repository (via OAI-PMH doi match)",
+          "host_type":"repository",
+          "endpoint_id":"b5e840539009389b1a6",
+          "url_for_pdf":"http://europepmc.org/articles/pmc6604379?pdf=render",
+          "url_for_landing_page":"http://europepmc.org/articles/pmc6604379",
+          "repository_institution":"PubMed Central - Europe PMC",
+          "license_normalized":"cc-by",
+          "repository_normalized":"PubMed Central"
+        },
+        {
+          "url":"https://hal.archives-ouvertes.fr/hal-02298557/file/islandora_79998.pdf",
+          "pmh_id":"oai:HAL:hal-02298557v1",
+          "is_best":false,
+          "license":"cc-by",
+          "oa_date":null,
+          "updated":"2021-05-18T04:48:48.557116",
+          "version":"publishedVersion",
+          "evidence":"oa repository (via OAI-PMH doi match)",
+          "host_type":"repository",
+          "endpoint_id":"93052396c1064702515",
+          "url_for_pdf":"https://hal.archives-ouvertes.fr/hal-02298557/file/islandora_79998.pdf",
+          "url_for_landing_page":"https://hal.archives-ouvertes.fr/hal-02298557/file/islandora_79998.pdf",
+          "repository_institution":"Le Centre pour la Communication Scientifique Directe - HAL",
+          "license_normalized":"cc-by",
+          "repository_normalized":"HAL"
+        },
+        {
+          "url":"https://univoak.eu/islandora/object/islandora%3a79998/datastream/pdf/view",
+          "pmh_id":"oai:univoak.eu:islandora_79998",
+          "is_best":false,
+          "license":"cc-by",
+          "oa_date":null,
+          "updated":"2021-07-20T13:31:30.592783",
+          "version":"publishedVersion",
+          "evidence":"oa repository (via OAI-PMH doi match)",
+          "host_type":"repository",
+          "endpoint_id":"tnbztsfgya9meny5xkrm",
+          "url_for_pdf":"https://univoak.eu/islandora/object/islandora%3A79998/datastream/PDF/view",
+          "url_for_landing_page":"https://univoak.eu/islandora/object/islandora%3A79998",
+          "repository_institution":"4 institutions : Université de Strasbourg, Université de Haute Alsace, INSA Strasbourg, Bibliothèque Nationale et Universitaire de Strasbourg - univOAK",
+          "license_normalized":"cc-by",
+          "repository_normalized":"univoak.eu"
+        },
+        {
+          "url":"https://hal.archives-ouvertes.fr/hal-02298557/document",
+          "pmh_id":"oai:HAL:hal-02298557v1",
+          "is_best":false,
+          "license":"cc-by",
+          "oa_date":null,
+          "updated":"2021-05-01T13:58:15.908811",
+          "version":"publishedVersion",
+          "evidence":"oa repository (via OAI-PMH doi match)",
+          "host_type":"repository",
+          "endpoint_id":"93052396c1064702515",
+          "url_for_pdf":"https://hal.archives-ouvertes.fr/hal-02298557/document",
+          "url_for_landing_page":"https://hal.archives-ouvertes.fr/hal-02298557/document",
+          "repository_institution":"Le Centre pour la Communication Scientifique Directe - HAL",
+          "license_normalized":"cc-by",
+          "repository_normalized":"HAL"
+        },
+        {
+          "url":"https://www.ncbi.nlm.nih.gov/pmc/articles/pmc6604379",
+          "pmh_id":null,
+          "is_best":false,
+          "license":null,
+          "oa_date":null,
+          "updated":"2021-08-18T11:43:49.332693",
+          "version":"publishedVersion",
+          "evidence":"oa repository (via pmcid lookup)",
+          "host_type":"repository",
+          "endpoint_id":null,
+          "url_for_pdf":null,
+          "url_for_landing_page":"https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6604379",
+          "repository_institution":null,
+          "license_normalized":"no license",
+          "repository_normalized":"PubMed Central"
+        }
+      ],
+      "oa_colors":[
+        "green",
+        "gold"
+      ],
+      "oa_colors_with_priority_to_publisher":[
+        "gold"
+      ],
+      "oa_host_type":"publisher;repository"
+    }
+  },
+  "has_coi":null
+}

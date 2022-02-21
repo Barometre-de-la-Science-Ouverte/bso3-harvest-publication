@@ -15,6 +15,14 @@ urls_2_publications = [
     ['http://europepmc.org/articles/pmc6690844?pdf=render'],
 ]
 
+urls_entry = ['http://arxiv.org/pdf/1905.09044',
+ 'http://europepmc.org/articles/pmc6604379?pdf=render',
+ 'https://hal.archives-ouvertes.fr/hal-02298557/file/islandora_79998.pdf',
+ 'https://hal.archives-ouvertes.fr/hal-02298557/document',
+ 'https://univoak.eu/islandora/object/islandora%3A79998/datastream/PDF/view',
+ 'https://onlinelibrary.wiley.com/doi/pdfdirect/10.1111/jdv.15719',
+ 'https://epigeneticsandchromatin.biomedcentral.com/track/pdf/10.1186/s13072-019-0285-6']
+
 filename_2_publications = [
     os.path.join(DATA_PATH, '8bd660e0-3a6c-4e1e-af55-f85df59c26a6.pdf'),
     os.path.join(DATA_PATH, 'fb55ffd9-7188-4807-9b3f-e8fa647c9627.pdf'),
