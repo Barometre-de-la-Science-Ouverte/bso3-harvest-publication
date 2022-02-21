@@ -506,7 +506,7 @@ class OAHarvester(object):
         else:
             data_path = DATA_PATH
         filepaths: dict = {
-            "dest_path": os.path.join('publication', generateStoragePath(local_entry['id']), local_entry['id']),
+            "dest_path": os.path.join(generateStoragePath(local_entry['id']), local_entry['id']),
             "local_filename": os.path.join(data_path, local_entry['id'] + ".pdf"),
             "local_filename_nxml": os.path.join(data_path, local_entry['id'] + ".nxml"),
             "local_filename_json": os.path.join(data_path, local_entry['id'] + ".json"),
