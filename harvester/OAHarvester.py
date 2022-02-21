@@ -506,7 +506,7 @@ class OAHarvester(object):
         else:
             data_path = DATA_PATH
         filepaths: dict = {
-            "dest_path": os.path.join(generateStoragePath(local_entry['id']), local_entry['id']),
+            "dest_path": os.path.join('publication', generateStoragePath(local_entry['id']), local_entry['id']),
             "local_filename": os.path.join(data_path, local_entry['id'] + ".pdf"),
             "local_filename_nxml": os.path.join(data_path, local_entry['id'] + ".nxml"),
             "local_filename_json": os.path.join(data_path, local_entry['id'] + ".json"),
@@ -772,7 +772,7 @@ def _download(urls, filename, local_entry):
     global crossref_base
     global crossref_email
 
-    result = _download_cloudflare_scraper(urls, filename)
+    result = _download_cloudflare_scraper(urls, filename, local_entry)
 
     if biblio_glutton_url is not None:
         local_doi = None
@@ -823,20 +823,31 @@ def _process_request(scraper, url):
                 return _process_request(scraper, redirect_url)
     return
 
+def wiley_curl(wiley_doi, filename):
+    wiley_doi = wiley_doi.replace('/', '%2F')
+    ***REMOVED***
+    subprocess.check_call(cmd, shell=True)
 
-def _download_cloudflare_scraper(urls, filename):
+
+def _download_cloudflare_scraper(urls, filename, local_entry):
     result = "fail"
     for url in urls:
         try:
-            scraper = cloudscraper.create_scraper(interpreter='nodejs')
-            content = _process_request(scraper, url)
-            if content:
-                with open(filename, 'wb') as f_out:
-                    f_out.write(content)
-                result = "success"
-                break
+            if 'wiley' in url:
+                wiley_curl(local_entry['doi'], filename)
+                if os.path.getsize(filename) > 0:
+                    result = "success"
+                    break
+            else:
+                scraper = cloudscraper.create_scraper(interpreter='nodejs')
+                content = _process_request(scraper, url)
+                if content:
+                    with open(filename, 'wb') as f_out:
+                        f_out.write(content)
+                    result = "success"
+                    break
         except Exception:
-            logger.exception("Download failed for {0} with CloudScraper".format(url))
+            logger.exception(f"Download failed for {url}")
     return result
 
 

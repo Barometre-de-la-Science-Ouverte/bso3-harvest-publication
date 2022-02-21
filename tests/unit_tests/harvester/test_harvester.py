@@ -9,7 +9,7 @@ import uuid
 
 from harvester.OAHarvester import (OAHarvester, _count_entries,\
                                   _sample_selection, _check_entry, Continue,\
-                                  _apply_selection, compress, generateStoragePath)
+                                  _apply_selection, compress, generateStoragePath, _download)
 from tests.unit_tests.fixtures.harvester import *
 
 
@@ -346,6 +346,24 @@ class HarvesterCompress(TestCase):
         self.assertEqual(expected_file_content, actual_file_content)
         os.remove(expected_pdf_file_compressed)
 
+
+class HarvesterDownload(TestCase):
+    def test_wiley_download(self):
+        # Given
+        urls, local_entry, filename = wiley_parsed_entry
+        # When
+        result, _ = _download(urls, filename, local_entry)
+        # Then
+        self.assertEqual(result, "success")
+        self.assertTrue(os.path.getsize(filename) > 0)
+        os.remove(filename)
+    
+    def test_arXiv_download(self):
+        pass
+    
+    def test_cloudscrapper_download(self):
+        pass
+        
 
 if __name__ == '__main__':
     unittest.main()
