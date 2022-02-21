@@ -33,10 +33,14 @@ def download_files(_swift, dest_dir, files):
 
 def upload_and_clean_up(_swift, local_dir):
     files = glob(local_dir + '*')
-    upload_files = [
-        (file, os.path.join('processed', generateStoragePath(os.path.splitext(os.path.basename(file))[0]), os.path.basename(file)))
-        for file in files if not (file.endswith('.pdf') or file.endswith('.pdf.gz'))]
-    _swift.upload_files_to_swift(_swift.config['publications_dump'], upload_files)
+    grobid_files = [
+        (file, os.path.join('grobid', generateStoragePath(os.path.basename(file).split('.')[0]), os.path.basename(file)))
+        for file in files if file.endswith('.tei.xml')]
+    softcite_files = [
+        (file, os.path.join('softcite', generateStoragePath(os.path.basename(file).split('.')[0]), os.path.basename(file)))
+        for file in files if file.endswith('.software.json')]
+    _swift.upload_files_to_swift(_swift.config['publications_dump'], grobid_files)
+    _swift.upload_files_to_swift(_swift.config['publications_dump'], softcite_files)
     for file in files:
         os.remove(file)
 
