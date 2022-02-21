@@ -17,4 +17,5 @@ redis==3.5.3
 typing
 testing.postgresql
 rq==1.9.0
+itsdangerous==2.0.1
 jupyter
