@@ -346,6 +346,7 @@ class HarvesterCompress(TestCase):
 
 
 class HarvesterDownload(TestCase):
+    @unittest.skip('No config on github')
     def test_wiley_download(self):
         # Given
         urls, local_entry, filename = wiley_parsed_entry
