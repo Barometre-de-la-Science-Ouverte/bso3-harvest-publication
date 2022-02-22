@@ -279,9 +279,7 @@ class HarvesterManageFiles(TestCase):
         harvester_2_publications.swift.upload_files_to_swift.assert_called_with(\
             harvester_2_publications.storage_publications,\
             [
-                self.filepaths['local_filename'],
                 self.filepaths['local_filename_nxml'],
-                self.filepaths['local_filename_json'],
             ],\
             self.filepaths['dest_path'])
 

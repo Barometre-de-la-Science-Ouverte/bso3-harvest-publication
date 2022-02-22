@@ -418,11 +418,12 @@ class OAHarvester(object):
         try:
             files_to_upload = []
             if os.path.isfile(local_filename):
-                files_to_upload.append(local_filename)
+                self.swift.upload_files_to_swift(self.storage_publications, [local_filename], os.path.join('publication', dest_path))
+
             if os.path.isfile(local_filename_nxml):
                 files_to_upload.append(local_filename_nxml)
             if os.path.isfile(local_filename_json):
-                files_to_upload.append(local_filename_json)
+                self.swift.upload_files_to_swift(self.storage_publications, [local_filename_json], os.path.join('metadata', dest_path))
 
             if self.thumbnail:
                 if os.path.isfile(thumb_file_small):
