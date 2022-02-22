@@ -824,10 +824,12 @@ def _process_request(scraper, url):
                 return _process_request(scraper, redirect_url)
     return
 
+
 def wiley_curl(wiley_doi, filename):
+    from config.wiley_config import wiley_curl_cmd
     wiley_doi = wiley_doi.replace('/', '%2F')
-    ***REMOVED***
-    subprocess.check_call(cmd, shell=True)
+    wiley_curl_cmd += f'{wiley_doi}" -o {filename}'
+    subprocess.check_call(wiley_curl_cmd, shell=True)
 
 
 def _download_cloudflare_scraper(urls, filename, local_entry):

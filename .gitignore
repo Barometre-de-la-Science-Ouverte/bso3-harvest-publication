@@ -152,5 +152,5 @@ OAHarvesterStreaming.py
 dump.json*
 map.json*
 failures.csv
-
+config/wiley_config.py
 
