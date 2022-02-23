@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import pickle
+import re
 import shutil
 import subprocess
 import tarfile
@@ -831,12 +832,31 @@ def wiley_curl(wiley_doi, filename):
     wiley_curl_cmd += f'{wiley_doi}" -o {filename}'
     subprocess.check_call(wiley_curl_cmd, shell=True)
 
+def url_to_path(url, ext='.pdf.gz'):
+    try:
+        _id = re.findall(r"arxiv\.org/pdf/(.*)$", url)[0]
+        prefix = "arxiv" if _id[0].isdigit() else _id.split('/')[0]
+        filename = url.split('/')[-1]
+        yymm = filename[:4]
+        return '/'.join([prefix, yymm, filename, filename + ext])
+    except:
+        logger.exception("Incorrect arXiv url format, could not extract path")
+
+def arXiv_download(url, filename):
+    from config.arXiv_config import init_cmd
+    file_path = url_to_path(url)
+    subprocess.check_call(f'{init_cmd} download arxiv_harvesting {file_path} -o {filename}', shell=True)
 
 def _download_cloudflare_scraper(urls, filename, local_entry):
     result = "fail"
     for url in urls:
         try:
-            if 'wiley' in url:
+            if 'arxiv' in url:
+                arXiv_download(url, filename)
+                if os.path.getsize(filename) > 0:
+                    result = "success"
+                    break
+            elif 'wiley' in url:
                 wiley_curl(local_entry['doi'], filename)
                 if os.path.getsize(filename) > 0:
                     result = "success"

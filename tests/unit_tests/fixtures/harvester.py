@@ -37,8 +37,14 @@ ids_2_publications = ['8bd660e0-3a6c-4e1e-af55-f85df59c26a6', 'fb55ffd9-7188-480
 
 pdf_file = os.path.join(FIXTURES_PATH, 'original.pdf')
 
-wiley_parsed_entry =  (
+wiley_parsed_entry = (
     ['https://onlinelibrary.wiley.com/doi/pdfdirect/10.1111/jdv.15719'],
     {'id': '8bd660e0-3a6c-4e1e-af55-f85df59c26a6', 'doi': '10.1111/jdv.15719', 'oa_locations': [{'url': 'https://onlinelibrary.wiley.com/doi/pdfdirect/10.1111/jdv.15719', 'pmh_id': None, 'is_best': True, 'license': None, 'oa_date': None, 'updated': '2021-02-02T03:04:37.981717', 'version': 'publishedVersion', 'evidence': 'open (via free article)', 'host_type': 'publisher', 'endpoint_id': None, 'url_for_pdf': 'https://onlinelibrary.wiley.com/doi/pdfdirect/10.1111/jdv.15719', 'url_for_landing_page': 'https://doi.org/10.1111/jdv.15719', 'repository_institution': None, 'license_normalized': 'no license'}]},
+    os.path.join(FIXTURES_PATH, "8bd660e0-3a6c-4e1e-af55-f85df59c26a6.pdf")
+)
+
+arXiv_parsed_entry = (
+    ['http://arxiv.org/pdf/1905.09044'],
+    {'id': '8bd660e0-3a6c-4e1e-af55-f85df59c26a6', 'doi': '10.1111/jdv.15719', 'oa_locations': [{"url":"http://arxiv.org/pdf/1905.09044", "pmh_id":"oai:arXiv.org:1905.09044", "is_best":True, "license":None, "oa_date":None, "updated":"2020-08-21T13:33:33.783240", "version":"submittedVersion", "evidence":"oa repository (via OAI-PMH doi match)", "host_type":"repository", "endpoint_id":"ca8f8d56758a80a4f86", "url_for_pdf":"http://arxiv.org/pdf/1905.09044", "url_for_landing_page":"http://arxiv.org/abs/1905.09044", "repository_institution":"Cornell University - arXiv", "license_normalized":"no license", "repository_normalized":"arXiv"}]},
     os.path.join(FIXTURES_PATH, "8bd660e0-3a6c-4e1e-af55-f85df59c26a6.pdf")
 )

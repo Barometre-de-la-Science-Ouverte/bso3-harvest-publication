@@ -1,16 +1,18 @@
 import abc
 import gzip
 import json
-from subprocess import CalledProcessError
-import unittest
 import os
-from unittest import TestCase, mock
+import unittest
 import uuid
+from subprocess import CalledProcessError
+from unittest import TestCase, mock
 
-from harvester.OAHarvester import (OAHarvester, _count_entries,\
-                                  _sample_selection, _check_entry, Continue,\
-                                  _apply_selection, compress, generateStoragePath, _download)
 from tests.unit_tests.fixtures.harvester import *
+
+from harvester.OAHarvester import (Continue, OAHarvester, _apply_selection,
+                                   _check_entry, _count_entries, _download,
+                                   _sample_selection, compress,
+                                   generateStoragePath, url_to_path)
 
 
 class HarvesterCountEntries(TestCase):
@@ -357,8 +359,33 @@ class HarvesterDownload(TestCase):
         self.assertTrue(os.path.getsize(filename) > 0)
         os.remove(filename)
     
+
+    def test_arXiv_url_to_path(self):
+        # Given
+        ext = ".pdf.gz"
+        post_07_arXiv_url = "http://arxiv.org/pdf/1501.00001"
+        expected_post_07_arXiv_path = "arxiv/1501/1501.00001/1501.00001" + ext
+        pre_07_arXiv_url = "https://arxiv.org/pdf/quant-ph/0602109"
+        expected_pre_07_arXiv_path = "quant-ph/0602/0602109/0602109" + ext
+        # When
+        post_07_arXiv_path = url_to_path(post_07_arXiv_url, ext)
+        pre_07_arXiv_path = url_to_path(pre_07_arXiv_url, ext)
+        # Then
+        self.assertEqual(post_07_arXiv_path, expected_post_07_arXiv_path)
+        self.assertEqual(pre_07_arXiv_path, expected_pre_07_arXiv_path)
+
+
+    @unittest.skip('No config on github')
     def test_arXiv_download(self):
-        pass
+        # Given
+        urls, local_entry, filename = arXiv_parsed_entry
+        # When
+        result, _ = _download(urls, filename, local_entry)
+        # Then
+        self.assertEqual(result, "success")
+        self.assertTrue(os.path.getsize(filename) > 0)
+        os.remove(filename)
+
     
     def test_cloudscrapper_download(self):
         pass

@@ -153,4 +153,5 @@ dump.json*
 map.json*
 failures.csv
 config/wiley_config.py
+config/arXiv_config.py
 
