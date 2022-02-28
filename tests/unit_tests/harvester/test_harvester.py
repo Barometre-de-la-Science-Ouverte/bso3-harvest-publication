@@ -54,11 +54,11 @@ class HarvesterApplySelection(TestCase):
         batches = []
         batch = []
         for i in range(22):
-            batch.append([chr(i),chr(i+1),chr(i+2)])
+            batch.append([chr(i), chr(i + 1), chr(i + 2)])
         batches.append(batch)
         batch = []
         for i in range(22, 25):
-            batch.append([chr(i),chr(i+1),chr(i+2)])
+            batch.append([chr(i), chr(i + 1), chr(i + 2)])
         batches.append(batch)
         mock_selection = [1, 2, 3, 24]
         # When
@@ -66,11 +66,13 @@ class HarvesterApplySelection(TestCase):
         for batch_n, batch in enumerate(batches):
             trimmed_down_list = _apply_selection(batch, mock_selection, current_idx)
             # Then
-            self.assertEqual(len([i for i in mock_selection if current_idx <= i < current_idx + len(batch)]), len(trimmed_down_list))
+            self.assertEqual(len([i for i in mock_selection if current_idx <= i < current_idx + len(batch)]),
+                             len(trimmed_down_list))
             for e in trimmed_down_list:
                 self.assertIn(e, batch)
                 self.assertIn(batch.index(e), mock_selection)
             current_idx += len(batch)
+
 
 class HarvestUnpaywall(TestCase):
 
@@ -84,7 +86,11 @@ class HarvestUnpaywall(TestCase):
     @mock.patch.object(uuid, 'uuid4')
     @mock.patch.object(OAHarvester, 'processBatch')
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
-    def test_when_2_publications_and_sample_is_1_then_processBatch_is_called_with_1_element(self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4, mock_sample_selection):
+    def test_when_2_publications_and_sample_is_1_then_processBatch_is_called_with_1_element(self,
+                                                                                            mock_getUUIDByIdentifier,
+                                                                                            mock_processBatch,
+                                                                                            mock_uuid4,
+                                                                                            mock_sample_selection):
         # Given a file path
         filepath = os.path.join(FIXTURES_PATH, 'dump_2_publications.jsonl.gz.test')
         expected_url = urls_2_publications[0]
@@ -103,7 +109,8 @@ class HarvestUnpaywall(TestCase):
     @mock.patch.object(uuid, 'uuid4')
     @mock.patch.object(OAHarvester, 'processBatch')
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
-    def test_when_2_publications_then_processBatch_is_called(self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4):
+    def test_when_2_publications_then_processBatch_is_called(self, mock_getUUIDByIdentifier, mock_processBatch,
+                                                             mock_uuid4):
         # Given a file path
         filepath = os.path.join(FIXTURES_PATH, 'dump_2_publications.jsonl.gz.test')
         expected_urls = urls_2_publications
@@ -117,7 +124,7 @@ class HarvestUnpaywall(TestCase):
 
         # Then processBatch is executed on
         mock_processBatch.assert_called_with(expected_urls, expected_filenames, expected_entries, '')
-    
+
     @mock.patch.object(uuid, "uuid4")
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test__get_batch_generator(self, mock_getUUIDByIdentifier, mock_uuid4):
@@ -138,10 +145,10 @@ class HarvestUnpaywall(TestCase):
             urls = [e[0] for e in batch]
             entries = [e[1] for e in batch]
             filenames = [e[2] for e in batch]
-            self.assertEqual(urls, expected_urls[i*batch_size:(i+1)*batch_size])
-            self.assertEqual(entries, expected_entries[i*batch_size:(i+1)*batch_size])
-            self.assertEqual(filenames, expected_filenames[i*batch_size:(i+1)*batch_size])
-    
+            self.assertEqual(urls, expected_urls[i * batch_size:(i + 1) * batch_size])
+            self.assertEqual(entries, expected_entries[i * batch_size:(i + 1) * batch_size])
+            self.assertEqual(filenames, expected_filenames[i * batch_size:(i + 1) * batch_size])
+
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test__process_entry_when_entry_already_processed(self, mock_getUUIDByIdentifier):
         # Given
@@ -154,7 +161,7 @@ class HarvestUnpaywall(TestCase):
         # Then
         with self.assertRaises(Continue):
             harvester_2_publications._process_entry(entry, reprocess=False)
-    
+
     @mock.patch.object(uuid, 'uuid4')
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test__process_entry_when_new_entry(self, mock_getUUIDByIdentifier, mock_uuid4):
@@ -175,7 +182,7 @@ class HarvestUnpaywall(TestCase):
         self.assertEqual(entry, expected_entry)
         self.assertEqual(url, expected_url)
         self.assertEqual(filename, expected_filename)
-    
+
     def test__parse_entry(self):
         # Given
         entry_filepath = os.path.join(FIXTURES_PATH, 'entry.json')
@@ -194,7 +201,7 @@ class HarvestUnpaywall(TestCase):
         self.assertEqual(entry, expected_entry)
         self.assertEqual(urls, expected_urls)
         self.assertEqual(filename, expected_filename)
-    
+
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test__check_entry_when_entry_already_processed(self, mock_getUUIDByIdentifier):
         # Given
@@ -206,9 +213,10 @@ class HarvestUnpaywall(TestCase):
         mock_getUUIDByIdentifier.return_value = 'abc'.encode("UTF-8")
         # Then
         with self.assertRaises(Continue):
-            _check_entry(entry, entry['doi'], harvester_2_publications.getUUIDByIdentifier, reprocess=False, env=harvester_2_publications.env, env_doi=harvester_2_publications.env_doi)
+            _check_entry(entry, entry['doi'], harvester_2_publications.getUUIDByIdentifier, reprocess=False,
+                         env=harvester_2_publications.env, env_doi=harvester_2_publications.env_doi)
         # self.assertIsNotNone(entry['id'])
-    
+
     @mock.patch.object(uuid, "uuid4")
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test__check_entry_when_new_entry(self, mock_getUUIDByIdentifier, mock_uuid4):
@@ -221,7 +229,8 @@ class HarvestUnpaywall(TestCase):
         mock_getUUIDByIdentifier.return_value = None
         mock_uuid4.return_value = expected_id
         # When
-        _check_entry(entry, entry['doi'], harvester_2_publications.getUUIDByIdentifier, reprocess=False, env=harvester_2_publications.env, env_doi=harvester_2_publications.env_doi)
+        _check_entry(entry, entry['doi'], harvester_2_publications.getUUIDByIdentifier, reprocess=False,
+                     env=harvester_2_publications.env, env_doi=harvester_2_publications.env_doi)
         # Then
         self.assertEqual(entry['id'], expected_id)
 
@@ -240,7 +249,7 @@ class HarvesterManageFiles(TestCase):
             "thumb_file_medium": os.path.join(self.DATA_PATH, local_entry['id'] + '-thumb-medium.png'),
             "thumb_file_large": os.path.join(self.DATA_PATH, local_entry['id'] + '-thumb-large.png'),
         }
-    
+
     def test_generate_thumbnails(self):
         # On n'utilise pas thumbnail
         pass
@@ -261,7 +270,8 @@ class HarvesterManageFiles(TestCase):
         # Given
         # When
         with mock.patch('harvester.OAHarvester.os.remove'):
-            harvester_2_publications._compress_files(**self.filepaths, local_entry_id=self.entry['id'], compression_suffix='.gz')
+            harvester_2_publications._compress_files(**self.filepaths, local_entry_id=self.entry['id'],
+                                                     compression_suffix='.gz')
         # Then
         for var_name, file in self.filepaths.items():
             if var_name in ['dest_path', 'thumb_file_small', 'thumb_file_medium', 'thumb_file_large']:
@@ -270,7 +280,7 @@ class HarvesterManageFiles(TestCase):
             compressed_file = file + '.gz'
             self.assertTrue(os.path.exists(compressed_file))
             os.remove(compressed_file)
-    
+
     def test_upload_files(self):
         # Given
         harvester_2_publications.swift = abc
@@ -278,11 +288,11 @@ class HarvesterManageFiles(TestCase):
         # When
         harvester_2_publications._upload_files(**self.filepaths)
         # Then
-        harvester_2_publications.swift.upload_files_to_swift.assert_called_with(\
-            harvester_2_publications.storage_publications,\
+        harvester_2_publications.swift.upload_files_to_swift.assert_called_with( \
+            harvester_2_publications.storage_publications, \
             [
                 self.filepaths['local_filename_nxml'],
-            ],\
+            ], \
             self.filepaths['dest_path'])
 
     @mock.patch('harvester.OAHarvester.shutil.copyfile')
@@ -292,10 +302,12 @@ class HarvesterManageFiles(TestCase):
         local_dest_path = os.path.join(DATA_PATH, self.filepaths['dest_path'])
         compression_suffix = ''
         # When
-        harvester_2_publications._save_files_locally(**self.filepaths, local_entry_id=self.entry['id'], compression_suffix=compression_suffix)
+        harvester_2_publications._save_files_locally(**self.filepaths, local_entry_id=self.entry['id'],
+                                                     compression_suffix=compression_suffix)
         # Then
         mock_makedirs.assert_called_with(local_dest_path, exist_ok=True)
-        mock_copyfile.assert_called_with(self.filepaths['local_filename_json'], os.path.join(local_dest_path, self.entry['id'] + ".json" + compression_suffix))
+        mock_copyfile.assert_called_with(self.filepaths['local_filename_json'],
+                                         os.path.join(local_dest_path, self.entry['id'] + ".json" + compression_suffix))
 
     @mock.patch('harvester.OAHarvester.os.remove')
     def test_clean_up_files(self, mock_remove):
@@ -316,7 +328,7 @@ class HarvesterManageFiles(TestCase):
                          mock_clean_up_files):
         # Given
         # When
-        harvester_2_publications.manageFiles(self.entry) 
+        harvester_2_publications.manageFiles(self.entry)
         # Then
         if harvester_2_publications.thumbnail:
             mock_generate_thumbnails.assert_called()
@@ -358,7 +370,6 @@ class HarvesterDownload(TestCase):
         self.assertEqual(result, "success")
         self.assertTrue(os.path.getsize(filename) > 0)
         os.remove(filename)
-    
 
     def test_arXiv_url_to_path(self):
         # Given
@@ -377,7 +388,8 @@ class HarvesterDownload(TestCase):
     @mock.patch('os.path.getsize')
     @mock.patch('harvester.OAHarvester._process_request')
     @mock.patch('harvester.OAHarvester.arXiv_download')
-    def test_fallback_download_when_arXiv_download_does_not_work(self, mock_arXiv_download, mock_process_request, mock_getsize):
+    def test_fallback_download_when_arXiv_download_does_not_work(self, mock_arXiv_download, mock_process_request,
+                                                                 mock_getsize):
         # Given
         mock_arXiv_download.return_value = 'fail'
         mock_getsize.return_value = 0
@@ -391,7 +403,8 @@ class HarvesterDownload(TestCase):
     @mock.patch('os.path.getsize')
     @mock.patch('harvester.OAHarvester._process_request')
     @mock.patch('harvester.OAHarvester.wiley_curl')
-    def test_fallback_download_when_wiley_download_does_not_work(self, mock_wiley_curl, mock_process_request, mock_getsize):
+    def test_fallback_download_when_wiley_download_does_not_work(self, mock_wiley_curl, mock_process_request,
+                                                                 mock_getsize):
         # Given
         mock_wiley_curl.return_value = 'fail'
         mock_getsize.return_value = 0
@@ -413,10 +426,9 @@ class HarvesterDownload(TestCase):
         self.assertTrue(os.path.getsize(filename) > 0)
         os.remove(filename)
 
-    
     def test_cloudscrapper_download(self):
         pass
-        
+
 
 if __name__ == '__main__':
     unittest.main()
