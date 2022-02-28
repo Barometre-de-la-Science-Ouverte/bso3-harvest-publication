@@ -861,14 +861,13 @@ def _download_cloudflare_scraper(urls, filename, local_entry):
                 if os.path.getsize(filename) > 0:
                     result = "success"
                     break
-            else:
-                scraper = cloudscraper.create_scraper(interpreter='nodejs')
-                content = _process_request(scraper, url)
-                if content:
-                    with open(filename, 'wb') as f_out:
-                        f_out.write(content)
-                    result = "success"
-                    break
+            scraper = cloudscraper.create_scraper(interpreter='nodejs')
+            content = _process_request(scraper, url)
+            if content:
+                with open(filename, 'wb') as f_out:
+                    f_out.write(content)
+                result = "success"
+                break
         except Exception:
             logger.exception(f"Download failed for {url}")
     return result

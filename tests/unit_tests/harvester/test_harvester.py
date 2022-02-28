@@ -374,6 +374,33 @@ class HarvesterDownload(TestCase):
         self.assertEqual(post_07_arXiv_path, expected_post_07_arXiv_path)
         self.assertEqual(pre_07_arXiv_path, expected_pre_07_arXiv_path)
 
+    @mock.patch('os.path.getsize')
+    @mock.patch('harvester.OAHarvester._process_request')
+    @mock.patch('harvester.OAHarvester.arXiv_download')
+    def test_fallback_download_when_arXiv_download_does_not_work(self, mock_arXiv_download, mock_process_request, mock_getsize):
+        # Given
+        mock_arXiv_download.return_value = 'fail'
+        mock_getsize.return_value = 0
+        urls, local_entry, filename = arXiv_parsed_entry
+        # When
+        result, _ = _download(urls, filename, local_entry)
+        # Then
+        mock_process_request.assert_called()
+        os.remove(filename)
+
+    @mock.patch('os.path.getsize')
+    @mock.patch('harvester.OAHarvester._process_request')
+    @mock.patch('harvester.OAHarvester.wiley_curl')
+    def test_fallback_download_when_wiley_download_does_not_work(self, mock_wiley_curl, mock_process_request, mock_getsize):
+        # Given
+        mock_wiley_curl.return_value = 'fail'
+        mock_getsize.return_value = 0
+        urls, local_entry, filename = wiley_parsed_entry
+        # When
+        result, _ = _download(urls, filename, local_entry)
+        # Then
+        mock_process_request.assert_called()
+        os.remove(filename)
 
     @unittest.skip('No config on github')
     def test_arXiv_download(self):
