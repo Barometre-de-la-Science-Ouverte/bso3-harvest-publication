@@ -5,16 +5,17 @@ from grobid_client.grobid_client import GrobidClient
 from software_mentions_client.client import software_mentions_client as smc
 
 from application.server.main.logger import get_logger
+from config.db_config import engine
 from config.harvester_config import config_harvester
 from config.path_config import (CONFIG_PATH_GROBID, CONFIG_PATH_SOFTCITE, DESTINATION_DIR_METADATA,
                                 PUBLICATIONS_DOWNLOAD_DIR)
 from harvester.OAHarvester import OAHarvester
+from infrastructure.database.db_handler import DBHandler
 from infrastructure.storage.swift import Swift
 from load_metadata import load_metadata
 from ovh_handler import download_files, upload_and_clean_up
 from run_grobid import run_grobid
 from run_softcite import run_softcite
-from logger import logger
 
 METADATA_DUMP = config_harvester['metadata_dump']
 logger_console = get_logger(__name__)
@@ -26,6 +27,7 @@ def create_task_unpaywall(args):
     metadata_folder = args.get('metadata_folder', '')
 
     swift_handler = Swift(config_harvester)
+    db_handler: DBHandler = DBHandler(engine=engine, table_name='tickets', swift_handler=swift_handler)
 
     if (metadata_file == '') and (metadata_folder == ''):
         logger_console.debug(f'One of the two arguments metadata_file of metadata_folder should be provided !')
@@ -43,6 +45,8 @@ def create_task_unpaywall(args):
             metadata_file = os.path.join(DESTINATION_DIR_METADATA, metadata_file)
         harvester = OAHarvester(config_harvester, thumbnail=False, sample=nb_samples, sample_seed=1)
         harvester.harvestUnpaywall(metadata_file)
+
+        db_handler.update_database()  # update database
     # -----------------------------------------------------------------------------------------------------------------#
     elif metadata_folder != '':
         logger_console.debug(f'launching task with args {args}')
@@ -65,6 +69,8 @@ def create_task_unpaywall(args):
             destination_dir_output = os.path.join(metadata_folder, file_generic_name)
             harvester = OAHarvester(config_harvester, thumbnail=False, sample=nb_samples, sample_seed=1)
             harvester.harvestUnpaywall(file, destination_dir=destination_dir_output)
+
+        db_handler.update_database()  # update database
 
 
 def create_task_process(files, do_grobid, do_softcite):

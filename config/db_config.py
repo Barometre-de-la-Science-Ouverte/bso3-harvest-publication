@@ -12,8 +12,8 @@ DB_HOST = config_harvester['db_host']
 DB_PORT = config_harvester['db_port']
 DB_NAME = config_harvester['db_name']
 
-"""
-if IS_DB_LOCAL == "1":
+
+if IS_DB_LOCAL == '1':
     from testing.postgresql import Postgresql
 
     db: Postgresql = Postgresql()
@@ -33,11 +33,11 @@ meta = MetaData()
 harvested_status_table = Table(
     'harvested_status_table', meta,
     Column('doi', String, primary_key=True),
+    Column('uuid', String),
     Column('is_harvested', Boolean),
-    Column('harvested_date', DateTime),
-    Column('uuid', String)
+    Column('is_processed_softcite', Boolean),
+    Column('is_processed_grobid', Boolean)
 )
 
 meta.create_all(engine)
 
-"""

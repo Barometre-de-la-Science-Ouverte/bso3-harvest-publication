@@ -24,8 +24,8 @@ import urllib3
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from config.path_config import DATA_PATH
 from config.harvest_strategy_config import oa_harvesting_strategy
+from config.path_config import DATA_PATH
 from infrastructure.storage import swift
 from logger import logger
 
@@ -266,7 +266,8 @@ class OAHarvester(object):
                 return urls_for_pdf, {'id': entry['id'], 'doi': entry['doi'],
                                       "oa_locations": oa_locations}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
         elif entry.get("publisher_dissemination") == "Wiley":
-            return [f"https://onlinelibrary.wiley.com/doi/pdfdirect/{entry['doi']}"], {'id': entry['id'], 'doi': entry['doi']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+            return [f"https://onlinelibrary.wiley.com/doi/pdfdirect/{entry['doi']}"], {'id': entry['id'], 'doi': entry[
+                'doi']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
 
         raise Continue
 
@@ -312,7 +313,7 @@ class OAHarvester(object):
                     local_entry["valid_fulltext_xml"] = True
 
             if (result is None or result == "0" or result == "success") and valid_file:
-                #logger.info(json.dumps({"Stats": {"is_harvested": True, "entry": local_entry}}))
+                # logger.info(json.dumps({"Stats": {"is_harvested": True, "entry": local_entry}}))
                 # update DB
                 with self.env.begin(write=True) as txn:
                     txn.put(local_entry['id'].encode(encoding='UTF-8'),
@@ -320,7 +321,7 @@ class OAHarvester(object):
 
                 entries.append(local_entry)
             else:
-                #logger.info(json.dumps({"Stats": {"is_harvested": False, "entry": local_entry}}))
+                # logger.info(json.dumps({"Stats": {"is_harvested": False, "entry": local_entry}}))
 
                 # update DB
                 with self.env.begin(write=True) as txn:
@@ -410,12 +411,15 @@ class OAHarvester(object):
         try:
             files_to_upload = []
             if os.path.isfile(local_filename):
-                self.swift.upload_files_to_swift(self.storage_publications, [local_filename], os.path.join('publication', dest_path))
+                self.swift.upload_files_to_swift(self.storage_publications, [local_filename],
+                                                 os.path.join('publication', dest_path))
 
             if os.path.isfile(local_filename_nxml):
                 files_to_upload.append(local_filename_nxml)
+
             if os.path.isfile(local_filename_json):
-                self.swift.upload_files_to_swift(self.storage_publications, [local_filename_json], os.path.join('metadata', dest_path))
+                self.swift.upload_files_to_swift(self.storage_publications, [local_filename_json],
+                                                 os.path.join('metadata', dest_path))
 
             if self.thumbnail:
                 if os.path.isfile(thumb_file_small):
@@ -521,6 +525,7 @@ class OAHarvester(object):
                          filepaths}
         if self.swift:
             self._upload_files(**filepaths)
+
         else:
             self._save_files_locally(**filepaths, local_entry_id=local_entry['id'],
                                      compression_suffix=compression_suffix)
@@ -823,6 +828,7 @@ def wiley_curl(wiley_doi, filename):
     wiley_curl_cmd += f'{wiley_doi}" -o {filename}'
     subprocess.check_call(wiley_curl_cmd, shell=True)
 
+
 def url_to_path(url, ext='.pdf.gz'):
     try:
         _id = re.findall(r"arxiv\.org/pdf/(.*)$", url)[0]
@@ -833,10 +839,12 @@ def url_to_path(url, ext='.pdf.gz'):
     except:
         logger.exception("Incorrect arXiv url format, could not extract path")
 
+
 def arXiv_download(url, filename):
     from config.arXiv_config import init_cmd
     file_path = url_to_path(url)
     subprocess.check_call(f'{init_cmd} download arxiv_harvesting {file_path} -o {filename}', shell=True)
+
 
 def _download_cloudflare_scraper(urls, filename, local_entry):
     result = "fail"

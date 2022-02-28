@@ -1,4 +1,17 @@
 services:
+  postgres:
+    container_name: postgres
+    image: postgres:12.0-alpine
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password-dataESR-bso3
+      - POSTGRES_DB=postgres_db
+    # env_file:
+      #      - .env
+    restart: always
+
   redis:
     image: redis:5.0.7-alpine
     ports:
