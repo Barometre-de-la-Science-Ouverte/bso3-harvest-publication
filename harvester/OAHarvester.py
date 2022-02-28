@@ -25,6 +25,7 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 from config.path_config import DATA_PATH
+from config.harvest_strategy_config import oa_harvesting_strategy
 from infrastructure.storage import swift
 from logger import logger
 
@@ -253,30 +254,20 @@ class OAHarvester(object):
             oa_locations = {}
             for oa_location in latest_observation['oa_locations']:
                 if ('url_for_pdf' in oa_location) and oa_location['url_for_pdf']:
-                    if 'repository_normalized' in oa_location and oa_location['repository_normalized'] == "arXiv":
-                        update_dict(urls_for_pdf, 0, oa_location['url_for_pdf'])
-                        update_dict(oa_locations, 0, oa_location)
-                    elif 'repository_normalized' in oa_location and oa_location['repository_normalized'] == "PubMed Central":
-                        update_dict(urls_for_pdf, 1, oa_location['url_for_pdf'])
-                        update_dict(oa_locations, 1, oa_location)
-                    elif 'repository_normalized' in oa_location and oa_location['repository_normalized'] == "HAL":
-                        update_dict(urls_for_pdf, 2, oa_location['url_for_pdf'])
-                        update_dict(oa_locations, 2, oa_location)
-                    elif 'repository_normalized' in oa_location and oa_location['host_type'] == "repository":
-                        update_dict(urls_for_pdf, 3, oa_location['url_for_pdf'])
-                        update_dict(oa_locations, 3, oa_location)
-                    elif 'wiley' in oa_location['url_for_pdf']:
-                        update_dict(urls_for_pdf, 4, oa_location['url_for_pdf'])
-                        update_dict(oa_locations, 4, oa_location)
-                    else:
-                        update_dict(urls_for_pdf, 5, oa_location['url_for_pdf'])
-                        update_dict(oa_locations, 5, oa_location)
+                    for i, strategy in enumerate(oa_harvesting_strategy):
+                        if strategy(oa_location):
+                            update_dict(urls_for_pdf, i, oa_location['url_for_pdf'])
+                            update_dict(oa_locations, i, oa_location)
+                            break
             urls_for_pdf = [url for url_list_idx in sorted(urls_for_pdf) for url in urls_for_pdf[url_list_idx]]
             oa_locations = [oa_location for oa_locations_idx in sorted(oa_locations) for oa_location in
                             oa_locations[oa_locations_idx]]
             if urls_for_pdf and oa_locations:
                 return urls_for_pdf, {'id': entry['id'], 'doi': entry['doi'],
                                       "oa_locations": oa_locations}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+        elif entry.get("publisher_dissemination") == "Wiley":
+            return [f"https://onlinelibrary.wiley.com/doi/pdfdirect/{entry['doi']}"], {'id': entry['id'], 'doi': entry['doi']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+
         raise Continue
 
     def _get_batch_generator(self, filepath, count, reprocess, batch_size=100, filter_out=[]):
