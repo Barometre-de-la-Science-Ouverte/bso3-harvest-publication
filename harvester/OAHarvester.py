@@ -266,6 +266,10 @@ class OAHarvester(object):
                 return urls_for_pdf, {'id': entry['id'], 'doi': entry['doi'],
                                       "oa_locations": oa_locations}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
         elif entry.get("publisher_dissemination") == "Wiley":
+            # returns urls, entry, filename to match signature
+            #  _download_publication iterates on urls and uses ('wiley' in url) to call wiley API
+            # Additionnaly url is probably valid so that if wiley API does not work,
+            # _download_publication can try a standard request download
             return [f"https://onlinelibrary.wiley.com/doi/pdfdirect/{entry['doi']}"], {'id': entry['id'], 'doi': entry['doi']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
 
         raise Continue
@@ -765,7 +769,7 @@ def _download(urls, filename, local_entry):
     global crossref_base
     global crossref_email
 
-    result = _download_cloudflare_scraper(urls, filename, local_entry)
+    result = _download_publication(urls, filename, local_entry)
 
     if biblio_glutton_url is not None:
         local_doi = None
@@ -838,23 +842,26 @@ def arXiv_download(url, filename):
     file_path = url_to_path(url)
     subprocess.check_call(f'{init_cmd} download arxiv_harvesting {file_path} -o {filename}', shell=True)
 
-def _download_cloudflare_scraper(urls, filename, local_entry):
+def _download_publication(urls, filename, local_entry):
     result = "fail"
     for url in urls:
         try:
             if 'arxiv' in url:
                 arXiv_download(url, filename)
                 if os.path.getsize(filename) > 0:
+                    logger.info(f"Download {local_entry['doi']} via arXiv_harvesting")
                     result = "success"
                     break
             elif 'wiley' in url:
                 wiley_curl(local_entry['doi'], filename)
                 if os.path.getsize(filename) > 0:
+                    logger.info(f"Download {local_entry['doi']} via wiley API")
                     result = "success"
                     break
             scraper = cloudscraper.create_scraper(interpreter='nodejs')
             content = _process_request(scraper, url)
             if content:
+                logger.info(f"Download {local_entry['doi']} via standard request")
                 with open(filename, 'wb') as f_out:
                     f_out.write(content)
                 result = "success"
