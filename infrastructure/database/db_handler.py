@@ -55,13 +55,6 @@ class DBHandler:
 
         # [(doi:str, uuid:str, is_harvested:bool, is_processed_softcite:bool, is_processed_grobid:bool)]
         records = [ProcessedEntry(*entry, True, self._is_uuid_in_list(entry[1], uuids_softcite), self._is_uuid_in_list(entry[1], uuids_grobid)) for entry in doi_uuid_uploaded]
-        if not records:
-            records = [
-                ('doi_1', 'uuid_1', False, False, False),
-                ('doi_2', 'uuid_2', False, False, False),
-                ('doi_3', 'uuid_3', False, False, False),
-            ]
-        print("records", records)
         if records:
             cur = self.engine.raw_connection().cursor()
             args_str = ','.join(cur.mogrify("(%s,%s,%s,%s,%s)", x).decode("utf-8") for x in records)

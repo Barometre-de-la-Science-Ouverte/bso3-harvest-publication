@@ -1,4 +1,3 @@
-import gzip
 import os
 from time import time
 
@@ -44,14 +43,8 @@ def create_task_unpaywall(args):
                                           destination_dir=DESTINATION_DIR_METADATA)
         else:
             metadata_file = os.path.join(DESTINATION_DIR_METADATA, metadata_file)
-        # ------------------------------------------------------------------------------------------------ #
-        metadata_file_5k = os.path.join(os.path.dirname(metadata_file), 'bso-publications-5k.jsonl.gz')
-        with gzip.open(metadata_file, 'rt') as f_in:
-            with gzip.open(metadata_file_5k, 'wt') as f_out:
-                f_out.write(''.join(f_in.readlines()[:5_000]))
-        # ------------------------------------------------------------------------------------------------ #
         harvester = OAHarvester(config_harvester, thumbnail=False, sample=nb_samples, sample_seed=1)
-        harvester.harvestUnpaywall(metadata_file_5k)
+        harvester.harvestUnpaywall(metadata_file)
 
         db_handler.update_database()  # update database
     # -----------------------------------------------------------------------------------------------------------------#
