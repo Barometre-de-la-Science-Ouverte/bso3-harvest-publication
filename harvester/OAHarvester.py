@@ -496,10 +496,10 @@ class OAHarvester(object):
             logger.exception("temporary file cleaning failed")
 
     def manageFiles(self, local_entry, destination_dir=''):
-        logger.info(f'destination dir start manageFiles: {destination_dir}')
+        logger.debug(f'destination dir start manageFiles: {destination_dir}')
         if destination_dir != '':
             data_path = os.path.join(DATA_PATH, destination_dir)
-            logger.info(f'data path after: {data_path}')
+            logger.debug(f'data path after: {data_path}')
         else:
             data_path = DATA_PATH
         filepaths: dict = {
@@ -513,7 +513,7 @@ class OAHarvester(object):
         }
         if destination_dir != '':
             filepaths['dest_path'] = os.path.join(destination_dir, filepaths['dest_path'])
-            logger.info(f'filepaths dict: {filepaths}')
+            logger.debug(f'filepaths dict: {filepaths}')
         if self.thumbnail:
             self._generate_thumbnails(**filepaths, local_entry=local_entry)
         self._write_metadata_file(filepaths['local_filename_json'], local_entry)
@@ -853,11 +853,13 @@ def _download_cloudflare_scraper(urls, filename, local_entry):
             if 'arxiv' in url:
                 arXiv_download(url, filename)
                 if os.path.getsize(filename) > 0:
+                    logger.debug(f'arXiv download OK for file : {filename}')
                     result = "success"
                     break
             elif 'wiley' in url:
                 wiley_curl(local_entry['doi'], filename)
                 if os.path.getsize(filename) > 0:
+                    logger.debug(f'Wiley download OK for file : {filename}')
                     result = "success"
                     break
             scraper = cloudscraper.create_scraper(interpreter='nodejs')
@@ -865,10 +867,12 @@ def _download_cloudflare_scraper(urls, filename, local_entry):
             if content:
                 with open(filename, 'wb') as f_out:
                     f_out.write(content)
+                logger.debug(f'Default download OK for file : {filename}')
                 result = "success"
                 break
         except Exception:
             logger.exception(f"Download failed for {url}")
+    logger.debug(f'File downloading result : {result}')
     return result
 
 

@@ -7,6 +7,7 @@ from software_mentions_client.client import software_mentions_client as smc
 from application.server.main.logger import get_logger
 from config.db_config import engine
 from config.harvester_config import config_harvester
+from config.logger_config import LOGGER_LEVEL
 from config.path_config import (CONFIG_PATH_GROBID, CONFIG_PATH_SOFTCITE, DESTINATION_DIR_METADATA,
                                 PUBLICATIONS_DOWNLOAD_DIR)
 from harvester.OAHarvester import OAHarvester
@@ -18,7 +19,7 @@ from run_grobid import run_grobid
 from run_softcite import run_softcite
 
 METADATA_DUMP = config_harvester['metadata_dump']
-logger_console = get_logger(__name__)
+logger_console = get_logger(__name__, level=LOGGER_LEVEL)
 
 
 def create_task_unpaywall(args):

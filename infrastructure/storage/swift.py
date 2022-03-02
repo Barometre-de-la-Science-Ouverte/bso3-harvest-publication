@@ -70,6 +70,8 @@ class Swift(object):
                             container, result['object'], error))
                     else:
                         logger.error("%s" % error)
+                else:
+                    logger.debug(f'Objects : {objs} has been uploaded on dump')
         except SwiftError:
             logger.exception("error uploading file to SWIFT container")
 
@@ -99,7 +101,7 @@ class Swift(object):
         """
         Download a file given a path and returns the download destination file path.
         """
-        logger.debug(f'downloading {file_path} from container {container} into {dest_path}')
+        logger.debug(f'Downloading {file_path} from container {container} into {dest_path}')
         if type(file_path) == str:
             objs = [file_path]
         elif type(file_path) == list:
