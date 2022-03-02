@@ -855,11 +855,11 @@ def _download_cloudflare_scraper(urls, filename, local_entry):
                 if os.path.getsize(filename) > 0:
                     result = "success"
                     break
-            elif 'wiley' in url:
-                wiley_curl(local_entry['doi'], filename)
-                if os.path.getsize(filename) > 0:
-                    result = "success"
-                    break
+            # elif 'wiley' in url:
+            #     wiley_curl(local_entry['doi'], filename)
+            #     if os.path.getsize(filename) > 0:
+            #         result = "success"
+            #         break
             scraper = cloudscraper.create_scraper(interpreter='nodejs')
             content = _process_request(scraper, url)
             if content:

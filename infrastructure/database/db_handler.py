@@ -32,42 +32,40 @@ class DBHandler:
         return content_str
 
     def _is_uuid_in_list(self, uuid, list_uuid):
-        is_in_list = False
-        if uuid in list_uuid:
-            is_in_list = True
-        return is_in_list
+        return uuid in list_uuid
 
     def update_database(self):
         container = self.config['publications_dump']
         lmdb_size = self.config['lmdb_size_Go'] * 1024 * 1024 * 1024
 
-        publications_harvested = self.swift_handler.get_swift_list(self, container, dir_name='publication')
-        # publications_metadata = self.swift_handler.get_swift_list(self, container, dir_name='metadata')
-        results_grobid = self.swift_handler.get_swift_list(self, container, dir_name='grobid')
-        results_softcite = self.swift_handler.get_swift_list(self, container, dir_name='softcite')
-        lmdb_content = self._get_lmdb_content('data/doi', lmdb_size)
+        # remote data
+        publications_harvested = self.swift_handler.get_swift_list(container, dir_name='publication')
+        # publications_metadata = self.swift_handler.get_swift_list(container, dir_name='metadata')
+        results_grobid = self.swift_handler.get_swift_list(container, dir_name='grobid')
+        results_softcite = self.swift_handler.get_swift_list(container, dir_name='softcite')
 
         # get doi and uuid
-        if len(publications_harvested) > 0:
-            uuid_in_dump = [self._get_uuid_from_path(path) for path in publications_harvested]
-            lmdb_content_doi_uuid = self._get_lmdb_content('data/doi', lmdb_size)
-            doi_uuid_uploaded = [(content[0], content[1]) for content in lmdb_content_doi_uuid if
-                                 content[1] in uuid_in_dump]
+        files_uuid_remote = [self._get_uuid_from_path(path) for path in publications_harvested]
+        local_doi_uuid = self._get_lmdb_content('data/doi', lmdb_size)
+        doi_uuid_uploaded = [content for content in local_doi_uuid if content[1] in files_uuid_remote]
 
-        # get softcite uuid
-        if len(results_softcite) > 0:
-            uuids_softcite = [self._get_uuid_from_path(path) for path in results_softcite]
+        uuids_softcite = [self._get_uuid_from_path(path) for path in results_softcite]
 
-        # get grobid uuid
-        if len(results_grobid) > 0:
-            uuids_grobid = [self._get_uuid_from_path(path) for path in results_grobid]
+        uuids_grobid = [self._get_uuid_from_path(path) for path in results_grobid]
 
-        # [(doi, uuid, 1/0, 1/0)]
-        if (len(publications_harvested) > 0) and (len(results_softcite) > 0) and (len(results_grobid) > 0):
-            if (len(doi_uuid_uploaded) > 0) and (len(uuids_softcite) > 0) and (len(uuids_grobid) > 0):
-                rows = [(entry[0], entry[1],
-                         self._is_uuid_in_list(entry[1], uuids_softcite),
-                         self._is_uuid_in_list(entry[1], uuids_grobid) for entry in doi_uuid_uploaded)]
-
-        ## TODO
+        # [(doi:str, uuid:str, is_harvested:bool, is_processed_softcite:bool, is_processed_grobid:bool)]
+        records = [ProcessedEntry(*entry, True, self._is_uuid_in_list(entry[1], uuids_softcite), self._is_uuid_in_list(entry[1], uuids_grobid)) for entry in doi_uuid_uploaded]
+        if not records:
+            records = [
+                ('doi_1', 'uuid_1', False, False, False),
+                ('doi_2', 'uuid_2', False, False, False),
+                ('doi_3', 'uuid_3', False, False, False),
+            ]
+        print("records", records)
+        if records:
+            cur = self.engine.raw_connection().cursor()
+            args_str = ','.join(cur.mogrify("(%s,%s,%s,%s,%s)", x).decode("utf-8") for x in records)
+            with self.engine.connect() as connection:
+                print(f"INSERT INTO {self.table_name} VALUES {args_str}")
+                connection.execute(f"INSERT INTO {self.table_name} VALUES {args_str}")
         

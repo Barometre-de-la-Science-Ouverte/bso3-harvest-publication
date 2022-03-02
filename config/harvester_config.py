@@ -30,6 +30,7 @@ config_harvester['db']['db_user'] = os.getenv('DB_USER')
 config_harvester['db']['db_password'] = os.getenv('DB_PASSWORD')
 config_harvester['db']['db_host'] = os.getenv('DB_HOST')
 config_harvester['db']['db_port'] = os.getenv('DB_PORT')
+config_harvester['db']['db_name'] = os.getenv('DB_NAME')
 
 # Add env var secrets & pwd for app - flask
 config_harvester['app'] = {}

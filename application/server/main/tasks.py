@@ -1,3 +1,4 @@
+import gzip
 import os
 from time import time
 
@@ -27,7 +28,7 @@ def create_task_unpaywall(args):
     metadata_folder = args.get('metadata_folder', '')
 
     swift_handler = Swift(config_harvester)
-    db_handler: DBHandler = DBHandler(engine=engine, table_name='tickets', swift_handler=swift_handler)
+    db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
 
     if (metadata_file == '') and (metadata_folder == ''):
         logger_console.debug(f'One of the two arguments metadata_file of metadata_folder should be provided !')
@@ -43,8 +44,14 @@ def create_task_unpaywall(args):
                                           destination_dir=DESTINATION_DIR_METADATA)
         else:
             metadata_file = os.path.join(DESTINATION_DIR_METADATA, metadata_file)
+        # ------------------------------------------------------------------------------------------------ #
+        metadata_file_5k = os.path.join(os.path.dirname(metadata_file), 'bso-publications-5k.jsonl.gz')
+        with gzip.open(metadata_file, 'rt') as f_in:
+            with gzip.open(metadata_file_5k, 'wt') as f_out:
+                f_out.write(''.join(f_in.readlines()[:5_000]))
+        # ------------------------------------------------------------------------------------------------ #
         harvester = OAHarvester(config_harvester, thumbnail=False, sample=nb_samples, sample_seed=1)
-        harvester.harvestUnpaywall(metadata_file)
+        harvester.harvestUnpaywall(metadata_file_5k)
 
         db_handler.update_database()  # update database
     # -----------------------------------------------------------------------------------------------------------------#
