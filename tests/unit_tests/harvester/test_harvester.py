@@ -241,7 +241,7 @@ class HarvesterManageFiles(TestCase):
         self.entry = local_entry = entries_2_publications[0]
         self.DATA_PATH = os.path.join(FIXTURES_PATH, 'manageFiles')
         self.filepaths = {
-            "dest_path": os.path.join(generateStoragePath(local_entry['id']), local_entry['id']),
+            "dest_path": generateStoragePath(local_entry['id']),
             "local_filename": os.path.join(self.DATA_PATH, local_entry['id'] + ".pdf"),
             "local_filename_nxml": os.path.join(self.DATA_PATH, local_entry['id'] + ".nxml"),
             "local_filename_json": os.path.join(self.DATA_PATH, local_entry['id'] + ".json"),
@@ -250,9 +250,11 @@ class HarvesterManageFiles(TestCase):
             "thumb_file_large": os.path.join(self.DATA_PATH, local_entry['id'] + '-thumb-large.png'),
         }
 
+
     def test_generate_thumbnails(self):
         # On n'utilise pas thumbnail
         pass
+
 
     def test_write_metadata_file(self):
         # Given
@@ -265,6 +267,7 @@ class HarvesterManageFiles(TestCase):
             actual_file_content = json.load(f)
         self.assertEqual(self.entry, actual_file_content)
         os.remove(local_filename_json)
+
 
     def test_compress_files(self):
         # Given
@@ -288,12 +291,13 @@ class HarvesterManageFiles(TestCase):
         # When
         harvester_2_publications._upload_files(**self.filepaths)
         # Then
-        harvester_2_publications.swift.upload_files_to_swift.assert_called_with( \
-            harvester_2_publications.storage_publications, \
+        harvester_2_publications.swift.upload_files_to_swift.assert_called_with(\
+            harvester_2_publications.storage_publications,\
             [
-                self.filepaths['local_filename_nxml'],
-            ], \
-            self.filepaths['dest_path'])
+                (self.filepaths['local_filename_nxml'], os.path.join( self.filepaths['dest_path'], os.path.basename(self.filepaths['local_filename_nxml']))),
+            ]\
+            )
+
 
     @mock.patch('harvester.OAHarvester.shutil.copyfile')
     @mock.patch('harvester.OAHarvester.os.makedirs')
@@ -309,6 +313,7 @@ class HarvesterManageFiles(TestCase):
         mock_copyfile.assert_called_with(self.filepaths['local_filename_json'],
                                          os.path.join(local_dest_path, self.entry['id'] + ".json" + compression_suffix))
 
+
     @mock.patch('harvester.OAHarvester.os.remove')
     def test_clean_up_files(self, mock_remove):
         # Given
@@ -316,6 +321,7 @@ class HarvesterManageFiles(TestCase):
         harvester_2_publications._clean_up_files(**self.filepaths, local_entry_id=self.entry['id'])
         # Then
         mock_remove.assert_called_with(self.filepaths['local_filename_json'])
+
 
     @mock.patch('harvester.OAHarvester.OAHarvester._clean_up_files')
     @mock.patch('harvester.OAHarvester.OAHarvester._save_files_locally')
@@ -342,6 +348,7 @@ class HarvesterManageFiles(TestCase):
         mock_clean_up_files.assert_called()
 
 
+
 class HarvesterCompress(TestCase):
 
     def test_compress(self):
@@ -357,6 +364,7 @@ class HarvesterCompress(TestCase):
             actual_file_content = f.read()
         self.assertEqual(expected_file_content, actual_file_content)
         os.remove(expected_pdf_file_compressed)
+
 
 
 class HarvesterDownload(TestCase):

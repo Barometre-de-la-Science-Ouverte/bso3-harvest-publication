@@ -411,28 +411,26 @@ class OAHarvester(object):
         try:
             files_to_upload = []
             if os.path.isfile(local_filename):
-                self.swift.upload_files_to_swift(self.storage_publications, [local_filename],
-                                                 os.path.join('publication', dest_path))
+                self.swift.upload_files_to_swift(self.storage_publications, [(local_filename, os.path.join('publication', dest_path, os.path.basename(local_filename)))])
 
             if os.path.isfile(local_filename_nxml):
-                files_to_upload.append(local_filename_nxml)
+                files_to_upload.append((local_filename_nxml, os.path.join(dest_path, os.path.basename(local_filename_nxml))))
 
             if os.path.isfile(local_filename_json):
-                self.swift.upload_files_to_swift(self.storage_publications, [local_filename_json],
-                                                 os.path.join('metadata', dest_path))
+                self.swift.upload_files_to_swift(self.storage_publications, [(local_filename_json, os.path.join('metadata', dest_path, os.path.basename(local_filename_json)))])
 
             if self.thumbnail:
                 if os.path.isfile(thumb_file_small):
-                    files_to_upload.append(thumb_file_small)
+                    files_to_upload.append((thumb_file_small, os.path.join(dest_path, os.path.basename(thumb_file_small))))
 
                 if os.path.isfile(thumb_file_medium):
-                    files_to_upload.append(thumb_file_medium)
+                    files_to_upload.append((thumb_file_medium, os.path.join(dest_path, os.path.basename(thumb_file_medium))))
 
                 if os.path.isfile(thumb_file_large):
-                    files_to_upload.append(thumb_file_large)
+                    files_to_upload.append((thumb_file_large, os.path.join(dest_path, os.path.basename(thumb_file_large))))
 
             if len(files_to_upload) > 0:
-                self.swift.upload_files_to_swift(self.storage_publications, files_to_upload, dest_path)
+                self.swift.upload_files_to_swift(self.storage_publications, files_to_upload)
 
         except:
             logger.error("Error writing on SWIFT object storage")
@@ -503,7 +501,7 @@ class OAHarvester(object):
         else:
             data_path = DATA_PATH
         filepaths: dict = {
-            "dest_path": os.path.join(generateStoragePath(local_entry['id']), local_entry['id']),
+            "dest_path": generateStoragePath(local_entry['id']),
             "local_filename": os.path.join(data_path, local_entry['id'] + ".pdf"),
             "local_filename_nxml": os.path.join(data_path, local_entry['id'] + ".nxml"),
             "local_filename_json": os.path.join(data_path, local_entry['id'] + ".json"),
@@ -1156,7 +1154,7 @@ def _create_map_entry(local_entry):
 def generateStoragePath(identifier):
     """
     Convert a file name into a path with file prefix as directory paths:
-    123456789 -> 12/34/56/123456789
+    123456789 -> 12/34/56/78/123456789
     """
     return os.path.join(identifier[:2], identifier[2:4], identifier[4:6], identifier[6:8], identifier)
 
