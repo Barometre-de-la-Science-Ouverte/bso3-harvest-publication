@@ -1,4 +1,5 @@
 import shutil
+from typing import List
 
 from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
 
@@ -55,12 +56,14 @@ class Swift(object):
                 options[key] = self.config["swift"][key]
         return options
 
-    def upload_files_to_swift(self, container, file_paths, dest_path=None):
+    def upload_files_to_swift(self, container, file_path_dest_path_tuples:List):
         """
         Bulk upload of a list of files to current SWIFT object storage container under the same destination path
         """
         # Slightly modified to be able to upload to more than one dest_path
-        objs = [SwiftUploadObject(file_path, object_name=dest_path) for file_path, dest_path in file_paths]
+        objs = [SwiftUploadObject(file_path, object_name=dest_path) for file_path, dest_path in file_path_dest_path_tuples]
+        for file_path, dest_path in file_path_dest_path_tuples:
+            logger.info(f"Uploading {file_path} to {container} at {dest_path}")
         try:
             for result in self.swift.upload(container, objs):
                 if not result['success']:

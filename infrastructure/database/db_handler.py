@@ -13,10 +13,14 @@ class DBHandler:
         self.config = swift_handler.config
 
     def write_entity(self, processed_entry: ProcessedEntry):
-        processed_entry.to_dataframe().to_sql(self.table_name, self.engine, if_exists='append', index=False)
-
-    def write_entity_batch(self, entities: List):
         pass
+
+    def write_entity_batch(self, records: List):
+        cur = self.engine.raw_connection().cursor()
+        args_str = ','.join(cur.mogrify("(%s,%s,%s,%s,%s)", x).decode("utf-8") for x in records)
+        with self.engine.connect() as connection:
+            print(f"INSERT INTO {self.table_name} VALUES {args_str}")
+            connection.execute(f"INSERT INTO {self.table_name} VALUES {args_str}")
 
     def _get_uuid_from_path(self, path):
         end_path = path.split('/')[-1]
@@ -56,9 +60,4 @@ class DBHandler:
         # [(doi:str, uuid:str, is_harvested:bool, is_processed_softcite:bool, is_processed_grobid:bool)]
         records = [ProcessedEntry(*entry, True, self._is_uuid_in_list(entry[1], uuids_softcite), self._is_uuid_in_list(entry[1], uuids_grobid)) for entry in doi_uuid_uploaded]
         if records:
-            cur = self.engine.raw_connection().cursor()
-            args_str = ','.join(cur.mogrify("(%s,%s,%s,%s,%s)", x).decode("utf-8") for x in records)
-            with self.engine.connect() as connection:
-                print(f"INSERT INTO {self.table_name} VALUES {args_str}")
-                connection.execute(f"INSERT INTO {self.table_name} VALUES {args_str}")
-        
+            self.write_entity_batch(records)
