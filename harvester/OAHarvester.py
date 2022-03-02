@@ -851,7 +851,7 @@ def _download_cloudflare_scraper(urls, filename, local_entry):
             if 'arxiv' in url:
                 arXiv_download(url, filename)
                 if os.path.getsize(filename) > 0:
-                    logger.debug(f'arXiv download OK for file : {filename}')
+                    logger.debug(f'ArXiv download OK for file : {filename}')
                     result = "success"
                     break
             elif 'wiley' in url:

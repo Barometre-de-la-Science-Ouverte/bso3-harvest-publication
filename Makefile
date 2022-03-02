@@ -6,6 +6,7 @@ clean_up_files:
 	rm -rf downloaded_publications
 	rm -rf lmdb/entries_software
 	rm -rf data/
+	rm -rf tmp/*
 	rm -rf __pycache__/
 	rm -rf */__pycache__/
 	rm -rf */*/__pycache__/
