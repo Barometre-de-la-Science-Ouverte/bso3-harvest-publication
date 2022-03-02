@@ -9,9 +9,9 @@ class ProcessedEntry(Sequence):
                  is_processed_grobid: bool):
         self.doi: str = doi
         self.uuid: str = uuid
-        self.is_harvested: bool = is_harvested
-        self.is_processed_softcite: bool = is_processed_softcite
-        self.is_processed_grobid: bool = is_processed_grobid
+        self.is_harvested: int = int(is_harvested)
+        self.is_processed_softcite: int = int(is_processed_softcite)
+        self.is_processed_grobid: int = int(is_processed_grobid)
         self._tup = (self.doi, self.uuid, self.is_harvested, self.is_processed_softcite, self.is_processed_grobid)
 
     def __repr__(self) -> str:
