@@ -26,10 +26,7 @@ services:
       - redis
 
   worker:
-    build: .
-    # image: dataesr/bso3-harvest-publication:latest
-    # volumes:
-    #   - bso3-harvest-publication:/src
+    image: dataesr/bso3-harvest-publication:latest
     privileged: true
     command: python3 manage.py run_worker
     env_file:
@@ -39,8 +36,7 @@ services:
       - postgres
 
   web:
-    build: .
-    # image: dataesr/bso3-harvest-publication:latest
+    image: dataesr/bso3-harvest-publication:latest
     privileged: true
     ports:
       - "5004:5000"
