@@ -23,6 +23,7 @@ logger_console = get_logger(__name__, level=LOGGER_LEVEL)
 
 
 def create_task_unpaywall(args):
+    sample_seed = args.get('sample_seed', 1)
     nb_samples = args.get('nb_samples', 1)
     metadata_file = args.get('metadata_file', '')
     metadata_folder = args.get('metadata_folder', '')
@@ -44,7 +45,7 @@ def create_task_unpaywall(args):
                                           destination_dir=DESTINATION_DIR_METADATA)
         else:
             metadata_file = os.path.join(DESTINATION_DIR_METADATA, metadata_file)
-        harvester = OAHarvester(config_harvester, thumbnail=False, sample=nb_samples, sample_seed=1)
+        harvester = OAHarvester(config_harvester, thumbnail=False, sample=nb_samples, sample_seed=sample_seed)
         harvester.harvestUnpaywall(metadata_file)
 
         db_handler.update_database()  # update database

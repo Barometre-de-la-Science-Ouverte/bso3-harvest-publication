@@ -526,11 +526,13 @@ class OAHarvester(object):
                          filepaths}
         if self.swift:
             self._upload_files(**filepaths)
+            logger.debug("_upload_files completed")
 
         else:
             self._save_files_locally(**filepaths, local_entry_id=local_entry['id'],
                                      compression_suffix=compression_suffix)
         self._clean_up_files(**filepaths, local_entry_id=local_entry['id'])
+        logger.debug("manageFiles completed")
 
     def reset(self):
         """

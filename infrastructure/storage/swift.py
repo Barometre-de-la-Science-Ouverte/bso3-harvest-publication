@@ -74,7 +74,7 @@ class Swift(object):
                     else:
                         logger.error("%s" % error)
                 else:
-                    logger.debug(f'Objects : {objs} has been uploaded on dump')
+                    logger.debug(f'Object: {result["path"]} has been uploaded on dump at {result["object"]}')
         except SwiftError:
             logger.exception("error uploading file to SWIFT container")
 
