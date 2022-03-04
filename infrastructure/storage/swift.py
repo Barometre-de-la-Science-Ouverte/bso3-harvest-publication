@@ -60,13 +60,17 @@ class Swift(object):
         """
         Bulk upload of a list of files to current SWIFT object storage container under the same destination path
         """
+        print("start upload_files_to_swift")
         # Slightly modified to be able to upload to more than one dest_path
         objs = [SwiftUploadObject(file_path, object_name=dest_path) for file_path, dest_path in file_path_dest_path_tuples]
-        for file_path, dest_path in file_path_dest_path_tuples:
-            logger.info(f"Uploading {file_path} to {container} at {dest_path}")
+        # for file_path, dest_path in file_path_dest_path_tuples:
+        #     logger.info(f"Uploading {file_path} to {container} at {dest_path}")
         try:
+            print("upload_files_to_swift checkpoint 1")
             for result in self.swift.upload(container, objs):
+                print("upload_files_to_swift checkpoint start for")
                 if not result['success']:
+                    print("upload_files_to_swift checkpoint error")
                     error = result['error']
                     if result['action'] == "upload_object":
                         logger.error("Failed to upload object %s to container %s: %s" % (
@@ -74,8 +78,10 @@ class Swift(object):
                     else:
                         logger.error("%s" % error)
                 else:
-                    logger.debug(f'Object: {result["path"]} has been uploaded on dump at {result["object"]}')
-        except SwiftError:
+                    print("upload_files_to_swift checkpoint success")
+                    logger.info(f'Object: {result["path"]} has been uploaded on {container} at {result["object"]}')
+        except SwiftError as e:
+            print(e)
             logger.exception("error uploading file to SWIFT container")
 
     def remove_all_files(self, container):

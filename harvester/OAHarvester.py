@@ -113,11 +113,15 @@ class OAHarvester(object):
             batch_size_pdf = 100
 
         count = _count_entries(gzip.open, filepath)
+        print("harvestUnpaywall checkpoint 1")
         if self.sample:
             selection = _sample_selection(self.sample, count, self._sample_seed)
             current_idx = 0
+            print("harvestUnpaywall checkpoint 2 sample")
         batch_gen = self._get_batch_generator(filepath, count, reprocess, batch_size_pdf, filter_out)
+        print("harvestUnpaywall checkpoint 3 batch gen")
         for batch in batch_gen:
+            print("harvestUnpaywall checkpoint for batch")
             if self.sample:
                 n = len(batch)
                 batch = _apply_selection(batch, selection, current_idx)
@@ -125,6 +129,7 @@ class OAHarvester(object):
             urls = [e[0] for e in batch]
             entries = [e[1] for e in batch]
             filenames = [e[2] for e in batch]
+            print("harvestUnpaywall checkpoint before processBatch")
             self.processBatch(urls, filenames, entries, destination_dir)
 
     def harvestPMC(self, filepath, reprocess=False):
@@ -292,9 +297,10 @@ class OAHarvester(object):
             yield batch
 
     def processBatch(self, urls, filenames, entries, destination_dir=''):  # , txn, txn_doi, txn_fail):
+        print("processBatch checkpoint 1")
         with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
             results = executor.map(_download, urls, filenames, entries, timeout=30)
-
+        print("processBatch checkpoint 2")
         # LMDB write transaction must be performed in the thread that created the transaction, so
         # better to have the following lmdb updates out of the paralell process
         entries = []
@@ -411,17 +417,18 @@ class OAHarvester(object):
     def _upload_files(self, local_filename, local_filename_nxml, local_filename_json,
                       thumb_file_small, thumb_file_medium, thumb_file_large, dest_path, **kwargs):
         """Uploads all the resources associated to the entry to SWIFT object storage"""
+        print("start _upload_files")
         try:
             files_to_upload = []
             if os.path.isfile(local_filename):
                 self.swift.upload_files_to_swift(self.storage_publications, [(local_filename, os.path.join('publication', dest_path, os.path.basename(local_filename)))])
-
+            print("_upload_files checkpoint 1")
             if os.path.isfile(local_filename_nxml):
                 files_to_upload.append((local_filename_nxml, os.path.join(dest_path, os.path.basename(local_filename_nxml))))
-
+            print("_upload_files checkpoint 2")
             if os.path.isfile(local_filename_json):
                 self.swift.upload_files_to_swift(self.storage_publications, [(local_filename_json, os.path.join('metadata', dest_path, os.path.basename(local_filename_json)))])
-
+            print("_upload_files checkpoint 3")
             if self.thumbnail:
                 if os.path.isfile(thumb_file_small):
                     files_to_upload.append((thumb_file_small, os.path.join(dest_path, os.path.basename(thumb_file_small))))
@@ -431,10 +438,11 @@ class OAHarvester(object):
 
                 if os.path.isfile(thumb_file_large):
                     files_to_upload.append((thumb_file_large, os.path.join(dest_path, os.path.basename(thumb_file_large))))
-
+            print("_upload_files checkpoint 4")
             if len(files_to_upload) > 0:
+                print("_upload_files checkpoint 4")
                 self.swift.upload_files_to_swift(self.storage_publications, files_to_upload)
-
+                print("_upload_files checkpoint 5")
         except:
             logger.error("Error writing on SWIFT object storage")
 
@@ -525,8 +533,9 @@ class OAHarvester(object):
             filepaths = {k: (filepaths[k] + compression_suffix if k != "dest_path" else filepaths[k]) for k in
                          filepaths}
         if self.swift:
+            print("_upload_files starting")
             self._upload_files(**filepaths)
-            logger.debug("_upload_files completed")
+            print("_upload_files completed")
 
         else:
             self._save_files_locally(**filepaths, local_entry_id=local_entry['id'],
@@ -772,8 +781,9 @@ def _download(urls, filename, local_entry):
     global biblio_glutton_url
     global crossref_base
     global crossref_email
-
+    print("_download checkpoint 1")
     result = _download_publication(urls, filename, local_entry)
+    print("_download checkpoint 2")
 
     if biblio_glutton_url is not None:
         local_doi = None
