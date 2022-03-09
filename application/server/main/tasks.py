@@ -46,7 +46,6 @@ def create_task_unpaywall(args):
         else:
             metadata_file = os.path.join(DESTINATION_DIR_METADATA, metadata_file)
         harvester = OAHarvester(config_harvester, thumbnail=False, sample=nb_samples, sample_seed=sample_seed)
-        print("task checkpoint 1")
         harvester.harvestUnpaywall(metadata_file)
         print("task checkpoint 2")
         try:

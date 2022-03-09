@@ -422,13 +422,13 @@ class OAHarvester(object):
             files_to_upload = []
             if os.path.isfile(local_filename):
                 self.swift.upload_files_to_swift(self.storage_publications, [(local_filename, os.path.join('publication', dest_path, os.path.basename(local_filename)))])
-            print("_upload_files checkpoint 1")
+            logger.debug("_upload_files checkpoint 1")
             if os.path.isfile(local_filename_nxml):
                 files_to_upload.append((local_filename_nxml, os.path.join(dest_path, os.path.basename(local_filename_nxml))))
-            print("_upload_files checkpoint 2")
+            logger.debug("_upload_files checkpoint 2")
             if os.path.isfile(local_filename_json):
                 self.swift.upload_files_to_swift(self.storage_publications, [(local_filename_json, os.path.join('metadata', dest_path, os.path.basename(local_filename_json)))])
-            print("_upload_files checkpoint 3")
+            logger.debug("_upload_files checkpoint 3")
             if self.thumbnail:
                 if os.path.isfile(thumb_file_small):
                     files_to_upload.append((thumb_file_small, os.path.join(dest_path, os.path.basename(thumb_file_small))))
@@ -438,11 +438,11 @@ class OAHarvester(object):
 
                 if os.path.isfile(thumb_file_large):
                     files_to_upload.append((thumb_file_large, os.path.join(dest_path, os.path.basename(thumb_file_large))))
-            print("_upload_files checkpoint 4")
+            logger.debug("_upload_files checkpoint 4")
             if len(files_to_upload) > 0:
-                print("_upload_files checkpoint 4")
+                logger.debug("_upload_files checkpoint 4")
                 self.swift.upload_files_to_swift(self.storage_publications, files_to_upload)
-                print("_upload_files checkpoint 5")
+                logger.debug("_upload_files checkpoint 5")
         except:
             logger.error("Error writing on SWIFT object storage")
 
@@ -533,9 +533,9 @@ class OAHarvester(object):
             filepaths = {k: (filepaths[k] + compression_suffix if k != "dest_path" else filepaths[k]) for k in
                          filepaths}
         if self.swift:
-            print("_upload_files starting")
+            logger.debug("_upload_files starting")
             self._upload_files(**filepaths)
-            print("_upload_files completed")
+            logger.debug("_upload_files completed")
 
         else:
             self._save_files_locally(**filepaths, local_entry_id=local_entry['id'],
