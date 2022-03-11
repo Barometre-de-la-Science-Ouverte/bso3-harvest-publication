@@ -443,7 +443,8 @@ class OAHarvester(object):
                 logger.debug("_upload_files checkpoint 4")
                 self.swift.upload_files_to_swift(self.storage_publications, files_to_upload)
                 logger.debug("_upload_files checkpoint 5")
-        except:
+        except Exception as e:
+            logger.debug(f'!!!!!!! Error when uploading : {e}')
             logger.error("Error writing on SWIFT object storage")
 
     def _save_files_locally(self, dest_path, local_filename, local_entry_id,
