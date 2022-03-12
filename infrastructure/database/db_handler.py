@@ -4,6 +4,8 @@ from typing import List
 
 from domain.processed_entry import ProcessedEntry
 
+from logger import logger
+
 
 class DBHandler:
     def __init__(self, engine: Engine, table_name: str, swift_handler):
@@ -39,25 +41,34 @@ class DBHandler:
         return uuid in list_uuid
 
     def update_database(self):
+        logger.debug('enter update databse...')
         container = self.config['publications_dump']
+        logger.debug(f'container {container}...')
         lmdb_size = self.config['lmdb_size_Go'] * 1024 * 1024 * 1024
 
         # remote data
         publications_harvested = self.swift_handler.get_swift_list(container, dir_name='publication')
+        logger.debug(f'nb publis in container :  {len(publications_harvested)}...')
         # publications_metadata = self.swift_handler.get_swift_list(container, dir_name='metadata')
         results_grobid = self.swift_handler.get_swift_list(container, dir_name='grobid')
+        logger.debug(f'nb results grobid :  {len(results_grobid)}...')
         results_softcite = self.swift_handler.get_swift_list(container, dir_name='softcite')
+        logger.debug(f'nb results softcite :  {len(results_softcite)}...')
 
         # get doi and uuid
         files_uuid_remote = [self._get_uuid_from_path(path) for path in publications_harvested]
         local_doi_uuid = self._get_lmdb_content('data/doi', lmdb_size)
         doi_uuid_uploaded = [content for content in local_doi_uuid if content[1] in files_uuid_remote]
+        logger.debug(f'nb uuids uploaded :  {len(doi_uuid_uploaded)}...')
 
         uuids_softcite = [self._get_uuid_from_path(path) for path in results_softcite]
+        logger.debug(f'nb uuids softcite :  {len(uuids_softcite)}...')
 
         uuids_grobid = [self._get_uuid_from_path(path) for path in results_grobid]
 
         # [(doi:str, uuid:str, is_harvested:bool, is_processed_softcite:bool, is_processed_grobid:bool)]
         records = [ProcessedEntry(*entry, True, self._is_uuid_in_list(entry[1], uuids_softcite), self._is_uuid_in_list(entry[1], uuids_grobid)) for entry in doi_uuid_uploaded]
+        logger.debug(f'nb records to write :  {len(records)}...')
         if records:
+            logger.debug(f'write records ...')
             self.write_entity_batch(records)
