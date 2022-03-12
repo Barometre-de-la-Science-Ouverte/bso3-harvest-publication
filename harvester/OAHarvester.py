@@ -421,6 +421,7 @@ class OAHarvester(object):
         try:
             files_to_upload = []
             if os.path.isfile(local_filename):
+                logger.debug("_upload_files checkpoint 0")
                 self.swift.upload_files_to_swift(self.storage_publications, [(local_filename, os.path.join('publication', dest_path, os.path.basename(local_filename)))])
             logger.debug("_upload_files checkpoint 1")
             if os.path.isfile(local_filename_nxml):
@@ -444,7 +445,7 @@ class OAHarvester(object):
                 self.swift.upload_files_to_swift(self.storage_publications, files_to_upload)
                 logger.debug("_upload_files checkpoint 5")
         except Exception as e:
-            logger.debug(f'!!!!!!! Error when uploading : {e}')
+            logger.error('!!!!!!! Error when uploading', exc_info=True)
             logger.error("Error writing on SWIFT object storage")
 
     def _save_files_locally(self, dest_path, local_filename, local_entry_id,
