@@ -18,11 +18,16 @@ class DBHandler:
         pass
 
     def write_entity_batch(self, records: List):
+        logger.debug(f'write entity with tab name {self.table_name}')
         cur = self.engine.raw_connection().cursor()
         args_str = ','.join(cur.mogrify("(%s,%s,%s,%s,%s)", x).decode("utf-8") for x in records)
+        logger.debug(f'write objs : {args_str}')
         with self.engine.connect() as connection:
-            print(f"INSERT INTO {self.table_name} VALUES {args_str}")
-            connection.execute(f"INSERT INTO {self.table_name} VALUES {args_str}")
+            logger.debug(f"INSERT INTO {self.table_name} VALUES {args_str}")
+            try:
+                connection.execute(f"INSERT INTO {self.table_name} VALUES {args_str}")
+            except Exception:
+                logger.error('writing to postgres error : ', exc_info=True)
 
     def _get_uuid_from_path(self, path):
         end_path = path.split('/')[-1]
