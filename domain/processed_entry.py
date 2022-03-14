@@ -5,16 +5,16 @@ class ProcessedEntry(Sequence):
     def __init__(self,
                  doi: str,
                  uuid: str,
-                 is_harvested: bool,
-                 is_processed_softcite: bool,
-                 is_processed_grobid: bool,
+                 is_harvested: str,
+                 is_processed_softcite: str,
+                 is_processed_grobid: str,
                  harvester_used: str,
                  domain: str):
         self.doi: str = doi
         self.uuid: str = uuid
-        self.is_harvested: int = int(is_harvested)
-        self.is_processed_softcite: int = int(is_processed_softcite)
-        self.is_processed_grobid: int = int(is_processed_grobid)
+        self.is_harvested: str = is_harvested
+        self.is_processed_softcite: str = is_processed_softcite
+        self.is_processed_grobid: str = is_processed_grobid
         self.harvester_used: str = harvester_used
         self.domain: str = domain
         self._tup = (self.doi, self.uuid, self.is_harvested, self.is_processed_softcite, self.is_processed_grobid,

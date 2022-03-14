@@ -22,7 +22,7 @@ class DBHandler:
         logger.debug(f'Entering write batch in db')
         cur = self.engine.raw_connection().cursor()
         logger.debug(f'Cursor ok ...')
-        args_str = ','.join(cur.mogrify("(%s,%s,%s,%s,%s)", x).decode("utf-8") for x in records)
+        args_str = ','.join(cur.mogrify("(%s,%s,%s,%s,%s,%s,%s)", x).decode("utf-8") for x in records)
         logger.debug('Mogrify ok...')
         with self.engine.connect() as connection:
             logger.debug('Connection to db')
@@ -86,9 +86,9 @@ class DBHandler:
         # [(doi:str, uuid:str, is_harvested:bool, is_processed_softcite:bool, is_processed_grobid:bool),
         # harvester_used:str, domain:str]
         records = [ProcessedEntry(*entry,
-                                  True,
-                                  self._is_uuid_in_list(entry[1], uuids_softcite),
-                                  self._is_uuid_in_list(entry[1], uuids_grobid),
+                                  "1",
+                                  str(self._is_uuid_in_list(entry[1], uuids_softcite)),
+                                  str(self._is_uuid_in_list(entry[1], uuids_grobid)),
                                   dict_local_uuid_entries[entry[1]]['harvester_used'],
                                   dict_local_uuid_entries[entry[1]]['domain']) for entry in doi_uuid_uploaded]
         logger.debug(f'Records to write : {records}')
