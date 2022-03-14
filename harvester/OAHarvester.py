@@ -117,6 +117,7 @@ class OAHarvester(object):
             selection = _sample_selection(self.sample, count, self._sample_seed)
             current_idx = 0
         batch_gen = self._get_batch_generator(filepath, count, reprocess, batch_size_pdf, filter_out)
+        logger.debug(f'Lenght batch : {len(batch_gen)}')
 
         for batch in batch_gen:
             if self.sample:
@@ -294,8 +295,10 @@ class OAHarvester(object):
             yield batch
 
     def processBatch(self, urls, filenames, entries, destination_dir=''):  # , txn, txn_doi, txn_fail):
+        logger.debug('Enter process batch...')
         with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
             results = executor.map(_download, urls, filenames, entries, timeout=30)
+        logger.debug(f'Lenght results download : {len(results)}')
         # LMDB write transaction must be performed in the thread that created the transaction, so
         # better to have the following lmdb updates out of the paralell process
         entries = []
@@ -412,11 +415,12 @@ class OAHarvester(object):
     def _upload_files(self, local_filename, local_filename_nxml, local_filename_json,
                       thumb_file_small, thumb_file_medium, thumb_file_large, dest_path, **kwargs):
         """Uploads all the resources associated to the entry to SWIFT object storage"""
+        logger.debug('Entering upload files...')
         try:
             files_to_upload = []
             if os.path.isfile(local_filename):
                 self.swift.upload_files_to_swift(self.storage_publications, [
-                    (local_filename, os.path.join('publication', dest_path, os.path.basename(local_filename)))])
+                    (local_filename, os.path.join(PUBLICATION_PREFIX, dest_path, os.path.basename(local_filename)))])
             if os.path.isfile(local_filename_nxml):
                 files_to_upload.append(
                     (local_filename_nxml, os.path.join(dest_path, os.path.basename(local_filename_nxml))))
@@ -499,6 +503,7 @@ class OAHarvester(object):
             logger.exception("Temporary file cleaning failed")
 
     def manageFiles(self, local_entry, destination_dir=''):
+        logger.debug('Entering manage files...')
         if destination_dir != '':
             data_path = os.path.join(DATA_PATH, destination_dir)
         else:
@@ -765,6 +770,7 @@ def get_nth_key(dictionary, n=0):
 
 
 def _download(urls, filename, local_entry):
+    logger.debug('Entering download...')
     # optional biblio-glutton look-up
     global biblio_glutton_url
     global crossref_base
@@ -802,6 +808,7 @@ def _download(urls, filename, local_entry):
         _manage_pmc_archives(filename)
 
     local_entry['harvester_used'] = harvester_used
+    logger.error(f'local entry after download : {local_entry}')
 
     return result, local_entry
 
@@ -848,6 +855,7 @@ def arXiv_download(url, filename):
 
 
 def _download_publication(urls, filename, local_entry):
+    logger.debug(f'Entering download publication with url {urls}')
     result = "fail"
     harvester_used = ""
     for url in urls:
@@ -877,6 +885,7 @@ def _download_publication(urls, filename, local_entry):
                 break
         except Exception:
             logger.exception(f"Download failed for {url}")
+    logger.debug(f'download publi with result and harvester_used : {result}, {harvester_used}...')
     return result, harvester_used
 
 

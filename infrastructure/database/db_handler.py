@@ -19,6 +19,7 @@ class DBHandler:
         pass
 
     def write_entity_batch(self, records: List):
+        logger.debug(f'Entering write batch in db')
         cur = self.engine.raw_connection().cursor()
         args_str = ','.join(cur.mogrify("(%s,%s,%s,%s,%s)", x).decode("utf-8") for x in records)
         with self.engine.connect() as connection:
@@ -56,6 +57,7 @@ class DBHandler:
         pass
 
     def update_database(self):
+        logger.debug('Entering update db...')
         container = self.config['publications_dump']
         lmdb_size = self.config['lmdb_size_Go'] * 1024 * 1024 * 1024
 
@@ -85,5 +87,6 @@ class DBHandler:
                                   self._is_uuid_in_list(entry[1], uuids_grobid),
                                   dict_local_uuid_entries[entry[1]]['harvester_used'],
                                   dict_local_uuid_entries[entry[1]]['domain']) for entry in doi_uuid_uploaded]
+        logger.debug(f'Records to write : {records}')
         if records:
             self.write_entity_batch(records)

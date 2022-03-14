@@ -24,3 +24,5 @@ METADATA_LOCAL_FILE = 'bso-publications-5k.jsonl.gz'  # 'bso-publications-202201
 # Prefixes in ovh dump
 METADATA_PREFIX = 'metadata'
 PUBLICATION_PREFIX = 'publication'
+SOFTCITE_PREFIX = 'softcite'
+GROBID_PREFIX = 'grobid'

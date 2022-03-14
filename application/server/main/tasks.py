@@ -38,7 +38,7 @@ def create_task_unpaywall(args):
         logger_console.debug(f'Only one of the two arguments metadata_file of metadata_folder should be provided !')
     # -----------------------------------------------------------------------------------------------------------------#
     elif metadata_file != '':
-        logger_console.debug(f'launching task with args {args}')
+        logger_console.debug(f'Launching task with args {args}')
         if len(METADATA_DUMP) > 0:
             metadata_file = load_metadata(metadata_container=METADATA_DUMP,
                                           metadata_file=metadata_file,
@@ -46,11 +46,14 @@ def create_task_unpaywall(args):
         else:
             metadata_file = os.path.join(DESTINATION_DIR_METADATA, metadata_file)
         harvester = OAHarvester(config_harvester, thumbnail=False, sample=nb_samples, sample_seed=sample_seed)
+        logger_console.debug('Starting unpaywall...')
         harvester.harvestUnpaywall(metadata_file)
+        logger_console.debug('Ending unpaywall...')
         try:
+            logger_console.debug('Updating db...')
             db_handler.update_database()  # update database
-        except Exception as e:
-            logger_console.debug(e)
+        except Exception:
+            logger_console.error('Error when updating db :', exec_info=True)
     # -----------------------------------------------------------------------------------------------------------------#
     elif metadata_folder != '':
         logger_console.debug(f'launching task with args {args}')
@@ -74,7 +77,10 @@ def create_task_unpaywall(args):
             harvester = OAHarvester(config_harvester, thumbnail=False, sample=nb_samples, sample_seed=1)
             harvester.harvestUnpaywall(file, destination_dir=destination_dir_output)
 
-        db_handler.update_database()  # update database
+        try:
+            db_handler.update_database()  # update database
+        except Exception as e:
+            logger_console.debug(e)
 
 
 def create_task_process(files, do_grobid, do_softcite):
