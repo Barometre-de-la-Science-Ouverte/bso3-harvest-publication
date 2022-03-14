@@ -19,18 +19,12 @@ class DBHandler:
         pass
 
     def write_entity_batch(self, records: List):
-        logger.debug(f'Entering write batch in db')
         cur = self.engine.raw_connection().cursor()
-        logger.debug(f'Cursor ok ...')
         args_str = ','.join(cur.mogrify("(%s,%s,%s,%s,%s,%s,%s)", x).decode("utf-8") for x in records)
-        logger.debug('Mogrify ok...')
         with self.engine.connect() as connection:
-            logger.debug('Connection to db')
-            logger.debug(f"INSERT INTO {self.table_name} VALUES {args_str}")
             try:
                 connection.execute(f"INSERT INTO {self.table_name} VALUES {args_str}")
             except Exception:
-                logger.debug('error inserting into db...')
                 logger.error('Writing to postgres error : ', exc_info=True)
 
     def _get_uuid_from_path(self, path):
@@ -55,13 +49,15 @@ class DBHandler:
         return dict_content
 
     def _is_uuid_in_list(self, uuid, list_uuid):
-        return uuid in list_uuid
+        if uuid in list_uuid:
+            return "1"
+        else:
+            return "0"
 
     def _get_harvester_used(self, uuid):
         pass
 
     def update_database(self):
-        logger.debug('Entering update db...')
         container = self.config['publications_dump']
         lmdb_size = self.config['lmdb_size_Go'] * 1024 * 1024 * 1024
 
@@ -71,7 +67,7 @@ class DBHandler:
         results_grobid = self.swift_handler.get_swift_list(container, dir_name='grobid')
         results_softcite = self.swift_handler.get_swift_list(container, dir_name='softcite')
 
-        # get doi and uuid
+        # get doi and uuids
         files_uuid_remote = [self._get_uuid_from_path(path) for path in publications_harvested]
         local_doi_uuid = self._get_lmdb_content_str('data/doi', lmdb_size)
         doi_uuid_uploaded = [content for content in local_doi_uuid if content[1] in files_uuid_remote]
@@ -87,10 +83,10 @@ class DBHandler:
         # harvester_used:str, domain:str]
         records = [ProcessedEntry(*entry,
                                   "1",
-                                  str(self._is_uuid_in_list(entry[1], uuids_softcite)),
-                                  str(self._is_uuid_in_list(entry[1], uuids_grobid)),
+                                  self._is_uuid_in_list(entry[1], uuids_softcite),
+                                  self._is_uuid_in_list(entry[1], uuids_grobid),
                                   dict_local_uuid_entries[entry[1]]['harvester_used'],
                                   dict_local_uuid_entries[entry[1]]['domain']) for entry in doi_uuid_uploaded]
-        logger.debug(f'Records to write : {records}')
+
         if records:
             self.write_entity_batch(records)

@@ -294,7 +294,6 @@ class OAHarvester(object):
             yield batch
 
     def processBatch(self, urls, filenames, entries, destination_dir=''):  # , txn, txn_doi, txn_fail):
-        logger.debug('Enter process batch...')
         with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
             results = executor.map(_download, urls, filenames, entries, timeout=30)
         # LMDB write transaction must be performed in the thread that created the transaction, so
@@ -413,7 +412,6 @@ class OAHarvester(object):
     def _upload_files(self, local_filename, local_filename_nxml, local_filename_json,
                       thumb_file_small, thumb_file_medium, thumb_file_large, dest_path, **kwargs):
         """Uploads all the resources associated to the entry to SWIFT object storage"""
-        logger.debug('Entering upload files...')
         try:
             files_to_upload = []
             if os.path.isfile(local_filename):
@@ -501,7 +499,6 @@ class OAHarvester(object):
             logger.exception("Temporary file cleaning failed")
 
     def manageFiles(self, local_entry, destination_dir=''):
-        logger.debug('Entering manage files...')
         if destination_dir != '':
             data_path = os.path.join(DATA_PATH, destination_dir)
         else:
@@ -768,7 +765,6 @@ def get_nth_key(dictionary, n=0):
 
 
 def _download(urls, filename, local_entry):
-    logger.debug('Entering download...')
     # optional biblio-glutton look-up
     global biblio_glutton_url
     global crossref_base
@@ -806,7 +802,6 @@ def _download(urls, filename, local_entry):
         _manage_pmc_archives(filename)
 
     local_entry['harvester_used'] = harvester_used
-    logger.debug(f'local entry after download : {local_entry}')
 
     return result, local_entry
 
@@ -853,7 +848,6 @@ def arXiv_download(url, filename):
 
 
 def _download_publication(urls, filename, local_entry):
-    logger.debug(f'Entering download publication with url {urls}')
     result = "fail"
     harvester_used = ""
     for url in urls:
@@ -861,21 +855,18 @@ def _download_publication(urls, filename, local_entry):
             if 'arxiv' in url:
                 arXiv_download(url, filename)
                 if os.path.getsize(filename) > 0:
-                    logger.debug(f"Download {local_entry['doi']} via arXiv_harvesting")
                     result = "success"
                     harvester_used = 'arxiv'
                     break
             elif 'wiley' in url:
                 wiley_curl(local_entry['doi'], filename)
                 if os.path.getsize(filename) > 0:
-                    logger.debug(f"Download {local_entry['doi']} via wiley API")
                     result = "success"
                     harvester_used = 'wiley'
                     break
             scraper = cloudscraper.create_scraper(interpreter='nodejs')
             content = _process_request(scraper, url)
             if content:
-                logger.debug(f"Download {local_entry['doi']} via standard request")
                 with open(filename, 'wb') as f_out:
                     f_out.write(content)
                 result = "success"
@@ -883,7 +874,6 @@ def _download_publication(urls, filename, local_entry):
                 break
         except Exception:
             logger.exception(f"Download failed for {url}")
-    logger.debug(f'download publi with result and harvester_used : {result}, {harvester_used}...')
     return result, harvester_used
 
 
@@ -929,7 +919,6 @@ def _download_wget(url, filename):
 
     except subprocess.CalledProcessError as e:
         logger.exception("error subprocess wget")
-        # logger.error("wget command was: " + cmd)
         result = "fail"
 
     except Exception as e:
