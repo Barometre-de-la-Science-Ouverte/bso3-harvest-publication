@@ -263,14 +263,14 @@ class OAHarvester(object):
             oa_locations = [oa_location for oa_locations_idx in sorted(oa_locations) for oa_location in
                             oa_locations[oa_locations_idx]]
             if urls_for_pdf and oa_locations:
-                return urls_for_pdf, {'id': entry['id'], 'doi': entry['doi'],
+                return urls_for_pdf, {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification'],
                                       "oa_locations": oa_locations}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
         elif entry.get("publisher_dissemination") == "Wiley":
             # returns urls, entry, filename to match signature
             #  _download_publication iterates on urls and uses ('wiley' in url) to call wiley API
             # Additionnaly url is probably valid so that if wiley API does not work,
             # _download_publication can try a standard request download
-            return [f"https://onlinelibrary.wiley.com/doi/pdfdirect/{entry['doi']}"], {'id': entry['id'], 'doi': entry['doi']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+            return [f"https://onlinelibrary.wiley.com/doi/pdfdirect/{entry['doi']}"], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
 
         raise Continue
 
