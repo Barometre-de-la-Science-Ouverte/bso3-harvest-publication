@@ -74,14 +74,18 @@ class DBHandler:
 
         uuids_grobid = [self._get_uuid_from_path(path) for path in results_grobid]
 
-        # get harvester used
+        # get uuid entry content (harvester_used and domain are in it)
         dict_local_uuid_entries = self._get_lmdb_content_pickle('data/entries', lmdb_size)
+        print('ENTRY after lmdb entries reading:')
+        print(dict_local_uuid_entries)
 
-        # [(doi:str, uuid:str, is_harvested:bool, is_processed_softcite:bool, is_processed_grobid:bool), harvester_used:str]
+        # [(doi:str, uuid:str, is_harvested:bool, is_processed_softcite:bool, is_processed_grobid:bool),
+        # harvester_used:str, domain:str]
         records = [ProcessedEntry(*entry,
                                   True,
                                   self._is_uuid_in_list(entry[1], uuids_softcite),
                                   self._is_uuid_in_list(entry[1], uuids_grobid),
-                                  dict_local_uuid_entries[entry[1]]['harvester_used']) for entry in doi_uuid_uploaded]
+                                  dict_local_uuid_entries[entry[1]]['harvester_used'],
+                                  dict_local_uuid_entries[entry[1]]['domain']) for entry in doi_uuid_uploaded]
         if records:
             self.write_entity_batch(records)

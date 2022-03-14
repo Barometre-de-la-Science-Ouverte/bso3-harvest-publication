@@ -8,15 +8,17 @@ class ProcessedEntry(Sequence):
                  is_harvested: bool,
                  is_processed_softcite: bool,
                  is_processed_grobid: bool,
-                 harvester_used: str):
+                 harvester_used: str,
+                 domain: str):
         self.doi: str = doi
         self.uuid: str = uuid
         self.is_harvested: int = int(is_harvested)
         self.is_processed_softcite: int = int(is_processed_softcite)
         self.is_processed_grobid: int = int(is_processed_grobid)
         self.harvester_used: str = harvester_used
+        self.domain: str = domain
         self._tup = (self.doi, self.uuid, self.is_harvested, self.is_processed_softcite, self.is_processed_grobid,
-                     self.harvester_used)
+                     self.harvester_used, self.domain)
 
     def __repr__(self) -> str:
         return str(self._tup)
