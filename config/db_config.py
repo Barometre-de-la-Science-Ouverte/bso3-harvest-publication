@@ -1,5 +1,5 @@
 import psycopg2
-from sqlalchemy import create_engine, MetaData, Table, Column, String, DateTime, Boolean
+from sqlalchemy import create_engine, MetaData, Table, Column, String
 from sqlalchemy.engine import Engine
 
 from config.harvester_config import config_harvester
@@ -11,7 +11,6 @@ DB_PASSWORD = config_harvester['db']['db_password']
 DB_HOST = config_harvester['db']['db_host']
 DB_PORT = config_harvester['db']['db_port']
 DB_NAME = config_harvester['db']['db_name']
-
 
 if IS_DB_LOCAL == '1':
     from testing.postgresql import Postgresql
@@ -41,4 +40,3 @@ harvested_status_table = Table(
 )
 
 meta.create_all(engine)
-

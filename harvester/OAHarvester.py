@@ -117,7 +117,6 @@ class OAHarvester(object):
             selection = _sample_selection(self.sample, count, self._sample_seed)
             current_idx = 0
         batch_gen = self._get_batch_generator(filepath, count, reprocess, batch_size_pdf, filter_out)
-        logger.debug(f'Lenght batch : {len(batch_gen)}')
 
         for batch in batch_gen:
             if self.sample:
