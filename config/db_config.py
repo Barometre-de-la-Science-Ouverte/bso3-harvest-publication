@@ -33,9 +33,10 @@ harvested_status_table = Table(
     'harvested_status_table', meta,
     Column('doi', String, primary_key=True),
     Column('uuid', String),
+    Column('is_harvested', String),
     Column('is_processed_softcite', String),
     Column('is_processed_grobid', String),
-    Column('is_harvested', String),
+    Column('harvester_used', String),
     Column('domain', String)
 )
 
