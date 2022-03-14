@@ -47,12 +47,9 @@ def create_task_unpaywall(args):
             metadata_file = os.path.join(DESTINATION_DIR_METADATA, metadata_file)
         harvester = OAHarvester(config_harvester, thumbnail=False, sample=nb_samples, sample_seed=sample_seed)
         harvester.harvestUnpaywall(metadata_file)
-        print("task checkpoint 2")
         try:
             db_handler.update_database()  # update database
-            print("task checkpoint 3")
         except Exception as e:
-            print(e)
             logger_console.debug(e)
     # -----------------------------------------------------------------------------------------------------------------#
     elif metadata_folder != '':

@@ -25,7 +25,7 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 from config.harvest_strategy_config import oa_harvesting_strategy
-from config.path_config import DATA_PATH
+from config.path_config import DATA_PATH, METADATA_PREFIX, PUBLICATION_PREFIX
 from infrastructure.storage import swift
 from logger import logger
 
@@ -117,6 +117,7 @@ class OAHarvester(object):
             selection = _sample_selection(self.sample, count, self._sample_seed)
             current_idx = 0
         batch_gen = self._get_batch_generator(filepath, count, reprocess, batch_size_pdf, filter_out)
+
         for batch in batch_gen:
             if self.sample:
                 n = len(batch)
@@ -270,7 +271,8 @@ class OAHarvester(object):
             #  _download_publication iterates on urls and uses ('wiley' in url) to call wiley API
             # Additionnaly url is probably valid so that if wiley API does not work,
             # _download_publication can try a standard request download
-            return [f"https://onlinelibrary.wiley.com/doi/pdfdirect/{entry['doi']}"], {'id': entry['id'], 'doi': entry['doi']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+            return [f"https://onlinelibrary.wiley.com/doi/pdfdirect/{entry['doi']}"], {'id': entry['id'], 'doi': entry[
+                'doi']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
 
         raise Continue
 
@@ -413,20 +415,26 @@ class OAHarvester(object):
         try:
             files_to_upload = []
             if os.path.isfile(local_filename):
-                self.swift.upload_files_to_swift(self.storage_publications, [(local_filename, os.path.join('publication', dest_path, os.path.basename(local_filename)))])
+                self.swift.upload_files_to_swift(self.storage_publications, [
+                    (local_filename, os.path.join('publication', dest_path, os.path.basename(local_filename)))])
             if os.path.isfile(local_filename_nxml):
-                files_to_upload.append((local_filename_nxml, os.path.join(dest_path, os.path.basename(local_filename_nxml))))
+                files_to_upload.append(
+                    (local_filename_nxml, os.path.join(dest_path, os.path.basename(local_filename_nxml))))
             if os.path.isfile(local_filename_json):
-                self.swift.upload_files_to_swift(self.storage_publications, [(local_filename_json, os.path.join('metadata', dest_path, os.path.basename(local_filename_json)))])
+                self.swift.upload_files_to_swift(self.storage_publications, [
+                    (local_filename_json, os.path.join(METADATA_PREFIX, dest_path, os.path.basename(local_filename_json)))])
             if self.thumbnail:
                 if os.path.isfile(thumb_file_small):
-                    files_to_upload.append((thumb_file_small, os.path.join(dest_path, os.path.basename(thumb_file_small))))
+                    files_to_upload.append(
+                        (thumb_file_small, os.path.join(dest_path, os.path.basename(thumb_file_small))))
 
                 if os.path.isfile(thumb_file_medium):
-                    files_to_upload.append((thumb_file_medium, os.path.join(dest_path, os.path.basename(thumb_file_medium))))
+                    files_to_upload.append(
+                        (thumb_file_medium, os.path.join(dest_path, os.path.basename(thumb_file_medium))))
 
                 if os.path.isfile(thumb_file_large):
-                    files_to_upload.append((thumb_file_large, os.path.join(dest_path, os.path.basename(thumb_file_large))))
+                    files_to_upload.append(
+                        (thumb_file_large, os.path.join(dest_path, os.path.basename(thumb_file_large))))
             if len(files_to_upload) > 0:
                 self.swift.upload_files_to_swift(self.storage_publications, files_to_upload)
         except Exception as e:
@@ -761,7 +769,7 @@ def _download(urls, filename, local_entry):
     global biblio_glutton_url
     global crossref_base
     global crossref_email
-    result = _download_publication(urls, filename, local_entry)
+    result, harvester_used = _download_publication(urls, filename, local_entry)
 
     if biblio_glutton_url is not None:
         local_doi = None
@@ -792,6 +800,8 @@ def _download(urls, filename, local_entry):
 
     if os.path.isfile(filename) and filename.endswith(".tar.gz"):
         _manage_pmc_archives(filename)
+
+    local_entry['harvester_used'] = harvester_used
 
     return result, local_entry
 
@@ -839,6 +849,7 @@ def arXiv_download(url, filename):
 
 def _download_publication(urls, filename, local_entry):
     result = "fail"
+    harvester_used = ""
     for url in urls:
         try:
             if 'arxiv' in url:
@@ -846,12 +857,14 @@ def _download_publication(urls, filename, local_entry):
                 if os.path.getsize(filename) > 0:
                     logger.debug(f"Download {local_entry['doi']} via arXiv_harvesting")
                     result = "success"
+                    harvester_used = 'arxiv'
                     break
             elif 'wiley' in url:
                 wiley_curl(local_entry['doi'], filename)
                 if os.path.getsize(filename) > 0:
                     logger.debug(f"Download {local_entry['doi']} via wiley API")
                     result = "success"
+                    harvester_used = 'wiley'
                     break
             scraper = cloudscraper.create_scraper(interpreter='nodejs')
             content = _process_request(scraper, url)
@@ -860,10 +873,11 @@ def _download_publication(urls, filename, local_entry):
                 with open(filename, 'wb') as f_out:
                     f_out.write(content)
                 result = "success"
+                harvester_used = 'standard'
                 break
         except Exception:
             logger.exception(f"Download failed for {url}")
-    return result
+    return result, harvester_used
 
 
 def _download_wget(url, filename):
@@ -1143,6 +1157,8 @@ def _create_map_entry(local_entry):
         pdf_url = local_entry['best_oa_location']['url_for_pdf']
         if pdf_url is not None:
             map_entry["oa_link"] = pdf_url
+
+    map_entry['harvester_used'] = local_entry['harvester_used']
 
     return map_entry
 

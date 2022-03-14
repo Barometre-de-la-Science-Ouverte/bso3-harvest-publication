@@ -20,3 +20,7 @@ LOG_PATH = os.path.join(PROJECT_DIRNAME, os.path.join('logs', 'logger.log'))
 # Metadata paths
 DESTINATION_DIR_METADATA = os.path.join(PROJECT_DIRNAME, 'tmp')
 METADATA_LOCAL_FILE = 'bso-publications-5k.jsonl.gz'  # 'bso-publications-20220118.jsonl.gz'
+
+# Prefixes in ovh dump
+METADATA_PREFIX = 'metadata'
+PUBLICATION_PREFIX = 'publication'

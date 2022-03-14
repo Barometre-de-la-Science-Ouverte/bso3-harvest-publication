@@ -1,9 +1,10 @@
+import pickle
+
 import lmdb
 from sqlalchemy.engine import Engine
 from typing import List
 
 from domain.processed_entry import ProcessedEntry
-
 from logger import logger
 
 
@@ -32,7 +33,7 @@ class DBHandler:
         uuid = end_path.split('.')[-3]
         return uuid
 
-    def _get_lmdb_content(self, lmdb_path, map_size):
+    def _get_lmdb_content_str(self, lmdb_path, map_size):
         env = lmdb.open(lmdb_path, map_size=map_size)
         content_str = []
         with env.begin().cursor() as cur:
@@ -40,8 +41,19 @@ class DBHandler:
                 content_str.append((k.decode('utf-8'), v.decode('utf-8')))
         return content_str
 
+    def _get_lmdb_content_pickle(self, lmdb_path, map_size):
+        env = lmdb.open(lmdb_path, map_size=map_size)
+        dict_content = {}
+        with env.begin().cursor() as cur:
+            for k, v in cur:
+                dict_content[k.decode('utf-8')] = pickle.loads(v)
+        return dict_content
+
     def _is_uuid_in_list(self, uuid, list_uuid):
         return uuid in list_uuid
+
+    def _get_harvester_used(self, uuid):
+        pass
 
     def update_database(self):
         container = self.config['publications_dump']
@@ -55,14 +67,21 @@ class DBHandler:
 
         # get doi and uuid
         files_uuid_remote = [self._get_uuid_from_path(path) for path in publications_harvested]
-        local_doi_uuid = self._get_lmdb_content('data/doi', lmdb_size)
+        local_doi_uuid = self._get_lmdb_content_str('data/doi', lmdb_size)
         doi_uuid_uploaded = [content for content in local_doi_uuid if content[1] in files_uuid_remote]
 
         uuids_softcite = [self._get_uuid_from_path(path) for path in results_softcite]
 
         uuids_grobid = [self._get_uuid_from_path(path) for path in results_grobid]
 
-        # [(doi:str, uuid:str, is_harvested:bool, is_processed_softcite:bool, is_processed_grobid:bool)]
-        records = [ProcessedEntry(*entry, True, self._is_uuid_in_list(entry[1], uuids_softcite), self._is_uuid_in_list(entry[1], uuids_grobid)) for entry in doi_uuid_uploaded]
+        # get harvester used
+        dict_local_uuid_entries = self._get_lmdb_content_pickle('data/entries', lmdb_size)
+
+        # [(doi:str, uuid:str, is_harvested:bool, is_processed_softcite:bool, is_processed_grobid:bool), harvester_used:str]
+        records = [ProcessedEntry(*entry,
+                                  True,
+                                  self._is_uuid_in_list(entry[1], uuids_softcite),
+                                  self._is_uuid_in_list(entry[1], uuids_grobid),
+                                  dict_local_uuid_entries[entry[1]]['harvester_used']) for entry in doi_uuid_uploaded]
         if records:
             self.write_entity_batch(records)
