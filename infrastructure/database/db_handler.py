@@ -76,8 +76,6 @@ class DBHandler:
 
         # get uuid entry content (harvester_used and domain are in it)
         dict_local_uuid_entries = self._get_lmdb_content_pickle('data/entries', lmdb_size)
-        print('ENTRY after lmdb entries reading:')
-        print(dict_local_uuid_entries)
 
         # [(doi:str, uuid:str, is_harvested:bool, is_processed_softcite:bool, is_processed_grobid:bool),
         # harvester_used:str, domain:str]

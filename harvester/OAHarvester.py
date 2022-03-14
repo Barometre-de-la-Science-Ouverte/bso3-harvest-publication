@@ -319,8 +319,6 @@ class OAHarvester(object):
             if (result is None or result == "0" or result == "success") and valid_file:
                 # logger.info(json.dumps({"Stats": {"is_harvested": True, "entry": local_entry}}))
                 # update DB
-                print('ENTRY before lmdb:')
-                print(local_entry)
                 with self.env.begin(write=True) as txn:
                     txn.put(local_entry['id'].encode(encoding='UTF-8'),
                             _serialize_pickle(_create_map_entry(local_entry)))
