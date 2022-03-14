@@ -806,7 +806,7 @@ def _download(urls, filename, local_entry):
         _manage_pmc_archives(filename)
 
     local_entry['harvester_used'] = harvester_used
-    logger.error(f'local entry after download : {local_entry}')
+    logger.debug(f'local entry after download : {local_entry}')
 
     return result, local_entry
 

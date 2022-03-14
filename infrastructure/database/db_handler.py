@@ -21,12 +21,16 @@ class DBHandler:
     def write_entity_batch(self, records: List):
         logger.debug(f'Entering write batch in db')
         cur = self.engine.raw_connection().cursor()
+        logger.debug(f'Cursor ok ...')
         args_str = ','.join(cur.mogrify("(%s,%s,%s,%s,%s)", x).decode("utf-8") for x in records)
+        logger.debug('Mogrify ok...')
         with self.engine.connect() as connection:
+            logger.debug('Connection to db')
             logger.debug(f"INSERT INTO {self.table_name} VALUES {args_str}")
             try:
                 connection.execute(f"INSERT INTO {self.table_name} VALUES {args_str}")
             except Exception:
+                logger.debug('error inserting into db...')
                 logger.error('Writing to postgres error : ', exc_info=True)
 
     def _get_uuid_from_path(self, path):
