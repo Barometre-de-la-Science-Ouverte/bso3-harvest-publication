@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 
+
 class ProcessedEntry(Sequence):
     def __init__(self,
                  doi: str,
@@ -17,7 +18,7 @@ class ProcessedEntry(Sequence):
     def __repr__(self) -> str:
         return str(self._tup)
 
-    def  __getitem__(self,i):
+    def __getitem__(self, i):
         return self._tup[i]
 
     def __len__(self):
