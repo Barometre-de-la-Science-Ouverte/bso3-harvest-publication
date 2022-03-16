@@ -3,6 +3,7 @@ import pickle
 import lmdb
 from sqlalchemy.engine import Engine
 from typing import List
+from config.path_config import PUBLICATION_PREFIX, GROBID_PREFIX, SOFTCITE_PREFIX
 
 from domain.processed_entry import ProcessedEntry
 from logger import logger
@@ -57,27 +58,24 @@ class DBHandler:
     def _get_harvester_used(self, uuid):
         pass
 
-    def update_database(self):
+    def update_database(self, publication=True, softcite=True, grobid=True):
         container = self.config['publications_dump']
         lmdb_size = self.config['lmdb_size_Go'] * 1024 * 1024 * 1024
 
-        # remote data
-        publications_harvested = self.swift_handler.get_swift_list(container, dir_name='publication')
-        # publications_metadata = self.swift_handler.get_swift_list(container, dir_name='metadata')
-        results_grobid = self.swift_handler.get_swift_list(container, dir_name='grobid')
-        results_softcite = self.swift_handler.get_swift_list(container, dir_name='softcite')
+        # get uuid entry content (harvester_used and domain are in it)
+        dict_local_uuid_entries = self._get_lmdb_content_pickle('data/entries', lmdb_size)
 
-        # get doi and uuids
+        publications_harvested = self.swift_handler.get_swift_list(container, dir_name=PUBLICATION_PREFIX)
         files_uuid_remote = [self._get_uuid_from_path(path) for path in publications_harvested]
         local_doi_uuid = self._get_lmdb_content_str('data/doi', lmdb_size)
         doi_uuid_uploaded = [content for content in local_doi_uuid if content[1] in files_uuid_remote]
 
+        results_softcite = self.swift_handler.get_swift_list(container, dir_name=SOFTCITE_PREFIX)
         uuids_softcite = [self._get_uuid_from_path(path) for path in results_softcite]
 
+        results_grobid = self.swift_handler.get_swift_list(container, dir_name=GROBID_PREFIX)
         uuids_grobid = [self._get_uuid_from_path(path) for path in results_grobid]
 
-        # get uuid entry content (harvester_used and domain are in it)
-        dict_local_uuid_entries = self._get_lmdb_content_pickle('data/entries', lmdb_size)
 
         # [(doi:str, uuid:str, is_harvested:bool, is_processed_softcite:bool, is_processed_grobid:bool),
         # harvester_used:str, domain:str]
