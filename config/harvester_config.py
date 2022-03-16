@@ -39,4 +39,9 @@ config_harvester['app']['flask_env'] = os.getenv('FLASK_ENV')
 config_harvester['app']['flask_ip'] = os.getenv('FLASK_IP')
 config_harvester['app']['flask_port'] = os.getenv('FLASK_PORT')
 
+# Add env var token for harvest request
+config_harvester['token']['wiley'] = os.getenv('TOKEN_WILEY')
+config_harvester['token']['elsevier'] = os.getenv('TOKEN_ELSEVIER')
+config_harvester['token']['springer'] = os.getenv('TOKEN_SPRINGER')
+
 
