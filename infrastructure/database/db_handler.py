@@ -19,12 +19,16 @@ class DBHandler:
     def write_entity(self, processed_entry: ProcessedEntry):
         pass
 
-    def write_entity_batch(self, records: List):
+    def write_entity_batch(self, records: List, grobid_version, softcite_version):
         cur = self.engine.raw_connection().cursor()
         args_str = ','.join(cur.mogrify("(%s,%s,%s,%s,%s,%s,%s)", x).decode("utf-8") for x in records)
         with self.engine.connect() as connection:
             try:
-                connection.execute(f"INSERT INTO {self.table_name} VALUES {args_str}")
+                connection.execute(f"INSERT INTO {self.table_name} " \
+                                   f"VALUES {args_str} " \
+                                   f"ON DUPLICATE KEY UPDATE " \
+                                   f"softcite_version = {softcite_version}, " \
+                                   f"grobid_version = {grobid_version} ")
             except Exception:
                 logger.error('Writing to postgres error : ', exc_info=True)
 
@@ -58,7 +62,7 @@ class DBHandler:
     def _get_harvester_used(self, uuid):
         pass
 
-    def update_database(self, publication=True, softcite=True, grobid=True):
+    def update_database(self):
         container = self.config['publications_dump']
         lmdb_size = self.config['lmdb_size_Go'] * 1024 * 1024 * 1024
 
@@ -79,12 +83,14 @@ class DBHandler:
 
         # [(doi:str, uuid:str, is_harvested:bool, is_processed_softcite:bool, is_processed_grobid:bool),
         # harvester_used:str, domain:str]
+        grobid_version = "0.7.1-SNAPSHOT"
+        softcite_version = "0.7.1-SNAPSHOT"
         records = [ProcessedEntry(*entry,
                                   "1",
-                                  self._is_uuid_in_list(entry[1], uuids_softcite),
-                                  self._is_uuid_in_list(entry[1], uuids_grobid),
+                                  softcite_version,  # self._is_uuid_in_list(entry[1], uuids_softcite)
+                                  grobid_version,  # self._is_uuid_in_list(entry[1], uuids_grobid)
                                   dict_local_uuid_entries[entry[1]]['harvester_used'],
                                   dict_local_uuid_entries[entry[1]]['domain']) for entry in doi_uuid_uploaded]
 
         if records:
-            self.write_entity_batch(records)
+            self.write_entity_batch(records, softcite_version, grobid_version)
