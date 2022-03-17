@@ -62,7 +62,12 @@ class DBHandler:
     def _get_harvester_used(self, uuid):
         pass
 
-    def update_database(self):
+    def update_database(self, grobid_version=None, softcite_version=None):
+        if not grobid_version:
+            grobid_version = "0.7.1-SNAPSHOT"
+        if not softcite_version:
+            softcite_version = "0.7.1-SNAPSHOT"
+
         container = self.config['publications_dump']
         lmdb_size = self.config['lmdb_size_Go'] * 1024 * 1024 * 1024
 
@@ -83,12 +88,10 @@ class DBHandler:
 
         # [(doi:str, uuid:str, is_harvested:bool, is_processed_softcite:bool, is_processed_grobid:bool),
         # harvester_used:str, domain:str]
-        grobid_version = "0.7.1-SNAPSHOT"
-        softcite_version = "0.7.1-SNAPSHOT"
         records = [ProcessedEntry(*entry,
                                   "1",
-                                  softcite_version,  # self._is_uuid_in_list(entry[1], uuids_softcite)
-                                  grobid_version,  # self._is_uuid_in_list(entry[1], uuids_grobid)
+                                  "0",  # self._is_uuid_in_list(entry[1], uuids_softcite)
+                                  "0",  # self._is_uuid_in_list(entry[1], uuids_grobid)
                                   dict_local_uuid_entries[entry[1]]['harvester_used'],
                                   dict_local_uuid_entries[entry[1]]['domain']) for entry in doi_uuid_uploaded]
 
