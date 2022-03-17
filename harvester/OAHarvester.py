@@ -117,7 +117,6 @@ class OAHarvester(object):
             selection = _sample_selection(self.sample, count, self._sample_seed)
             current_idx = 0
         batch_gen = self._get_batch_generator(filepath, count, reprocess, batch_size_pdf, filter_out)
-
         for batch in batch_gen:
             if self.sample:
                 n = len(batch)
@@ -266,14 +265,14 @@ class OAHarvester(object):
             if urls_for_pdf and oa_locations:
                 return urls_for_pdf, {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification'],
                                       "oa_locations": oa_locations}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
-        elif entry.get("publisher_dissemination") == "Wiley":
-            # returns urls, entry, filename to match signature
-            #  _download_publication iterates on urls and uses ('wiley' in url) to call wiley API
-            # Additionnaly url is probably valid so that if wiley API does not work,
-            # _download_publication can try a standard request download
-
-            return [f"https://onlinelibrary.wiley.com/doi/pdfdirect/{entry['doi']}"], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
-
+        else: # closed access
+            # returns urls, entry, filename to match signature even though we really only care about the doi since we use publishers APIs.
+            if entry.get("publisher_normalized") in ["Wiley", "Hindawi", "American Geophysical Union"]:
+                return [f"https://onlinelibrary.wiley.com/doi/pdfdirect/{entry['doi']}"], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+            elif entry.get("publisher_normalized") == "Springer":
+                pass
+            elif entry.get("publisher_normalized") == "Elsevier":
+                pass
         raise Continue
 
     def _get_batch_generator(self, filepath, count, reprocess, batch_size=100, filter_out=[]):
@@ -415,26 +414,20 @@ class OAHarvester(object):
         try:
             files_to_upload = []
             if os.path.isfile(local_filename):
-                self.swift.upload_files_to_swift(self.storage_publications, [
-                    (local_filename, os.path.join(PUBLICATION_PREFIX, dest_path, os.path.basename(local_filename)))])
+                self.swift.upload_files_to_swift(self.storage_publications, [(local_filename, os.path.join('publication', dest_path, os.path.basename(local_filename)))])
             if os.path.isfile(local_filename_nxml):
-                files_to_upload.append(
-                    (local_filename_nxml, os.path.join(dest_path, os.path.basename(local_filename_nxml))))
+                files_to_upload.append((local_filename_nxml, os.path.join(dest_path, os.path.basename(local_filename_nxml))))
             if os.path.isfile(local_filename_json):
-                self.swift.upload_files_to_swift(self.storage_publications, [
-                    (local_filename_json, os.path.join(METADATA_PREFIX, dest_path, os.path.basename(local_filename_json)))])
+                self.swift.upload_files_to_swift(self.storage_publications, [(local_filename_json, os.path.join('metadata', dest_path, os.path.basename(local_filename_json)))])
             if self.thumbnail:
                 if os.path.isfile(thumb_file_small):
-                    files_to_upload.append(
-                        (thumb_file_small, os.path.join(dest_path, os.path.basename(thumb_file_small))))
+                    files_to_upload.append((thumb_file_small, os.path.join(dest_path, os.path.basename(thumb_file_small))))
 
                 if os.path.isfile(thumb_file_medium):
-                    files_to_upload.append(
-                        (thumb_file_medium, os.path.join(dest_path, os.path.basename(thumb_file_medium))))
+                    files_to_upload.append((thumb_file_medium, os.path.join(dest_path, os.path.basename(thumb_file_medium))))
 
                 if os.path.isfile(thumb_file_large):
-                    files_to_upload.append(
-                        (thumb_file_large, os.path.join(dest_path, os.path.basename(thumb_file_large))))
+                    files_to_upload.append((thumb_file_large, os.path.join(dest_path, os.path.basename(thumb_file_large))))
             if len(files_to_upload) > 0:
                 self.swift.upload_files_to_swift(self.storage_publications, files_to_upload)
         except Exception as e:
@@ -769,7 +762,7 @@ def _download(urls, filename, local_entry):
     global biblio_glutton_url
     global crossref_base
     global crossref_email
-    result, harvester_used = _download_publication(urls, filename, local_entry)
+    result = _download_publication(urls, filename, local_entry)
 
     if biblio_glutton_url is not None:
         local_doi = None
@@ -800,8 +793,6 @@ def _download(urls, filename, local_entry):
 
     if os.path.isfile(filename) and filename.endswith(".tar.gz"):
         _manage_pmc_archives(filename)
-
-    local_entry['harvester_used'] = harvester_used
 
     return result, local_entry
 
@@ -849,32 +840,31 @@ def arXiv_download(url, filename):
 
 def _download_publication(urls, filename, local_entry):
     result = "fail"
-    harvester_used = ""
     for url in urls:
         try:
             if 'arxiv' in url:
                 arXiv_download(url, filename)
                 if os.path.getsize(filename) > 0:
+                    logger.debug(f"Download {local_entry['doi']} via arXiv_harvesting")
                     result = "success"
-                    harvester_used = 'arxiv'
                     break
             elif 'wiley' in url:
                 wiley_curl(local_entry['doi'], filename)
                 if os.path.getsize(filename) > 0:
+                    logger.debug(f"Download {local_entry['doi']} via wiley API")
                     result = "success"
-                    harvester_used = 'wiley'
                     break
             scraper = cloudscraper.create_scraper(interpreter='nodejs')
             content = _process_request(scraper, url)
             if content:
+                logger.debug(f"Download {local_entry['doi']} via standard request")
                 with open(filename, 'wb') as f_out:
                     f_out.write(content)
                 result = "success"
-                harvester_used = 'standard'
                 break
         except Exception:
             logger.exception(f"Download failed for {url}")
-    return result, harvester_used
+    return result
 
 
 def _download_wget(url, filename):
@@ -919,6 +909,7 @@ def _download_wget(url, filename):
 
     except subprocess.CalledProcessError as e:
         logger.exception("error subprocess wget")
+        # logger.error("wget command was: " + cmd)
         result = "fail"
 
     except Exception as e:
@@ -1153,9 +1144,6 @@ def _create_map_entry(local_entry):
         pdf_url = local_entry['best_oa_location']['url_for_pdf']
         if pdf_url is not None:
             map_entry["oa_link"] = pdf_url
-
-    map_entry['harvester_used'] = local_entry['harvester_used']
-    map_entry['domain'] = local_entry['domain']
 
     return map_entry
 
