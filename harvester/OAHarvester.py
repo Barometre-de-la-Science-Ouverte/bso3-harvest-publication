@@ -265,13 +265,15 @@ class OAHarvester(object):
             if urls_for_pdf and oa_locations:
                 return urls_for_pdf, {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification'],
                                       "oa_locations": oa_locations}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
-        else: # closed access
+        else: # closed access (via publishers APIs)
             # returns urls, entry, filename to match signature even though we really only care about the doi since we use publishers APIs.
-            if entry.get("publisher_normalized") in ["Wiley", "Hindawi", "American Geophysical Union"]:
+            if entry.get("publisher_normalized") in ["Wiley", "American Geophysical Union"]:
                 return [f"https://onlinelibrary.wiley.com/doi/pdfdirect/{entry['doi']}"], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
             elif entry.get("publisher_normalized") == "Springer":
+                # return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
                 pass
             elif entry.get("publisher_normalized") == "Elsevier":
+                # return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
                 pass
         raise Continue
 
@@ -854,6 +856,10 @@ def _download_publication(urls, filename, local_entry):
                     logger.debug(f"Download {local_entry['doi']} via wiley API")
                     result = "success"
                     break
+            elif 'springer' in url:
+                pass
+            elif 'elsevier' in url:
+                pass
             scraper = cloudscraper.create_scraper(interpreter='nodejs')
             content = _process_request(scraper, url)
             if content:

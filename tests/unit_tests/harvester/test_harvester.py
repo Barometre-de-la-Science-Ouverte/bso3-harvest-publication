@@ -93,10 +93,10 @@ class HarvestUnpaywall(TestCase):
                                                                                             mock_sample_selection):
         # Given a file path
         filepath = os.path.join(FIXTURES_PATH, 'dump_2_publications.jsonl.gz.test')
-        expected_url = urls_2_publications[0]
-        expected_filename = filename_2_publications[0]
-        expected_entrie = entries_2_publications[0]
-        mock_uuid4.side_effect = ids_2_publications
+        expected_url = sample_urls_lists[0]
+        expected_filename = sample_filenames[0]
+        expected_entrie = sample_entries[0]
+        mock_uuid4.side_effect = sample_uuids
         mock_getUUIDByIdentifier.return_value = None
         mock_sample_selection.return_value = [0]
 
@@ -113,10 +113,10 @@ class HarvestUnpaywall(TestCase):
                                                              mock_uuid4):
         # Given a file path
         filepath = os.path.join(FIXTURES_PATH, 'dump_2_publications.jsonl.gz.test')
-        expected_urls = urls_2_publications
-        expected_filenames = filename_2_publications
-        expected_entries = entries_2_publications
-        mock_uuid4.side_effect = ids_2_publications
+        expected_urls = sample_urls_lists
+        expected_filenames = sample_filenames
+        expected_entries = sample_entries
+        mock_uuid4.side_effect = sample_uuids
         mock_getUUIDByIdentifier.return_value = None
 
         # When harvestUnpaywall is executed
@@ -133,11 +133,11 @@ class HarvestUnpaywall(TestCase):
         count = _count_entries(gzip.open, filepath)
         reprocess = False
         batch_size = 100
-        expected_urls = urls_2_publications
-        expected_filenames = filename_2_publications
-        expected_entries = entries_2_publications
+        expected_urls = sample_urls_lists
+        expected_filenames = sample_filenames
+        expected_entries = sample_entries
         mock_getUUIDByIdentifier.return_value = None
-        mock_uuid4.side_effect = ids_2_publications
+        mock_uuid4.side_effect = sample_uuids
         # When
         batch_gen = harvester_2_publications._get_batch_generator(filepath, count, reprocess, batch_size)
         # Then
@@ -156,7 +156,7 @@ class HarvestUnpaywall(TestCase):
         with gzip.open(filepath, 'rt') as fp:
             file_content = [json.loads(line) for line in fp]
         entry = file_content[0]
-        expected_entries = entries_2_publications
+        expected_entries = sample_entries
         mock_getUUIDByIdentifier.return_value = 'abc'.encode("UTF-8")
         # Then
         with self.assertRaises(Continue):
@@ -170,11 +170,11 @@ class HarvestUnpaywall(TestCase):
         with gzip.open(filepath, 'rt') as fp:
             file_content = [json.loads(line) for line in fp]
         entry_in = file_content[0]
-        expected_url = urls_2_publications[0]
-        expected_entry = entries_2_publications[0]
-        expected_filename = filename_2_publications[0]
+        expected_url = sample_urls_lists[0]
+        expected_entry = sample_entries[0]
+        expected_filename = sample_filenames[0]
         mock_getUUIDByIdentifier.return_value = None
-        mock_uuid4.return_value = ids_2_publications[0]
+        mock_uuid4.return_value = sample_uuids[0]
         # When
         url, entry, filename = harvester_2_publications._process_entry(entry_in, reprocess=False)
         # Then
@@ -183,24 +183,35 @@ class HarvestUnpaywall(TestCase):
         self.assertEqual(url, expected_url)
         self.assertEqual(filename, expected_filename)
 
-    def test__parse_entry(self):
+    def test__parse_oa_entry(self):
         # Given
-        entry_filepath = os.path.join(FIXTURES_PATH, 'entry.json')
+        entry_filepath = os.path.join(FIXTURES_PATH, 'oa_entry.json')
         with open(entry_filepath, 'rt') as fp:
             entry_in = json.load(fp)
-        parsed_entry_filepath = os.path.join(FIXTURES_PATH, 'parsed_entry.json')
-        with open(parsed_entry_filepath, 'rt') as fp:
-            entry_out = json.load(fp)
-        entry_in['id'] = ids_2_publications[0]
-        expected_urls = urls_entry
-        expected_entry = entry_out
-        expected_filename = filename_2_publications[0]
+        entry_in['id'] = sample_uuids[0]
+        expected_urls, expected_entry, expected_filename = parsed_oa_entry_output
         # When
         urls, entry, filename = harvester_2_publications._parse_entry(entry_in)
         # Then
         self.assertEqual(entry, expected_entry)
         self.assertEqual(urls, expected_urls)
         self.assertEqual(filename, expected_filename)
+
+    def test__parse_ca_entry(self):
+        # Given
+        entry_filepath = os.path.join(FIXTURES_PATH, 'ca_entry.json')
+        with open(entry_filepath, 'rt') as fp:
+            entry_in = json.load(fp)
+        entry_in['id'] = sample_uuids[0]
+        expected_urls, expected_entry, expected_filename = parsed_ca_entry
+        for publisher_normalized in ["Wiley", "American Geophysical Union"]:
+            entry_in['publisher_normalized'] = publisher_normalized
+            # When
+            urls, entry, filename = harvester_2_publications._parse_entry(entry_in)
+            # Then
+            self.assertEqual(entry, expected_entry)
+            self.assertEqual(urls, expected_urls)
+            self.assertEqual(filename, expected_filename)
 
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test__check_entry_when_entry_already_processed(self, mock_getUUIDByIdentifier):
@@ -209,7 +220,7 @@ class HarvestUnpaywall(TestCase):
         with gzip.open(filepath, 'rt') as fp:
             file_content = [json.loads(line) for line in fp]
         entry = file_content[0]
-        expected_entries = entries_2_publications
+        expected_entries = sample_entries
         mock_getUUIDByIdentifier.return_value = 'abc'.encode("UTF-8")
         # Then
         with self.assertRaises(Continue):
@@ -225,7 +236,7 @@ class HarvestUnpaywall(TestCase):
         with gzip.open(filepath, 'rt') as fp:
             file_content = [json.loads(line) for line in fp]
         entry = file_content[0]
-        expected_id = ids_2_publications[0]
+        expected_id = sample_uuids[0]
         mock_getUUIDByIdentifier.return_value = None
         mock_uuid4.return_value = expected_id
         # When
@@ -238,7 +249,7 @@ class HarvestUnpaywall(TestCase):
 class HarvesterManageFiles(TestCase):
 
     def setUp(self):
-        self.entry = local_entry = entries_2_publications[0]
+        self.entry = local_entry = sample_entries[0]
         self.DATA_PATH = os.path.join(FIXTURES_PATH, 'manageFiles')
         self.filepaths = {
             "dest_path": generateStoragePath(local_entry['id']),
