@@ -1,18 +1,13 @@
 import abc
 import gzip
-import json
-import os
 import unittest
-import uuid
-from subprocess import CalledProcessError
 from unittest import TestCase, mock
-
-from tests.unit_tests.fixtures.harvester import *
 
 from harvester.OAHarvester import (Continue, OAHarvester, _apply_selection,
                                    _check_entry, _count_entries, _download,
                                    _sample_selection, compress,
                                    generateStoragePath, url_to_path)
+from tests.unit_tests.fixtures.harvester import *
 
 
 class HarvesterCountEntries(TestCase):
@@ -261,11 +256,9 @@ class HarvesterManageFiles(TestCase):
             "thumb_file_large": os.path.join(self.DATA_PATH, local_entry['id'] + '-thumb-large.png'),
         }
 
-
     def test_generate_thumbnails(self):
         # On n'utilise pas thumbnail
         pass
-
 
     def test_write_metadata_file(self):
         # Given
@@ -278,7 +271,6 @@ class HarvesterManageFiles(TestCase):
             actual_file_content = json.load(f)
         self.assertEqual(self.entry, actual_file_content)
         os.remove(local_filename_json)
-
 
     def test_compress_files(self):
         # Given
@@ -302,13 +294,13 @@ class HarvesterManageFiles(TestCase):
         # When
         harvester_2_publications._upload_files(**self.filepaths)
         # Then
-        harvester_2_publications.swift.upload_files_to_swift.assert_called_with(\
-            harvester_2_publications.storage_publications,\
+        harvester_2_publications.swift.upload_files_to_swift.assert_called_with( \
+            harvester_2_publications.storage_publications, \
             [
-                (self.filepaths['local_filename_nxml'], os.path.join( self.filepaths['dest_path'], os.path.basename(self.filepaths['local_filename_nxml']))),
-            ]\
+                (self.filepaths['local_filename_nxml'],
+                 os.path.join(self.filepaths['dest_path'], os.path.basename(self.filepaths['local_filename_nxml']))),
+            ] \
             )
-
 
     @mock.patch('harvester.OAHarvester.shutil.copyfile')
     @mock.patch('harvester.OAHarvester.os.makedirs')
@@ -324,7 +316,6 @@ class HarvesterManageFiles(TestCase):
         mock_copyfile.assert_called_with(self.filepaths['local_filename_json'],
                                          os.path.join(local_dest_path, self.entry['id'] + ".json" + compression_suffix))
 
-
     @mock.patch('harvester.OAHarvester.os.remove')
     def test_clean_up_files(self, mock_remove):
         # Given
@@ -333,22 +324,18 @@ class HarvesterManageFiles(TestCase):
         # Then
         mock_remove.assert_called_with(self.filepaths['local_filename_json'])
 
-
     @mock.patch('harvester.OAHarvester.OAHarvester._clean_up_files')
     @mock.patch('harvester.OAHarvester.OAHarvester._save_files_locally')
     @mock.patch('harvester.OAHarvester.OAHarvester._upload_files')
     @mock.patch('harvester.OAHarvester.OAHarvester._compress_files')
     @mock.patch('harvester.OAHarvester.OAHarvester._write_metadata_file')
-    @mock.patch('harvester.OAHarvester.OAHarvester._generate_thumbnails')
-    def test_manageFiles(self, mock_generate_thumbnails, mock_write_metadata_file,
+    def test_manageFiles(self, mock_write_metadata_file,
                          mock_compress_files, mock_upload_files, mock_save_files_locally,
                          mock_clean_up_files):
         # Given
         # When
         harvester_2_publications.manageFiles(self.entry)
         # Then
-        if harvester_2_publications.thumbnail:
-            mock_generate_thumbnails.assert_called()
         mock_write_metadata_file.assert_called()
         if harvester_2_publications.config["compression"]:
             mock_compress_files.assert_called()
@@ -357,7 +344,6 @@ class HarvesterManageFiles(TestCase):
         else:
             mock_save_files_locally.assert_called()
         mock_clean_up_files.assert_called()
-
 
 
 class HarvesterCompress(TestCase):
@@ -375,7 +361,6 @@ class HarvesterCompress(TestCase):
             actual_file_content = f.read()
         self.assertEqual(expected_file_content, actual_file_content)
         os.remove(expected_pdf_file_compressed)
-
 
 
 class HarvesterDownload(TestCase):

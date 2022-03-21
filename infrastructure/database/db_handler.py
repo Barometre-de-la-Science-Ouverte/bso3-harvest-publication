@@ -3,8 +3,8 @@ import pickle
 import lmdb
 from sqlalchemy.engine import Engine
 from typing import List
-from config.path_config import PUBLICATION_PREFIX, GROBID_PREFIX, SOFTCITE_PREFIX
 
+from config.path_config import PUBLICATION_PREFIX, GROBID_PREFIX, SOFTCITE_PREFIX
 from domain.processed_entry import ProcessedEntry
 from logger import logger
 
@@ -15,9 +15,6 @@ class DBHandler:
         self.engine: Engine = engine
         self.swift_handler = swift_handler
         self.config = swift_handler.config
-
-    def write_entity(self, processed_entry: ProcessedEntry):
-        pass
 
     def write_entity_batch(self, records: List, grobid_version, softcite_version):
         cur = self.engine.raw_connection().cursor()
@@ -84,7 +81,6 @@ class DBHandler:
 
         results_grobid = self.swift_handler.get_swift_list(container, dir_name=GROBID_PREFIX)
         uuids_grobid = [self._get_uuid_from_path(path) for path in results_grobid]
-
 
         # [(doi:str, uuid:str, is_harvested:bool, is_processed_softcite:bool, is_processed_grobid:bool),
         # harvester_used:str, domain:str]

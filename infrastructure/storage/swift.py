@@ -1,7 +1,7 @@
 import shutil
-from typing import List
 
 from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
+from typing import List
 
 from application.server.main.logger import get_logger
 from config.harvester_config import config_harvester
@@ -56,24 +56,16 @@ class Swift(object):
                 options[key] = self.config["swift"][key]
         return options
 
-    def upload_files_to_swift(self, container, file_path_dest_path_tuples:List):
+    def upload_files_to_swift(self, container, file_path_dest_path_tuples: List):
         """
         Bulk upload of a list of files to current SWIFT object storage container under the same destination path
         """
-        print("start upload_files_to_swift")
-        logger.debug("start upload_files_to_swift")
         # Slightly modified to be able to upload to more than one dest_path
-        objs = [SwiftUploadObject(file_path, object_name=dest_path) for file_path, dest_path in file_path_dest_path_tuples]
-        # for file_path, dest_path in file_path_dest_path_tuples:
-        #     logger.info(f"Uploading {file_path} to {container} at {dest_path}")
-        logger.debug(f'Container : {container}')
-        logger.debug(f'Objs : {objs}')
+        objs = [SwiftUploadObject(file_path, object_name=dest_path) for file_path, dest_path in
+                file_path_dest_path_tuples]
         try:
-            logger.debug("upload_files_to_swift checkpoint 1")
             for result in self.swift.upload(container, objs):
-                logger.debug("upload_files_to_swift checkpoint start for")
                 if not result['success']:
-                    logger.debug("upload_files_to_swift checkpoint error")
                     error = result['error']
                     if result['action'] == "upload_object":
                         logger.error("Failed to upload object %s to container %s: %s" % (
@@ -81,33 +73,9 @@ class Swift(object):
                     else:
                         logger.error("%s" % error)
                 else:
-                    logger.debug("upload_files_to_swift checkpoint success")
                     logger.debug(f'Result upload : {result}')
         except SwiftError as e:
-            logger.debug(f'!!!! Error when uploading : {e}')
-            logger.exception("error uploading file to SWIFT container")
-
-    def remove_all_files(self, container):
-        """
-        Remove all the existing files on the SWIFT object storage
-        """
-        try:
-            list_parts_gen = self.swift.list(container=container)
-            for page in list_parts_gen:
-                if page["success"]:
-                    to_delete = []
-                    for item in page["listing"]:
-                        to_delete.append(item["name"])
-                    for del_res in self.swift.delete(container=container, objects=to_delete):
-                        if not del_res['success']:
-                            error = del_res['error']
-                            if del_res['action'] == "delete_object":
-                                logger.error("Failed to delete object %s from container %s: %s" % (
-                                    container, del_res['object'], error))
-                            else:
-                                logger.error("%s" % error)
-        except SwiftError:
-            logger.exception("error removing all files from SWIFT container")
+            logger.exception("error uploading file to SWIFT container", exc_info=True)
 
     def download_files(self, container, file_path, dest_path):
         """
