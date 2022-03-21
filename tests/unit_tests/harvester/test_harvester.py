@@ -4,13 +4,13 @@ import unittest
 from unittest import TestCase, mock
 
 from harvester.OAHarvester import (Continue, OAHarvester, _apply_selection,
-                                   _check_entry, _count_entries, _download,
+                                   _check_entry, _count_entries, _download_publication,
                                    _sample_selection, compress, uuid,
-                                   generateStoragePath, url_to_path)
+                                   generateStoragePath, url_to_path, update_dict, get_nth_key, _process_request)
 from tests.unit_tests.fixtures.harvester import *
 
 
-class HarvesterCountEntries(TestCase):
+class CountEntries(TestCase):
 
     def test_when_wrong_filepath_raise_FileNotFoundError_exception(self):
         wrong_filepath = 'wrong_filepath'
@@ -26,7 +26,7 @@ class HarvesterCountEntries(TestCase):
         self.assertEqual(nb_publications, 2)
 
 
-class HarvesterSampleSelection(TestCase):
+class SampleSelection(TestCase):
 
     def test_when_sample_is_4_then_return_list_of_size_4(self):
         nb_sample = 4
@@ -41,7 +41,7 @@ class HarvesterSampleSelection(TestCase):
             samples = _sample_selection(sample, count, sample_seed=1)
 
 
-class HarvesterApplySelection(TestCase):
+class ApplySelection(TestCase):
 
     def test_when_given_a_list_returns_elements_corresponding_to_selection(self):
         # Given
@@ -241,7 +241,7 @@ class HarvestUnpaywall(TestCase):
         self.assertEqual(entry['id'], expected_id)
 
 
-class HarvesterManageFiles(TestCase):
+class ManageFiles(TestCase):
 
     def setUp(self):
         self.entry = local_entry = sample_entries[0]
@@ -346,7 +346,7 @@ class HarvesterManageFiles(TestCase):
         mock_clean_up_files.assert_called()
 
 
-class HarvesterCompress(TestCase):
+class Compress(TestCase):
 
     def test_compress(self):
         # Given
@@ -363,13 +363,13 @@ class HarvesterCompress(TestCase):
         os.remove(expected_pdf_file_compressed)
 
 
-class HarvesterDownload(TestCase):
+class Download(TestCase):
     @unittest.skip('No config on github')
     def test_wiley_download(self):
         # Given
         urls, local_entry, filename = wiley_parsed_entry
         # When
-        result, _ = _download(urls, filename, local_entry)
+        result, _ = _download_publication(urls, filename, local_entry)
         # Then
         self.assertEqual(result, "success")
         self.assertTrue(os.path.getsize(filename) > 0)
@@ -399,7 +399,7 @@ class HarvesterDownload(TestCase):
         mock_getsize.return_value = 0
         urls, local_entry, filename = arXiv_parsed_entry
         # When
-        result, _ = _download(urls, filename, local_entry)
+        result, _ = _download_publication(urls, filename, local_entry)
         # Then
         mock_process_request.assert_called()
         os.remove(filename)
@@ -414,7 +414,7 @@ class HarvesterDownload(TestCase):
         mock_getsize.return_value = 0
         urls, local_entry, filename = wiley_parsed_entry
         # When
-        result, _ = _download(urls, filename, local_entry)
+        result, _ = _download_publication(urls, filename, local_entry)
         # Then
         mock_process_request.assert_called()
         os.remove(filename)
@@ -424,7 +424,7 @@ class HarvesterDownload(TestCase):
         # Given
         urls, local_entry, filename = arXiv_parsed_entry
         # When
-        result, _ = _download(urls, filename, local_entry)
+        result, _ = _download_publication(urls, filename, local_entry)
         # Then
         self.assertEqual(result, "success")
         self.assertTrue(os.path.getsize(filename) > 0)
@@ -432,6 +432,127 @@ class HarvesterDownload(TestCase):
 
     def test_cloudscrapper_download(self):
         pass
+
+
+class UpdateDict(TestCase):
+    def test_update_dict(self):
+        # Given
+        mydict = {'b': [1]}
+        expected_dict = {'a': [1], 'b': [1,2]}
+        # When
+        update_dict(mydict, 'a', 1)
+        update_dict(mydict, 'b', 2)
+        # Then
+        self.assertDictEqual(mydict, expected_dict)
+
+
+class GetNthKey(TestCase):
+    def test_get_nth_key(self):
+        # Given
+        mydict = {'a': [1], 'b': [1,2], 'c': [1,2,3]}
+        # Then
+        self.assertEqual(get_nth_key(mydict, 0), 'a')
+        self.assertEqual(get_nth_key(mydict, 1), 'b')
+        self.assertEqual(get_nth_key(mydict, -1), 'c')
+        with self.assertRaises(IndexError):
+            get_nth_key(mydict, 3)
+        with self.assertRaises(IndexError):
+            get_nth_key(mydict, -4)
+
+
+class ProcessRequest(TestCase):
+
+    def test_process_request_cairn_in_url(self):
+        # Given
+        url = 'a_cairn_url'
+        expected_headers = {'User-Agent': 'MESRI-Barometre-de-la-Science-Ouverte'}
+        scraper = abc
+        scraper.get = mock.MagicMock()
+        # When
+        _process_request(scraper, url)
+        # Then
+        scraper.get.assert_called_with(url, headers=expected_headers)
+
+    def test_process_request_standard_url_no_specific_header(self):
+        # Given
+        url = ''
+        scraper = abc
+        scraper.get = mock.MagicMock()
+        # When
+        _process_request(scraper, url)
+        # Then
+        scraper.get.assert_called_with(url)
+
+    def test_process_request_not_200(self):
+        # Given
+        url = ''
+        scraper = abc
+        scraper.get = mock.MagicMock()
+
+        expected_response = mock.MagicMock()
+        expected_response.status_code = 400
+
+        scraper.get.return_value = expected_response
+        # When
+        content = _process_request(scraper, url)
+        # Then
+        self.assertIsNone(content)
+
+    def test_process_request_200_pdf(self):
+        # Given
+        url = ''
+        scraper = abc
+        scraper.get = mock.MagicMock()
+
+        expected_response = mock.MagicMock()
+        expected_response.status_code = 200
+        expected_response.text = '%PDF-'
+        expected_content = 'expected_content'
+        expected_response.content = expected_content
+
+        scraper.get.return_value = expected_response
+        # When
+        content = _process_request(scraper, url)
+        # Then
+        self.assertEqual(content, expected_content)
+
+    @mock.patch('harvester.OAHarvester.BeautifulSoup')
+    def test_process_request_200_not_pdf(self, mock_BeautifulSoup):
+        # Given
+        url = ''
+        scraper = abc
+        scraper.get = mock.MagicMock()
+
+        expected_response = mock.MagicMock()
+        expected_response.status_code = 200
+        expected_response.text = 'html_content'
+
+        scraper.get.return_value = expected_response
+        soup_mock = mock.MagicMock()
+        redirect_url = 'redirect_url'
+        soup_mock.select_one = mock.MagicMock(return_value={'href': redirect_url})
+        mock_BeautifulSoup.return_value = soup_mock
+        # Copy the function that is called recursively to be able to both use it and mock it
+        original_function = _process_request
+        with mock.patch('harvester.OAHarvester._process_request') as mock_process_request:
+            # When
+            original_function(scraper, url)
+            # Then
+            mock_process_request.assert_called_with(scraper, redirect_url)
+
+
+
+class HarvesterInit(TestCase):
+    @mock.patch('harvester.OAHarvester.swift.Swift')
+    @mock.patch.object(OAHarvester, '_init_lmdb')
+    def test_OAHarvester_init(self, mock_init_lmdb, mock_Swift):
+        # Given
+        config_with_swift = config_harvester.copy()
+        config_with_swift["swift"] = "yes"
+        # When
+        harvester = OAHarvester(config_with_swift)
+        # Then
+        mock_Swift.assert_called_with(config_with_swift)
 
 
 if __name__ == '__main__':

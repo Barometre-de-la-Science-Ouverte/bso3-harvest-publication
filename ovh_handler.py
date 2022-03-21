@@ -5,7 +5,6 @@ from glob import glob
 from typing import List
 
 from config.harvester_config import config_harvester
-from config.path_config import PUBLICATIONS_DOWNLOAD_DIR
 from infrastructure.storage.swift import Swift
 
 
