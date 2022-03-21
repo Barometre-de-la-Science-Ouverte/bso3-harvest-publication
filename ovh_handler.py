@@ -43,18 +43,3 @@ def upload_and_clean_up(_swift, local_dir):
     _swift.upload_files_to_swift(_swift.config['publications_dump'], softcite_files)
     for file in files:
         os.remove(file)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--download", action="store_true")
-    parser.add_argument("--upload", action="store_true")
-    args = parser.parse_args()
-    upload = args.upload
-    download = args.download
-
-    _swift = Swift(config_harvester)
-    if download:
-        download_files(_swift, PUBLICATIONS_DOWNLOAD_DIR)
-    if upload:
-        upload_and_clean_up(_swift, PUBLICATIONS_DOWNLOAD_DIR)
