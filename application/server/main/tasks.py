@@ -77,7 +77,7 @@ def get_softcite_version(local_files):
     return softcite_version
 
 def get_grobid_version(local_files):
-    grobid_files = [file for file in local_files if file.endswith('.software.json')]
+    grobid_files = [file for file in local_files if file.endswith('.tei.xml')]
     if grobid_files:
         with open(CONFIG_PATH_GROBID, 'r') as f:
             config = json.load(f)
