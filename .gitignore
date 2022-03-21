@@ -157,4 +157,6 @@ config/arXiv_config.py
 tests/cookies.txt
 tests/headers.txt
 htmlcov/
+cookies.txt
+headers.txt
 
