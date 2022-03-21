@@ -5,7 +5,7 @@ from unittest import TestCase, mock
 
 from harvester.OAHarvester import (Continue, OAHarvester, _apply_selection,
                                    _check_entry, _count_entries, _download,
-                                   _sample_selection, compress,
+                                   _sample_selection, compress, uuid,
                                    generateStoragePath, url_to_path)
 from tests.unit_tests.fixtures.harvester import *
 
