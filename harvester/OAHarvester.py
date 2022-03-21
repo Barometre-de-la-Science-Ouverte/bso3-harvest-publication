@@ -110,6 +110,7 @@ class OAHarvester(object):
         count = _count_entries(gzip.open, filepath)
         if self.sample:
             selection = _sample_selection(self.sample, count, self._sample_seed)
+            logger.debug(f'Sample selection: {selection}')
             current_idx = 0
         batch_gen = self._get_batch_generator(filepath, count, reprocess, batch_size_pdf, filter_out)
         for batch in batch_gen:
@@ -120,6 +121,7 @@ class OAHarvester(object):
             urls = [e[0] for e in batch]
             entries = [e[1] for e in batch]
             filenames = [e[2] for e in batch]
+            logger.debug(f'Filenames in batch: {filenames}')
             self.processBatch(urls, filenames, entries, destination_dir)
 
     def _process_entry(self, entry, reprocess, filter_out=[]):
@@ -187,6 +189,7 @@ class OAHarvester(object):
             yield batch
 
     def processBatch(self, urls, filenames, entries, destination_dir=''):  # , txn, txn_doi, txn_fail):
+        logger.debug(f'Entering processBatch...')
         with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
             results = executor.map(_download, urls, filenames, entries, timeout=30)
         # LMDB write transaction must be performed in the thread that created the transaction, so
@@ -549,6 +552,7 @@ def get_nth_key(dictionary, n=0):
 
 
 def _download(urls, filename, local_entry):
+    logger.debug(f'Entering download...')
     # optional biblio-glutton look-up
     global biblio_glutton_url
     global crossref_base
@@ -627,8 +631,10 @@ def arXiv_download(url, filename):
 
 
 def _download_publication(urls, filename, local_entry):
+    logger.debug(f'Entering download publication...')
     result = "fail"
     for url in urls:
+        logger.debug(f'Try to download url {url}')
         try:
             if 'arxiv' in url:
                 arXiv_download(url, filename)
@@ -655,7 +661,7 @@ def _download_publication(urls, filename, local_entry):
                 result = "success"
                 break
         except Exception:
-            logger.exception(f"Download failed for {url}")
+            logger.exception(f"Download failed for {url}", exc_info=True)
     return result
 
 

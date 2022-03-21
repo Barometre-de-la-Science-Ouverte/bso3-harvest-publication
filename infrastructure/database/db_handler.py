@@ -17,8 +17,10 @@ class DBHandler:
         self.config = swift_handler.config
 
     def write_entity_batch(self, records: List, grobid_version, softcite_version):
+        logger.debug(f'Entering write entity...')
         cur = self.engine.raw_connection().cursor()
         args_str = ','.join(cur.mogrify("(%s,%s,%s,%s,%s,%s,%s)", x).decode("utf-8") for x in records)
+        logger.debug(f'str to write : {args_str}')
         with self.engine.connect() as connection:
             try:
                 connection.execute(f"INSERT INTO {self.table_name} " \
@@ -60,6 +62,7 @@ class DBHandler:
         pass
 
     def update_database(self, grobid_version=None, softcite_version=None):
+        logger.debug(f'Entering update database...')
         if not grobid_version:
             grobid_version = "0.7.1-SNAPSHOT"
         if not softcite_version:
@@ -75,6 +78,9 @@ class DBHandler:
         files_uuid_remote = [self._get_uuid_from_path(path) for path in publications_harvested]
         local_doi_uuid = self._get_lmdb_content_str('data/doi', lmdb_size)
         doi_uuid_uploaded = [content for content in local_doi_uuid if content[1] in files_uuid_remote]
+        logger.debug(f'Len files uuid remote : {len(files_uuid_remote)}')
+        logger.debug(f'local_doi_uuid: {local_doi_uuid}')
+        logger.debug(f'doi_uuid_uploaded: {doi_uuid_uploaded}')
 
         results_softcite = self.swift_handler.get_swift_list(container, dir_name=SOFTCITE_PREFIX)
         uuids_softcite = [self._get_uuid_from_path(path) for path in results_softcite]
@@ -90,6 +96,8 @@ class DBHandler:
                                   "0",  # self._is_uuid_in_list(entry[1], uuids_grobid)
                                   dict_local_uuid_entries[entry[1]]['harvester_used'],
                                   dict_local_uuid_entries[entry[1]]['domain']) for entry in doi_uuid_uploaded]
+        logger.debug(f'Records to write: {records}')
 
         if records:
+            logger.debug('There are records to write...')
             self.write_entity_batch(records, softcite_version, grobid_version)
