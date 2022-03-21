@@ -4,8 +4,16 @@ from glob import glob
 from time import time
 
 import requests
-from application.server.main.logger import get_logger
 from grobid_client.grobid_client import GrobidClient
+from software_mentions_client.client import software_mentions_client as smc
+
+from application.server.main.logger import get_logger
+from config.db_config import engine
+from config.harvester_config import config_harvester
+from config.logger_config import LOGGER_LEVEL
+from config.path_config import (CONFIG_PATH_GROBID, CONFIG_PATH_SOFTCITE,
+                                DESTINATION_DIR_METADATA,
+                                PUBLICATIONS_DOWNLOAD_DIR)
 from harvester.OAHarvester import OAHarvester
 from infrastructure.database.db_handler import DBHandler
 from infrastructure.storage.swift import Swift
@@ -13,14 +21,6 @@ from load_metadata import load_metadata
 from ovh_handler import download_files, upload_and_clean_up
 from run_grobid import run_grobid
 from run_softcite import run_softcite
-from software_mentions_client.client import software_mentions_client as smc
-
-from config.db_config import engine
-from config.harvester_config import config_harvester
-from config.logger_config import LOGGER_LEVEL
-from config.path_config import (CONFIG_PATH_GROBID, CONFIG_PATH_SOFTCITE,
-                                DESTINATION_DIR_METADATA,
-                                PUBLICATIONS_DOWNLOAD_DIR)
 
 METADATA_DUMP = config_harvester['metadata_dump']
 logger_console = get_logger(__name__, level=LOGGER_LEVEL)
@@ -40,6 +40,7 @@ def create_task_unpaywall(args):
         logger_console.debug(f'Only one of the two arguments metadata_file of metadata_folder should be provided!')
     else:
         if metadata_folder:
+            logger_console.debug(f'Metadata folder provided : {metadata_folder}')
             list_local_files = []
             files = swift_handler.get_swift_list(container=METADATA_DUMP, dir_name=metadata_folder)
             for file in files:
@@ -48,17 +49,27 @@ def create_task_unpaywall(args):
                                               destination_dir=DESTINATION_DIR_METADATA,
                                               subfolder_name=metadata_folder)
                 list_local_files.append(metadata_file)
+                logger_console.debug(f'Metadata list files after metadata folder provided: {list_local_files}')
         else:
+            metadata_file = load_metadata(metadata_container=METADATA_DUMP,
+                                          metadata_file=metadata_file,
+                                          destination_dir=DESTINATION_DIR_METADATA)
             list_local_files = [metadata_file]
+            logger_console.debug(f'Metadata file provided: {metadata_file}')
+            logger_console.debug(f'Metadata list files after metadata file provided: {list_local_files}')
 
         for file in list_local_files:
             if metadata_folder:
                 end_file_name = os.path.basename(file)
                 file_generic_name = end_file_name.split('.')[0]
                 destination_dir_output = os.path.join(metadata_folder, file_generic_name)
+                logger_console.debug(f'destination dir output (folder statement): {destination_dir_output}')
             else:
-                destination_dir_output=''
+                destination_dir_output = ''
+                logger_console.debug(f'destination dir output (file statement): {destination_dir_output}')
             harvester = OAHarvester(config_harvester, thumbnail=False, sample=nb_samples, sample_seed=sample_seed)
+            logger_console.debug(f'metadata file in harvest unpaywall : {file}')
+            logger_console.debug(f'metadata folder in harvest unpaywall : {destination_dir_output}')
             harvester.harvestUnpaywall(file, destination_dir=destination_dir_output)
 
         try:
@@ -76,6 +87,7 @@ def get_softcite_version(local_files):
         softcite_version = "0"
     return softcite_version
 
+
 def get_grobid_version(local_files):
     grobid_files = [file for file in local_files if file.endswith('.tei.xml')]
     if grobid_files:
@@ -86,6 +98,7 @@ def get_grobid_version(local_files):
     else:
         grobid_version = "0"
     return grobid_version
+
 
 def create_task_process(files, do_grobid, do_softcite):
     _swift = Swift(config_harvester)
@@ -109,4 +122,3 @@ def create_task_process(files, do_grobid, do_softcite):
         db_handler.update_database(grobid_version, softcite_version)  # update database
     except Exception as e:
         logger_console.debug(e)
-

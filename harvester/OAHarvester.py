@@ -106,7 +106,7 @@ class OAHarvester(object):
             batch_size_pdf = self.config['batch_size']
         else:
             batch_size_pdf = 100
-
+        logger.debug(f'Filepath in count_entries: {filepath}')
         count = _count_entries(gzip.open, filepath)
         if self.sample:
             selection = _sample_selection(self.sample, count, self._sample_seed)
