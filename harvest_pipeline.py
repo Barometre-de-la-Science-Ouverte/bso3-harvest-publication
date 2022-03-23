@@ -11,7 +11,7 @@ from infrastructure.storage.swift import Swift
 METADATA_DUMP = config_harvester['metadata_dump']
 
 NB_SAMPLES = 10
-harvester = OAHarvester(config_harvester, thumbnail=False, sample=NB_SAMPLES, sample_seed=413)
+harvester = OAHarvester(config_harvester, sample=NB_SAMPLES, sample_seed=413)
 swift_handler = Swift(config_harvester)
 db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
 

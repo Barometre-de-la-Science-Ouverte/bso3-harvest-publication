@@ -67,13 +67,13 @@ def create_task_unpaywall(args):
             else:
                 destination_dir_output = ''
                 logger_console.debug(f'destination dir output (file statement): {destination_dir_output}')
-            harvester = OAHarvester(config_harvester, thumbnail=False, sample=nb_samples, sample_seed=sample_seed)
+            harvester = OAHarvester(config_harvester, sample=nb_samples, sample_seed=sample_seed)
             logger_console.debug(f'metadata file in harvest unpaywall : {file}')
             logger_console.debug(f'metadata folder in harvest unpaywall : {destination_dir_output}')
             harvester.harvestUnpaywall(file, destination_dir=destination_dir_output)
 
         try:
-            db_handler.update_database()  # update database
+            db_handler.update_database()
         except Exception as e:
             logger_console.debug(e)
 

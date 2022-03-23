@@ -53,9 +53,8 @@ class Continue(Exception):
 
 class OAHarvester(object):
 
-    def __init__(self, config, thumbnail=False, sample=None, sample_seed=None):
+    def __init__(self, config, sample=None, sample_seed=None):
         self.config = config
-
         self.env = None  # standard lmdb env for storing biblio entries by uuid
         self.env_doi = None  # lmdb env for storing mapping between doi/pmcid and uuid
         self.env_fail = None  # lmdb env for keeping track of failures
@@ -316,8 +315,8 @@ class OAHarvester(object):
         except IOError:
             logger.exception("Invalid path")
 
-    def _clean_up_files(self, local_filename, local_entry_id,
-                        local_filename_nxml, local_filename_json, **kwargs):
+    def _clean_up_files(self, local_filename, local_filename_nxml,
+                        local_filename_json, **kwargs):
         try:
             if os.path.isfile(local_filename):
                 os.remove(local_filename)
@@ -325,11 +324,6 @@ class OAHarvester(object):
                 os.remove(local_filename_nxml)
             if os.path.isfile(local_filename_json):
                 os.remove(local_filename_json)
-
-            # possible tar.gz remaining from PMC resources
-            local_filename_tar = os.path.join(DATA_PATH, local_entry_id + ".tar.gz")
-            if os.path.isfile(local_filename_tar):
-                os.remove(local_filename_tar)
         except IOError:
             logger.exception("Temporary file cleaning failed")
 
@@ -366,6 +360,19 @@ class OAHarvester(object):
             nb_total = txn.stat()['entries']
         logger.info(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
         print(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
+
+    def reset_lmdb(self):
+        """
+        Remove the local lmdb keeping track of the state of advancement of the harvesting and
+        of the failed entries as well as any local publication files
+        """
+        # close environments
+        self.env.close()
+        self.env_doi.close()
+        self.env_fail.close()
+
+        shutil.rmtree(DATA_PATH)
+
 
 
 def update_dict(mydict, key, value):
