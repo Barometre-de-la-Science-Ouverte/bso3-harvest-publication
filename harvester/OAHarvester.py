@@ -6,6 +6,7 @@ import pickle
 import re
 import shutil
 import subprocess
+from time import sleep
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
@@ -153,7 +154,7 @@ class OAHarvester(object):
                                       "oa_locations": oa_locations}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
         else:  # closed access (via publishers APIs)
             # returns urls, entry, filename to match signature even though we really only care about the doi since we use publishers APIs.
-            if entry.get("publisher_normalized") in ["Wiley", "American Geophysical Union"]:
+            if entry.get("publisher_normalized") == "Wiley":
                 return [f"https://onlinelibrary.wiley.com/doi/pdfdirect/{entry['doi']}"], {'id': entry['id'],
                                                                                            'doi': entry['doi'],
                                                                                            'domain': entry[
@@ -451,7 +452,7 @@ def get_nth_key(dictionary, n=0):
     raise IndexError("dictionary index out of range")
 
 
-def _process_request(scraper, url):
+def _process_request(scraper, url, n=0):
     if "cairn" in url:
         headers = {'User-Agent': 'MESRI-Barometre-de-la-Science-Ouverte'}
         file_data = scraper.get(url, headers=headers)
@@ -460,11 +461,14 @@ def _process_request(scraper, url):
     if file_data.status_code == 200:
         if file_data.text[:5] == '%PDF-':
             return file_data.content
-        else:
+        elif n < 10:
             soup = BeautifulSoup(file_data.text, 'html.parser')
             if soup.select_one('a#redirect'):
                 redirect_url = soup.select_one('a#redirect')['href']
-                return _process_request(scraper, redirect_url)
+                logger.debug('Waiting 5 seconds before following redirect url')
+                sleep(5)
+                logger.debug(f'Retry n˚{n+1}')
+                return _process_request(scraper, redirect_url, n+1)
     return
 
 
