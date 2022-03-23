@@ -30,7 +30,6 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logging.getLogger("keystoneclient").setLevel(logging.ERROR)
 logging.getLogger("swiftclient").setLevel(logging.ERROR)
 
-biblio_glutton_url = None
 crossref_base = None
 crossref_email = None
 NB_THREADS = 2 * cpu_count()
@@ -102,11 +101,8 @@ class OAHarvester(object):
         download in parallel PDF, generate thumbnails (if selected), upload resources locally 
         or on OVH and update the json description of the entries
         """
-        if 'batch_size' in self.config:
-            batch_size_pdf = self.config['batch_size']
-        else:
-            batch_size_pdf = 100
         logger.debug(f'Filepath in count_entries: {filepath}')
+        batch_size_pdf = self.config.get('batch_size', 100)
         count = _count_entries(gzip.open, filepath)
         if self.sample:
             selection = _sample_selection(self.sample, count, self._sample_seed)
@@ -188,10 +184,10 @@ class OAHarvester(object):
                     batch = []
             yield batch
 
-    def processBatch(self, urls, filenames, entries, destination_dir=''):  # , txn, txn_doi, txn_fail):
+    def processBatch(self, urls, filenames, entries, destination_dir=''):
         logger.debug(f'Entering processBatch...')
         with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
-            results = executor.map(_download, urls, filenames, entries, timeout=30)
+            results = executor.map(_download_publication, urls, filenames, entries, timeout=30)
         # LMDB write transaction must be performed in the thread that created the transaction, so
         # better to have the following lmdb updates out of the paralell process
         entries = []
@@ -217,7 +213,7 @@ class OAHarvester(object):
                 # update DB
                 with self.env.begin(write=True) as txn:
                     txn.put(local_entry['id'].encode(encoding='UTF-8'),
-                            _serialize_pickle(_create_map_entry(local_entry)))
+                            pickle.dumps(_create_map_entry(local_entry)))
 
                 entries.append(local_entry)
             else:
@@ -226,13 +222,13 @@ class OAHarvester(object):
                 # update DB
                 with self.env.begin(write=True) as txn:
                     txn.put(local_entry['id'].encode(encoding='UTF-8'),
-                            _serialize_pickle(_create_map_entry(local_entry)))
+                            pickle.dumps(_create_map_entry(local_entry)))
 
                 with self.env_fail.begin(write=True) as txn_fail:
                     txn_fail.put(local_entry['id'].encode(encoding='UTF-8'),
-                                 _serialize_pickle({
+                                 pickle.dumps({
                                      "result": result,
-                                     "url": local_entry['url_for_pdf'] if 'url_for_pdf' in local_entry else 'no url'
+                                     "url": local_entry.get('url_for_pdf', 'no url')
                                  }))
 
                 # if an empty pdf or tar file is present, we clean it
@@ -333,18 +329,13 @@ class OAHarvester(object):
             logger.exception("Temporary file cleaning failed")
 
     def manageFiles(self, local_entry, destination_dir=''):
-        if destination_dir != '':
-            data_path = os.path.join(DATA_PATH, destination_dir)
-        else:
-            data_path = DATA_PATH
+        data_path = os.path.join(DATA_PATH, destination_dir)
         filepaths: dict = {
-            "dest_path": generateStoragePath(local_entry['id']),
+            "dest_path": os.path.join(destination_dir, generateStoragePath(local_entry['id'])),
             "local_filename": os.path.join(data_path, local_entry['id'] + ".pdf"),
             "local_filename_nxml": os.path.join(data_path, local_entry['id'] + ".nxml"),
             "local_filename_json": os.path.join(data_path, local_entry['id'] + ".json")
         }
-        if destination_dir != '':
-            filepaths['dest_path'] = os.path.join(destination_dir, filepaths['dest_path'])
         self._write_metadata_file(filepaths['local_filename_json'], local_entry)
         compression_suffix = ""
         if self.config["compression"]:
@@ -415,7 +406,7 @@ def _check_entry(entry, _id, getUUID_fn, reprocess, env, env_doi):
             with env.begin() as txn:
                 local_object = txn.get(id_candidate.encode(encoding='UTF-8'))
                 if local_object is not None:
-                    local_entry = _deserialize_pickle(local_object)
+                    local_entry = pickle.loads(local_object)
                     if local_entry is not None:
                         if "resources" in local_entry and "pdf" in local_entry["resources"]:
                             # we have a PDF, so no need to reprocess and we skip
@@ -429,101 +420,6 @@ def _check_entry(entry, _id, getUUID_fn, reprocess, env, env_doi):
         entry['id'] = str(uuid.uuid4())
         with env_doi.begin(write=True) as txn_doi:
             txn_doi.put(entry['doi'].encode(encoding='UTF-8'), entry['id'].encode(encoding='UTF-8'))
-
-
-def _biblio_glutton_lookup(biblio_glutton_url, doi=None, pmcid=None, pmid=None, istex_id=None, istex_ark=None,
-                           crossref_base=None, crossref_email=None):
-    """
-    Lookup on biblio_glutton with the provided strong identifiers, return the full agregated biblio_glutton record.
-    This allows to optionally enrich downloaded article with Glutton's aggregated metadata. 
-    """
-    if biblio_glutton_url == None:
-        return None
-
-    success = False
-    jsonResult = None
-
-    if doi is not None and len(doi) > 0:
-        try:
-            response = requests.get(biblio_glutton_url, params={'doi': doi}, verify=False, timeout=5)
-            success = (response.status_code == 200)
-            if success:
-                jsonResult = response.json()
-        except:
-            logger.exception("Could not connect to biblio-glutton for DOI look-up")
-
-    if not success and pmid is not None and len(str(pmid)) > 0:
-        try:
-            response = requests.get(biblio_glutton_url + "pmid=" + str(pmid), verify=False, timeout=5)
-            success = (response.status_code == 200)
-            if success:
-                jsonResult = response.json()
-        except:
-            logger.exception("Could not connect to biblio-glutton for PMID look-up")
-
-    if not success and pmcid is not None and len(pmcid) > 0:
-        try:
-            response = requests.get(biblio_glutton_url + "pmc=" + pmcid, verify=False, timeout=5)
-            success = (response.status_code == 200)
-            if success:
-                jsonResult = response.json()
-        except:
-            logger.exception("Could not connect to biblio-glutton for PMC ID look-up")
-
-    if not success and istex_id is not None and len(istex_id) > 0:
-        try:
-            response = requests.get(biblio_glutton_url + "istexid=" + istex_id, verify=False, timeout=5)
-            success = (response.status_code == 200)
-            if success:
-                jsonResult = response.json()
-        except:
-            logger.exception("Could not connect to biblio-glutton for ISTEX ID look-up")
-
-    if not success and doi is not None and len(doi) > 0 and crossref_base is not None:
-        # let's call crossref as fallback for possible X-months gap in biblio-glutton
-        # https://api.crossref.org/works/10.1037/0003-066X.59.1.29
-        if crossref_email != None:
-            user_agent = {
-                'User-agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:81.0) Gecko/20100101 Firefox/81.0 (mailto:' + crossref_email + ')'}
-        else:
-            user_agent = {'User-agent': _get_random_user_agent()}
-        try:
-            response = requests.get(crossref_base + "/works/" + doi, headers=user_agent, verify=False, timeout=5)
-            if response.status_code == 200:
-                jsonResult = response.json()['message']
-                # filter out references and re-set doi, in case there are obtained via crossref
-                if "reference" in jsonResult:
-                    del jsonResult["reference"]
-            else:
-                success = False
-                jsonResult = None
-        except:
-            logger.exception("Could not connect to CrossRef")
-
-    return jsonResult
-
-
-def _get_random_user_agent():
-    """
-    This is a simple random/rotating user agent covering different devices and web clients/browsers
-    Note: rotating the user agent without rotating the IP address (via proxies) might not be a good idea if the same server
-    is harvested - but in our case we are harvesting a large variety of different Open Access servers
-    """
-    user_agents = ["Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:81.0) Gecko/20100101 Firefox/81.0",
-                   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36",
-                   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36"]
-    weights = [0.2, 0.3, 0.5]
-    user_agent = choices(user_agents, weights=weights, k=1)
-
-    return user_agent[0]
-
-
-def _serialize_pickle(a):
-    return pickle.dumps(a)
-
-
-def _deserialize_pickle(serialized):
-    return pickle.loads(serialized)
 
 
 def _count_entries(open_fn, filepath):
@@ -549,44 +445,6 @@ def get_nth_key(dictionary, n=0):
         if i == n:
             return key
     raise IndexError("dictionary index out of range")
-
-
-def _download(urls, filename, local_entry):
-    logger.debug(f'Entering download...')
-    # optional biblio-glutton look-up
-    global biblio_glutton_url
-    global crossref_base
-    global crossref_email
-    result = _download_publication(urls, filename, local_entry)
-
-    if biblio_glutton_url is not None:
-        local_doi = None
-        if "doi" in local_entry:
-            local_doi = local_entry['doi']
-        local_pmcid = None
-        if "pmicd" in local_entry:
-            local_pmcid = local_entry['pmicd']
-        local_pmid = None
-        if "pmid" in local_entry:
-            local_pmid = local_entry['pmid']
-        glutton_record = _biblio_glutton_lookup(biblio_glutton_url,
-                                                doi=local_doi,
-                                                pmcid=local_pmcid,
-                                                pmid=local_pmid,
-                                                crossref_base=crossref_base,
-                                                crossref_email=crossref_email)
-        if glutton_record is not None:
-            local_entry["glutton"] = glutton_record
-            if not "doi" in local_entry and "doi" in glutton_record:
-                local_entry["doi"] = glutton_record["doi"]
-            if not "pmid" in local_entry and "pmid" in glutton_record:
-                local_entry["pmid"] = glutton_record["pmid"]
-            if not "pmcid" in local_entry and "pmcid" in glutton_record:
-                local_entry["pmcid"] = glutton_record["pmcid"]
-            if not "istexId" in local_entry and "istexId" in glutton_record:
-                local_entry["istexId"] = glutton_record["istexId"]
-
-    return result, local_entry
 
 
 def _process_request(scraper, url):
@@ -662,7 +520,7 @@ def _download_publication(urls, filename, local_entry):
                 break
         except Exception:
             logger.exception(f"Download failed for {url}", exc_info=True)
-    return result
+    return result, local_entry
 
 
 def _is_valid_file(file, mime_type):
@@ -680,16 +538,6 @@ def _is_valid_file(file, mime_type):
             return False
         file_type = magic.from_file(file, mime=True)
     return file_type in target_mime
-
-
-def _biblio_glutton_url(biblio_glutton_base, biblio_glutton_port):
-    if biblio_glutton_base.endswith("/"):
-        res = biblio_glutton_base[:-1]
-    else:
-        res = biblio_glutton_base
-    if biblio_glutton_port is not None and len(biblio_glutton_port) > 0:
-        res += ":" + biblio_glutton_port
-    return res + "/service/lookup?"
 
 
 def _create_map_entry(local_entry):
