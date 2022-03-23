@@ -40,8 +40,8 @@ class DBHandler:
         env = lmdb.open(lmdb_path, map_size=map_size)
         content_str = []
         with env.begin().cursor() as cur:
-            for k, v in cur:
-                content_str.append((k.decode('utf-8'), v.decode('utf-8')))
+            for doi, uuid in cur:
+                content_str.append((doi.decode('utf-8'), uuid.decode('utf-8')))
         return content_str
 
     def _get_lmdb_content_pickle(self, lmdb_path, map_size):
@@ -75,12 +75,14 @@ class DBHandler:
         dict_local_uuid_entries = self._get_lmdb_content_pickle('data/entries', lmdb_size)
 
         publications_harvested = self.swift_handler.get_swift_list(container, dir_name=PUBLICATION_PREFIX)
+        logger.debug(f'Example of publi : {publications_harvested[0]}')
         files_uuid_remote = [self._get_uuid_from_path(path) for path in publications_harvested]
+        logger.debug(f'Example of uuid remote : {files_uuid_remote[0]}')
         local_doi_uuid = self._get_lmdb_content_str('data/doi', lmdb_size)
-        doi_uuid_uploaded = [content for content in local_doi_uuid if content[1] in files_uuid_remote]
+        doi_uuid_uploaded = [content for content in local_doi_uuid if content[1] in files_uuid_remote]  #
         logger.debug(f'Len files uuid remote : {len(files_uuid_remote)}')
-        logger.debug(f'local_doi_uuid: {local_doi_uuid}')
-        logger.debug(f'doi_uuid_uploaded: {doi_uuid_uploaded}')
+        logger.debug(f'Example of local_doi_uuid: {local_doi_uuid[0]}')
+        logger.debug(f'Length doi_uuid_uploaded: {len(doi_uuid_uploaded)}')
 
         results_softcite = self.swift_handler.get_swift_list(container, dir_name=SOFTCITE_PREFIX)
         uuids_softcite = [self._get_uuid_from_path(path) for path in results_softcite]
