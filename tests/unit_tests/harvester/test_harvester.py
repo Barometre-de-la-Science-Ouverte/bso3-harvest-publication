@@ -199,14 +199,12 @@ class HarvestUnpaywall(TestCase):
             entry_in = json.load(fp)
         entry_in['id'] = sample_uuids[0]
         expected_urls, expected_entry, expected_filename = parsed_ca_entry
-        for publisher_normalized in ["Wiley", "American Geophysical Union"]:
-            entry_in['publisher_normalized'] = publisher_normalized
-            # When
-            urls, entry, filename = harvester_2_publications._parse_entry(entry_in)
-            # Then
-            self.assertEqual(entry, expected_entry)
-            self.assertEqual(urls, expected_urls)
-            self.assertEqual(filename, expected_filename)
+        # When
+        urls, entry, filename = harvester_2_publications._parse_entry(entry_in)
+        # Then
+        self.assertEqual(entry, expected_entry)
+        self.assertEqual(urls, expected_urls)
+        self.assertEqual(filename, expected_filename)
 
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test__check_entry_when_entry_already_processed(self, mock_getUUIDByIdentifier):
@@ -538,7 +536,8 @@ class ProcessRequest(TestCase):
             # When
             original_function(scraper, url)
             # Then
-            mock_process_request.assert_called_with(scraper, redirect_url)
+            redirect_n = 1
+            mock_process_request.assert_called_with(scraper, redirect_url, redirect_n)
 
 
 

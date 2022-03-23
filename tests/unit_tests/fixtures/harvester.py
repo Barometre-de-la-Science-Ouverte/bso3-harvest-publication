@@ -7,8 +7,8 @@ from config.path_config import CONFIG_PATH_TEST, DATA_PATH
 FIXTURES_PATH = os.path.dirname(__file__)
 
 config_harvester = json.load(open(CONFIG_PATH_TEST, 'r'))
-harvester_2_publications = OAHarvester(config_harvester, thumbnail=False)
-harvester_2_publications_sample = OAHarvester(config_harvester, thumbnail=False, sample=1)
+harvester_2_publications = OAHarvester(config_harvester)
+harvester_2_publications_sample = OAHarvester(config_harvester, sample=1)
 
 sample_entries = [
     {'id': '8bd660e0-3a6c-4e1e-af55-f85df59c26a6', 'doi': '10.1016/j.ijcard.2019.06.030', 'domain': 'Medical research', 'oa_locations': [{'url': 'https://hal.archives-ouvertes.fr/hal-02159827/file/2019%20gavotto%20etal.%2c%20factor%20associated%20with.pdf', 'pmh_id': 'oai:HAL:hal-02159827v1', 'is_best': True, 'license': None, 'oa_date': None, 'updated': '2021-08-07T19:46:58.684476', 'version': 'submittedVersion', 'evidence': 'oa repository (via OAI-PMH doi match)', 'host_type': 'repository', 'endpoint_id': 'b9bb6f966cfb6627303', 'url_for_pdf': 'https://hal.archives-ouvertes.fr/hal-02159827/file/2019%20Gavotto%20etal.%2C%20Factor%20associated%20with.pdf', 'url_for_landing_page': 'https://hal.archives-ouvertes.fr/hal-02159827/file/2019%20Gavotto%20etal.%2C%20Factor%20associated%20with.pdf', 'repository_institution': 'Aix Marseille UniversitÃ© - HAL AMU', 'license_normalized': 'no license', 'repository_normalized': 'HAL'}, {'url': 'https://hal.archives-ouvertes.fr/hal-02159827/document', 'pmh_id': 'oai:HAL:hal-02159827v1', 'is_best': False, 'license': None, 'oa_date': None, 'updated': '2021-03-12T09:22:50.557987', 'version': 'submittedVersion', 'evidence': 'oa repository (via OAI-PMH doi match)', 'host_type': 'repository', 'endpoint_id': '0ad93bcc7d368da7e40', 'url_for_pdf': 'https://hal.archives-ouvertes.fr/hal-02159827/document', 'url_for_landing_page': 'https://hal.archives-ouvertes.fr/hal-02159827', 'repository_institution': 'Le Centre national de la recherche scientifique - HAL', 'license_normalized': 'no license', 'repository_normalized': 'HAL'}]},
