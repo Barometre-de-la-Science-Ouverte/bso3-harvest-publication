@@ -74,6 +74,7 @@ def create_task_unpaywall(args):
 
         try:
             db_handler.update_database()
+            harvester.reset_lmdb()
         except Exception as e:
             logger_console.debug(e)
 
