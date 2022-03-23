@@ -77,11 +77,24 @@ class DBHandler:
         publications_harvested = self.swift_handler.get_swift_list(container, dir_name=PUBLICATION_PREFIX)
         logger.debug(f'Example of publi : {publications_harvested[0]}')
         files_uuid_remote = [self._get_uuid_from_path(path) for path in publications_harvested]
-        logger.debug(f'Example of uuid remote : {files_uuid_remote[0]}')
+        if len(files_uuid_remote) > 0:
+            logger.debug(f'Example of uuid remote : {files_uuid_remote[0]}')
+        else:
+            logger.debug(f'Uuid remote empty: {files_uuid_remote}')
         local_doi_uuid = self._get_lmdb_content_str('data/doi', lmdb_size)
         doi_uuid_uploaded = [content for content in local_doi_uuid if content[1] in files_uuid_remote]  #
         logger.debug(f'Len files uuid remote : {len(files_uuid_remote)}')
-        logger.debug(f'Example of local_doi_uuid: {local_doi_uuid[0]}')
+
+        if len(local_doi_uuid) > 0:
+            logger.debug(f'Example of local_doi_uuid : {local_doi_uuid[0]}')
+        else:
+            logger.debug(f'Empty local_doi_uuid : {local_doi_uuid}')
+
+        if len(doi_uuid_uploaded) > 0:
+            logger.debug(f'Example of doi_uuid_uploaded : {doi_uuid_uploaded[0]}')
+        else:
+            logger.debug(f'Empty doi_uuid_uploaded : {doi_uuid_uploaded}')
+
         logger.debug(f'Length doi_uuid_uploaded: {len(doi_uuid_uploaded)}')
 
         results_softcite = self.swift_handler.get_swift_list(container, dir_name=SOFTCITE_PREFIX)
