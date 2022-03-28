@@ -82,6 +82,8 @@ class DBHandler:
         else:
             logger.debug(f'Uuid remote empty: {files_uuid_remote}')
         local_doi_uuid = self._get_lmdb_content_str('data/doi', lmdb_size)
+        logger.debug(f'Example of local doi_uuid idx 0: {local_doi_uuid[0]}')
+        logger.debug(f'Example of local doi_uuid idx 0 uuid: {local_doi_uuid[0][1]}')
         doi_uuid_uploaded = [content for content in local_doi_uuid if content[1] in files_uuid_remote]  #
         logger.debug(f'Len files uuid remote : {len(files_uuid_remote)}')
 
