@@ -63,15 +63,17 @@ class Swift(object):
         # Slightly modified to be able to upload to more than one dest_path
         objs = [SwiftUploadObject(file_path, object_name=dest_path) for file_path, dest_path in
                 file_path_dest_path_tuples]
+        logger.debug('Entering upload files to swift...')
         try:
             for result in self.swift.upload(container, objs):
+                logger.debug(f'!!! RESULT UPLOAD : {result}')
                 if not result['success']:
                     error = result['error']
                     if result['action'] == "upload_object":
-                        logger.error("Failed to upload object %s to container %s: %s" % (
+                        logger.error("!!! Failed to upload object %s to container %s: %s" % (
                             container, result['object'], error))
                     else:
-                        logger.error("%s" % error)
+                        logger.exception("%s" % error, exc_info=True)
                 else:
                     logger.debug(f'Result upload : {result}')
         except SwiftError as e:

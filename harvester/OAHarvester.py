@@ -21,7 +21,7 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 from config.harvest_strategy_config import oa_harvesting_strategy
-from config.path_config import DATA_PATH
+from config.path_config import DATA_PATH, METADATA_PREFIX, PUBLICATION_PREFIX
 from infrastructure.storage import swift
 from logger import logger
 
@@ -278,18 +278,22 @@ class OAHarvester(object):
     def _upload_files(self, local_filename, local_filename_nxml, local_filename_json,
                       thumb_file_small, thumb_file_medium, thumb_file_large, dest_path, **kwargs):
         """Uploads all the resources associated to the entry to SWIFT object storage"""
+        logging.debug('Entering upload files...')
         try:
+            logging.debug('Entering try in upload files...')
             files_to_upload = []
             if os.path.isfile(local_filename):
+                logger.debug('checkpoint upload files to swift 1')
                 self.swift.upload_files_to_swift(self.storage_publications, [
-                    (local_filename, os.path.join('publication', dest_path, os.path.basename(local_filename)))])
+                    (local_filename, os.path.join(PUBLICATION_PREFIX, dest_path, os.path.basename(local_filename)))])
             if os.path.isfile(local_filename_nxml):
                 files_to_upload.append(
                     (local_filename_nxml, os.path.join(dest_path, os.path.basename(local_filename_nxml))))
             if os.path.isfile(local_filename_json):
                 self.swift.upload_files_to_swift(self.storage_publications, [
-                    (local_filename_json, os.path.join('metadata', dest_path, os.path.basename(local_filename_json)))])
+                    (local_filename_json, os.path.join(METADATA_PREFIX, dest_path, os.path.basename(local_filename_json)))])
             if len(files_to_upload) > 0:
+                logger.debug('checkpoint upload files to swift 2')
                 self.swift.upload_files_to_swift(self.storage_publications, files_to_upload)
         except Exception as e:
             logger.error('Error when uploading', exc_info=True)
