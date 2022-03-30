@@ -47,7 +47,7 @@ requirements:
 	echo "lmdb==1.2.1" >> requirements.in
 	pip-compile requirements.in
 	rm requirements.in
-	echo "# Grobid client package" >> requirements.txt
-	echo "git+https://github.com/Barometre-de-la-Science-Ouverte/grobid_client_python.git#egg=grobid_client_python" >> requirements.txt
-	echo "# Softcite client package" >> requirements.txt
-	echo "git+https://github.com/Barometre-de-la-Science-Ouverte/software_mentions_client#egg=software_mentions_client" >> requirements.txt
+	# echo "# Grobid client package" >> requirements.txt
+	# echo "git+https://github.com/Barometre-de-la-Science-Ouverte/grobid_client_python.git#egg=grobid_client_python" >> requirements.txt
+	# echo "# Softcite client package" >> requirements.txt
+	# echo "git+https://github.com/Barometre-de-la-Science-Ouverte/software_mentions_client#egg=software_mentions_client" >> requirements.txt
