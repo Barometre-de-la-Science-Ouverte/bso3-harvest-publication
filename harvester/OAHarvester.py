@@ -498,7 +498,7 @@ def url_to_path(url, ext='.pdf.gz'):
 
 
 def arXiv_download(url, filename):
-    from config.arXiv_config import init_cmd
+    from config.swift_cli_config import init_cmd
     file_path = url_to_path(url)
     subprocess.check_call(f'{init_cmd} download arxiv_harvesting {file_path} -o {filename}', shell=True)
 
