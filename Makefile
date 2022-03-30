@@ -1,7 +1,7 @@
 DOCKER_IMAGE_NAME=dataesr/bso3-harvest-publication
 CURRENT_VERSION=$(shell cat application/__init__.py | cut -d "'" -f 2)
 LOCAL_ENDPOINT="http://127.0.0.1:5004/harvest"
-PAYLOAD='{"nb_samples": 10, "metadata_file": "bso-publications-5k.jsonl.gz", "sample_seed"=51152}'
+PAYLOAD='{"nb_samples": 10, "metadata_file": "bso-publications-5k.jsonl.gz", "sample_seed":51552}'
 
 clean_up_files:
 	rm -rf logs/*
@@ -30,7 +30,7 @@ docker-up:
 	docker-compose up -d
 	sleep 15
 	curl -d $(PAYLOAD) -H "Content-Type: application/json" -X POST $(LOCAL_ENDPOINT)
-	sleep 150
+	sleep 200
 	records_counts_table=$(docker exec -e PGPASSWORD=password-dataESR-bso3 -i $(docker ps --filter "NAME=postgres" -q) psql -d postgres_db -U postgres -c 'SELECT count(*) FROM harvested_status_table LIMIT 1;' | awk 'FNR == 3 {print $1}')
 	if [[ "$records_counts_table" -eq "0" ]]; then echo "Test failure no records in postgres..."; else echo "Test success : record in postgres..."; fi
 

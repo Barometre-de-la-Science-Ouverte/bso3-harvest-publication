@@ -105,3 +105,5 @@ wrapt==1.14.0
     # via deprecated
 zipp==3.7.0
     # via importlib-metadata
+python-keystoneclient==4.0.0
+    # via -r requirements.in
