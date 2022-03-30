@@ -34,7 +34,20 @@ docker-up:
 	records_counts_table=$(docker exec -e PGPASSWORD=password-dataESR-bso3 -i $(docker ps --filter "NAME=postgres" -q) psql -d postgres_db -U postgres -c 'SELECT count(*) FROM harvested_status_table LIMIT 1;' | awk 'FNR == 3 {print $1}')
 	if [[ "$records_counts_table" -eq "0" ]]; then echo "Test failure no records in postgres..."; else echo "Test success : record in postgres..."; fi
 
-install:
+install: requirements
 	@echo Installing dependencies...
 	pip install -r requirements.txt
 	@echo End of dependencies installation
+
+requirements:
+	pipreqs . --savepath requirements.in
+	grep -v "software_mentions_client" requirements.in > requirements_tmp; mv requirements_tmp requirements.in
+	grep -v "grobid_client" requirements.in > requirements_tmp; mv requirements_tmp requirements.in
+	grep -v "testing" requirements.in > requirements_tmp; mv requirements_tmp requirements.in
+	echo "lmdb==1.2.1" >> requirements.in
+	pip-compile requirements.in
+	rm requirements.in
+	echo "# Grobid client package" >> requirements.txt
+	echo "git+https://github.com/Barometre-de-la-Science-Ouverte/grobid_client_python.git#egg=grobid_client_python" >> requirements.txt
+	echo "# Softcite client package" >> requirements.txt
+	echo "git+https://github.com/Barometre-de-la-Science-Ouverte/software_mentions_client#egg=software_mentions_client" >> requirements.txt

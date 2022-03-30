@@ -4,23 +4,12 @@
 #
 #    pip-compile requirements.in
 #
-anyio==3.5.0
-    # via httpcore
-attrs==21.4.0
-    # via grobid-client
 beautifulsoup4==4.10.0
-    # via
-    #   -r requirements.in
-    #   grobid-client
+    # via -r requirements.in
 certifi==2021.10.8
-    # via
-    #   httpcore
-    #   httpx
-    #   requests
+    # via requests
 charset-normalizer==2.0.12
-    # via
-    #   httpx
-    #   requests
+    # via requests
 click==8.1.0
     # via
     #   flask
@@ -39,21 +28,8 @@ flask-bootstrap==3.3.7.1
     # via -r requirements.in
 greenlet==1.1.2
     # via sqlalchemy
-grobid-client==0.7.9
-    # via -r requirements.in
-h11==0.12.0
-    # via
-    #   grobid-client
-    #   httpcore
-httpcore==0.14.7
-    # via httpx
-httpx==0.22.0
-    # via grobid-client
 idna==3.3
-    # via
-    #   anyio
-    #   requests
-    #   rfc3986
+    # via requests
 importlib-metadata==4.11.3
     # via
     #   click
@@ -65,8 +41,6 @@ jinja2==3.1.1
     # via flask
 lmdb==1.2.1
     # via -r requirements.in
-lxml==4.8.0
-    # via grobid-client
 markupsafe==2.1.1
     # via jinja2
 numpy==1.21.5
@@ -84,9 +58,7 @@ pyparsing==3.0.7
     #   cloudscraper
     #   packaging
 python-dateutil==2.8.2
-    # via
-    #   grobid-client
-    #   pandas
+    # via pandas
 python-dotenv==0.20.0
     # via -r requirements.in
 python-magic==0.4.25
@@ -107,31 +79,20 @@ requests==2.26.0
     #   requests-toolbelt
 requests-toolbelt==0.9.1
     # via cloudscraper
-rfc3986[idna2008]==1.5.0
-    # via httpx
 rq==1.10.1
     # via -r requirements.in
 six==1.16.0
     # via
     #   python-dateutil
     #   python-swiftclient
-sniffio==1.2.0
-    # via
-    #   anyio
-    #   httpcore
-    #   httpx
 soupsieve==2.3.1
     # via beautifulsoup4
 sqlalchemy==1.4.31
     # via -r requirements.in
-testing-common-database==2.0.3
-    # via -r requirements.in
 tqdm==4.21.0
     # via -r requirements.in
 typing-extensions==4.1.1
-    # via
-    #   anyio
-    #   importlib-metadata
+    # via importlib-metadata
 urllib3==1.26.7
     # via
     #   -r requirements.in
@@ -144,3 +105,7 @@ wrapt==1.14.0
     # via deprecated
 zipp==3.7.0
     # via importlib-metadata
+# Grobid client package
+git+https://github.com/Barometre-de-la-Science-Ouverte/grobid_client_python.git#egg=grobid_client_python
+# Softcite client package
+git+https://github.com/Barometre-de-la-Science-Ouverte/software_mentions_client#egg=software_mentions_client
