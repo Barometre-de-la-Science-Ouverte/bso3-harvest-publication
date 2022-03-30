@@ -3,14 +3,11 @@ import shutil
 from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
 from typing import List
 
-from application.server.main.logger import get_logger
 from config.harvester_config import config_harvester
 from logger import logger
 
 METADATA_DUMP = config_harvester['metadata_dump']
 PUBLICATIONS_DUMP = config_harvester['publications_dump']
-
-logger = get_logger(__name__)
 
 
 class Swift(object):
@@ -63,14 +60,12 @@ class Swift(object):
         # Slightly modified to be able to upload to more than one dest_path
         objs = [SwiftUploadObject(file_path, object_name=dest_path) for file_path, dest_path in
                 file_path_dest_path_tuples]
-        logger.debug('Entering upload files to swift...')
         try:
             for result in self.swift.upload(container, objs):
-                logger.debug(f'!!! RESULT UPLOAD : {result}')
                 if not result['success']:
                     error = result['error']
                     if result['action'] == "upload_object":
-                        logger.error("!!! Failed to upload object %s to container %s: %s" % (
+                        logger.error("Failed to upload object %s to container %s: %s" % (
                             container, result['object'], error))
                     else:
                         logger.exception("%s" % error, exc_info=True)
@@ -83,7 +78,6 @@ class Swift(object):
         """
         Download a file given a path and returns the download destination file path.
         """
-        logger.debug(f'Downloading {file_path} from container {container} into {dest_path}')
         if type(file_path) == str:
             objs = [file_path]
         elif type(file_path) == list:

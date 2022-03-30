@@ -101,12 +101,10 @@ class OAHarvester(object):
         download in parallel PDF, generate thumbnails (if selected), upload resources locally 
         or on OVH and update the json description of the entries
         """
-        logger.debug(f'Filepath in count_entries: {filepath}')
         batch_size_pdf = self.config.get('batch_size', 100)
         count = _count_entries(gzip.open, filepath)
         if self.sample:
             selection = _sample_selection(self.sample, count, self._sample_seed)
-            logger.debug(f'Sample selection: {selection}')
             current_idx = 0
         batch_gen = self._get_batch_generator(filepath, count, reprocess, batch_size_pdf, filter_out)
         for batch in batch_gen:
@@ -117,7 +115,6 @@ class OAHarvester(object):
             urls = [e[0] for e in batch]
             entries = [e[1] for e in batch]
             filenames = [e[2] for e in batch]
-            logger.debug(f'Filenames in batch: {filenames}')
             self.processBatch(urls, filenames, entries, destination_dir)
 
     def _process_entry(self, entry, reprocess, filter_out=[]):
@@ -160,10 +157,10 @@ class OAHarvester(object):
                                                                                                'bso_classification']}, os.path.join(
                     DATA_PATH, entry['id'] + ".pdf")
             elif entry.get("publisher_normalized") == "Springer":
-                # return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+                return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
                 pass
             elif entry.get("publisher_normalized") == "Elsevier":
-                # return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+                return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
                 pass
         raise Continue
 
@@ -185,7 +182,6 @@ class OAHarvester(object):
             yield batch
 
     def processBatch(self, urls, filenames, entries, destination_dir=''):
-        logger.debug(f'Entering processBatch...')
         with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
             results = executor.map(_download_publication, urls, filenames, entries, timeout=30)
         # LMDB write transaction must be performed in the thread that created the transaction, so
@@ -218,7 +214,6 @@ class OAHarvester(object):
                 entries.append(local_entry)
             else:
                 # logger.info(json.dumps({"Stats": {"is_harvested": False, "entry": local_entry}}))
-
                 # update DB
                 with self.env.begin(write=True) as txn:
                     txn.put(local_entry['id'].encode(encoding='UTF-8'),
@@ -276,16 +271,13 @@ class OAHarvester(object):
             json.dump(local_entry, outfile)
 
     def _upload_files(self, local_filename, local_filename_nxml, local_filename_json,
-                      thumb_file_small, thumb_file_medium, thumb_file_large, dest_path, **kwargs):
+                      dest_path, **kwargs):
         """Uploads all the resources associated to the entry to SWIFT object storage"""
-        logging.debug('Entering upload files...')
         try:
-            logging.debug('Entering try in upload files...')
             files_to_upload = []
             if os.path.isfile(local_filename):
-                logger.debug('checkpoint upload files to swift 1')
-                self.swift.upload_files_to_swift(self.storage_publications, [
-                    (local_filename, os.path.join(PUBLICATION_PREFIX, dest_path, os.path.basename(local_filename)))])
+                list_to_upload = [(local_filename, PUBLICATION_PREFIX + '/' + dest_path + '/' + os.path.basename(local_filename))]
+                self.swift.upload_files_to_swift(self.storage_publications, list_to_upload)
             if os.path.isfile(local_filename_nxml):
                 files_to_upload.append(
                     (local_filename_nxml, os.path.join(dest_path, os.path.basename(local_filename_nxml))))
@@ -293,10 +285,9 @@ class OAHarvester(object):
                 self.swift.upload_files_to_swift(self.storage_publications, [
                     (local_filename_json, os.path.join(METADATA_PREFIX, dest_path, os.path.basename(local_filename_json)))])
             if len(files_to_upload) > 0:
-                logger.debug('checkpoint upload files to swift 2')
                 self.swift.upload_files_to_swift(self.storage_publications, files_to_upload)
         except Exception as e:
-            logger.error('Error when uploading', exc_info=True)
+            logger.exception('Error when uploading', exc_info=True)
 
     def _save_files_locally(self, dest_path, local_filename, local_entry_id,
                             local_filename_nxml, local_filename_json, compression_suffix, **kwargs):
@@ -344,7 +335,6 @@ class OAHarvester(object):
                          filepaths}
         if self.swift:
             self._upload_files(**filepaths)
-
         else:
             self._save_files_locally(**filepaths, local_entry_id=local_entry['id'],
                                      compression_suffix=compression_suffix)
@@ -504,22 +494,22 @@ def arXiv_download(url, filename):
 
 
 def _download_publication(urls, filename, local_entry):
-    logger.debug(f'Entering download publication...')
     result = "fail"
     for url in urls:
-        logger.debug(f'Try to download url {url}')
         try:
             if 'arxiv' in url:
                 arXiv_download(url, filename)
                 if os.path.getsize(filename) > 0:
                     logger.debug(f"Download {local_entry['doi']} via arXiv_harvesting")
                     result = "success"
+                    harvester_used = 'arxiv'
                     break
             elif 'wiley' in url:
                 wiley_curl(local_entry['doi'], filename)
                 if os.path.getsize(filename) > 0:
                     logger.debug(f"Download {local_entry['doi']} via wiley API")
                     result = "success"
+                    harvester_used = 'wiley'
                     break
             elif 'springer' in url:
                 pass
@@ -531,10 +521,16 @@ def _download_publication(urls, filename, local_entry):
                 logger.debug(f"Download {local_entry['doi']} via standard request")
                 with open(filename, 'wb') as f_out:
                     f_out.write(content)
-                result = "success"
+                result = 'success'
+                harvester_used = 'standard'
                 break
         except Exception:
             logger.exception(f"Download failed for {url}", exc_info=True)
+            harvester_used = ''
+            url_used = ''
+    local_entry['harvester_used'] = harvester_used
+    local_entry['url_used'] = url
+
     return result, local_entry
 
 
@@ -586,6 +582,9 @@ def _create_map_entry(local_entry):
 
     map_entry["resources"] = resources
     map_entry["harvested_date"] = date.today().strftime('%Y-%m-%d')
+    map_entry['harvester_used'] = local_entry['harvester_used']
+    map_entry['url_used'] = local_entry['url_used']
+
     # add target OA link
     if 'best_oa_location' in local_entry and 'url_for_pdf' in local_entry['best_oa_location']:
         pdf_url = local_entry['best_oa_location']['url_for_pdf']

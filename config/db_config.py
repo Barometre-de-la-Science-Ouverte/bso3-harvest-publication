@@ -37,7 +37,8 @@ harvested_status_table = Table(
     Column('softcite_version', String),
     Column('grobid_version', String),
     Column('harvester_used', String),
-    Column('domain', String)
+    Column('domain', String),
+    Column('url_used', String)
 )
 
 meta.create_all(engine)

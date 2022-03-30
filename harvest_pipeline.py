@@ -6,12 +6,13 @@ from infrastructure.database.db_handler import DBHandler
 from config.db_config import engine
 from load_metadata import load_metadata
 from infrastructure.storage.swift import Swift
+from logger import logger
 
 
 METADATA_DUMP = config_harvester['metadata_dump']
 
 NB_SAMPLES = 10
-harvester = OAHarvester(config_harvester, sample=NB_SAMPLES, sample_seed=413)
+harvester = OAHarvester(config_harvester, sample=NB_SAMPLES, sample_seed=4135)
 swift_handler = Swift(config_harvester)
 db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
 
