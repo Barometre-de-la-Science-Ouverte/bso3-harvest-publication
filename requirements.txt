@@ -21,3 +21,4 @@ itsdangerous==2.0.1
 jupyter
 coverage
 Jinja2==3.0.3
+Werkzeug==2.0.3
