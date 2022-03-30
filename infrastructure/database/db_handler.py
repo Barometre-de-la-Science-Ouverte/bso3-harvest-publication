@@ -49,7 +49,6 @@ class DBHandler:
         with env.begin().cursor() as cur:
             for k, v in cur:
                 dict_content[k.decode('utf-8')] = pickle.loads(v)
-        print(dict_content.keys())
         return dict_content
 
     def _is_uuid_in_list(self, uuid, list_uuid):

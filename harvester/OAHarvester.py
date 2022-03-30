@@ -6,17 +6,16 @@ import pickle
 import re
 import shutil
 import subprocess
-from time import sleep
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from multiprocessing import cpu_count
-from random import sample, choices, seed
+from random import sample, seed
+from time import sleep
 
 import cloudscraper
 import lmdb
 import magic
-import requests
 import urllib3
 from bs4 import BeautifulSoup
 from tqdm import tqdm
@@ -157,10 +156,10 @@ class OAHarvester(object):
                                                                                                'bso_classification']}, os.path.join(
                     DATA_PATH, entry['id'] + ".pdf")
             elif entry.get("publisher_normalized") == "Springer":
-                return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+                #return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
                 pass
             elif entry.get("publisher_normalized") == "Elsevier":
-                return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+                #return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
                 pass
         raise Continue
 
@@ -276,14 +275,16 @@ class OAHarvester(object):
         try:
             files_to_upload = []
             if os.path.isfile(local_filename):
-                list_to_upload = [(local_filename, PUBLICATION_PREFIX + '/' + dest_path + '/' + os.path.basename(local_filename))]
+                list_to_upload = [
+                    (local_filename, PUBLICATION_PREFIX + '/' + dest_path + '/' + os.path.basename(local_filename))]
                 self.swift.upload_files_to_swift(self.storage_publications, list_to_upload)
             if os.path.isfile(local_filename_nxml):
                 files_to_upload.append(
                     (local_filename_nxml, os.path.join(dest_path, os.path.basename(local_filename_nxml))))
             if os.path.isfile(local_filename_json):
                 self.swift.upload_files_to_swift(self.storage_publications, [
-                    (local_filename_json, os.path.join(METADATA_PREFIX, dest_path, os.path.basename(local_filename_json)))])
+                    (local_filename_json,
+                     os.path.join(METADATA_PREFIX, dest_path, os.path.basename(local_filename_json)))])
             if len(files_to_upload) > 0:
                 self.swift.upload_files_to_swift(self.storage_publications, files_to_upload)
         except Exception as e:
@@ -362,7 +363,6 @@ class OAHarvester(object):
         self.env_fail.close()
 
         shutil.rmtree(DATA_PATH)
-
 
 
 def update_dict(mydict, key, value):
@@ -464,8 +464,8 @@ def _process_request(scraper, url, n=0):
                 redirect_url = soup.select_one('a#redirect')['href']
                 logger.debug('Waiting 5 seconds before following redirect url')
                 sleep(5)
-                logger.debug(f'Retry n˚{n+1}')
-                return _process_request(scraper, redirect_url, n+1)
+                logger.debug(f'Retry number {n + 1}')
+                return _process_request(scraper, redirect_url, n + 1)
     return
 
 
@@ -527,7 +527,7 @@ def _download_publication(urls, filename, local_entry):
         except Exception:
             logger.exception(f"Download failed for {url}", exc_info=True)
             harvester_used = ''
-            url_used = ''
+            url = ''
     local_entry['harvester_used'] = harvester_used
     local_entry['url_used'] = url
 
@@ -584,6 +584,7 @@ def _create_map_entry(local_entry):
     map_entry["harvested_date"] = date.today().strftime('%Y-%m-%d')
     map_entry['harvester_used'] = local_entry['harvester_used']
     map_entry['url_used'] = local_entry['url_used']
+    map_entry['domain'] = local_entry['domain']
 
     # add target OA link
     if 'best_oa_location' in local_entry and 'url_for_pdf' in local_entry['best_oa_location']:
