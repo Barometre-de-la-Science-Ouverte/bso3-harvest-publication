@@ -18,7 +18,6 @@ import lmdb
 import magic
 import urllib3
 from bs4 import BeautifulSoup
-from tqdm import tqdm
 
 from config.harvest_strategy_config import oa_harvesting_strategy
 from config.path_config import DATA_PATH, METADATA_PREFIX, PUBLICATION_PREFIX
@@ -48,6 +47,9 @@ only when the first is entirely processed. The harvesting process is not CPU bou
 
 class Continue(Exception):
     pass
+
+def calculate_pct(i, count):
+    return int(i // (count / 100))
 
 
 class OAHarvester(object):
@@ -167,7 +169,11 @@ class OAHarvester(object):
         """Reads gzip file and returns batches of processed entries"""
         batch = []
         with gzip.open(filepath, 'rt', encoding='utf-8') as gz:
-            for line in tqdm(gz, total=count):
+            curr = 0
+            for i, line in enumerate(gz):
+                if calculate_pct(i, count) != curr:
+                    curr = calculate_pct(i, count)
+                    logger.info(f"{curr}%")
                 try:
                     url, entry, filename = self._process_entry(json.loads(line), reprocess, filter_out)
                     if url:
@@ -426,7 +432,6 @@ def _check_entry(entry, _id, getUUID_fn, reprocess, env, env_doi):
 
 def _count_entries(open_fn, filepath):
     """Check the overall number of entries based on the line number"""
-    print("\ncalculating number of entries...")
     count = 0
     if os.path.exists(filepath):
         with open_fn(filepath, 'rb') as fp:
