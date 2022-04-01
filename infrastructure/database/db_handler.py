@@ -2,6 +2,7 @@ import pickle
 
 import lmdb
 from sqlalchemy.engine import Engine
+from sqlalchemy import text
 from typing import List
 
 from config.path_config import PUBLICATION_PREFIX, GROBID_PREFIX, SOFTCITE_PREFIX, DEFAULT_GROBID_TAG, \
@@ -17,16 +18,24 @@ class DBHandler:
         self.swift_handler = swift_handler
         self.config = swift_handler.config
 
+    def fetch_all(self):
+        """Return the table content"""
+        result = self.engine.execute(f'SELECT * FROM {self.table_name}')
+        return [ProcessedEntry(*entry) for entry in result.fetchall()]
+
     def write_entity_batch(self, records: List, grobid_version, softcite_version):
         cur = self.engine.raw_connection().cursor()
         args_str = ','.join(cur.mogrify("(%s,%s,%s,%s,%s,%s,%s,%s)", x).decode("utf-8") for x in records)
         with self.engine.connect() as connection:
             try:
-                connection.execute(f"INSERT INTO {self.table_name} " \
-                                   f"VALUES {args_str} " \
-                                   f"ON DUPLICATE KEY UPDATE " \
-                                   f"softcite_version = {softcite_version}, " \
-                                   f"grobid_version = {grobid_version} ")
+                statement = f"""
+                    INSERT INTO {self.table_name} (doi, uuid, is_harvested, softcite_version, grobid_version, harvester_used, domain, url_used)
+                    VALUES {args_str}
+                    ON CONFLICT (doi) DO UPDATE
+                        SET softcite_version = '{softcite_version}',
+                            grobid_version = '{grobid_version}';
+                """
+                connection.execute(text(statement))
             except Exception:
                 logger.error('Writing to postgres error : ', exc_info=True)
 

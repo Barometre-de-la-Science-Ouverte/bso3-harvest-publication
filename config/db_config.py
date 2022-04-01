@@ -38,7 +38,8 @@ harvested_status_table = Table(
     Column('grobid_version', String),
     Column('harvester_used', String),
     Column('domain', String),
-    Column('url_used', String)
+    Column('url_used', String),
+    extend_existing=True
 )
 
 meta.create_all(engine)

@@ -1,9 +1,13 @@
+from os import remove
+from typing import List
 import redis
 from flask import Blueprint, current_app, jsonify, render_template, request
 from rq import Connection, Queue
 
 from application.server.main.tasks import (create_task_process,
-                                           create_task_unpaywall)
+                                           create_task_unpaywall,
+                                           create_task_prepare_harvest,
+                                           create_task_clean_up)
 from config.harvester_config import config_harvester
 from infrastructure.storage.swift import Swift
 from ovh_handler import get_partitions
@@ -21,19 +25,36 @@ def home():
 @main_blueprint.route('/harvest', methods=['POST'])
 def run_task_unpaywall():
     """
-    Harvest data from unpaywall
+    Prepare a metadata file containing specific publications to (re)harvest and harvest it
     """
     args = request.get_json(force=True)
+    force = args.setdefault('force', False)
+    source_metadata_file = args.get('metadata_file')
+    response_objects = []
+    # Prepare task
+    FILTERED_METADATA_FILE = 'bso-publications-filtered.jsonl.gz'
+    doi_list = args.get('doi_list')
     with Connection(redis.from_url(current_app.config['REDIS_URL'])):
         q = Queue(name='pdf-harvester', default_timeout=default_timeout)
-        task = q.enqueue(create_task_unpaywall, args)
-    response_object = {
+        task = q.enqueue(create_task_prepare_harvest, doi_list, source_metadata_file, FILTERED_METADATA_FILE, force)
+    response_objects.append({
         'status': 'success',
         'data': {
             'task_id': task.get_id()
         }
-    }
-    return jsonify(response_object), 202
+    })
+    args['metadata_file'] = FILTERED_METADATA_FILE
+    # Harvest task
+    with Connection(redis.from_url(current_app.config['REDIS_URL'])):
+        q = Queue(name='pdf-harvester', default_timeout=default_timeout)
+        task = q.enqueue(create_task_unpaywall, args)
+    response_objects.append({
+        'status': 'success',
+        'data': {
+            'task_id': task.get_id()
+        }
+    })
+    return jsonify(response_objects), 202
 
 
 @main_blueprint.route('/harvester_tasks/<task_id>', methods=['GET'])

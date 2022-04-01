@@ -1,8 +1,10 @@
+import gzip
 import json
 import os
 from glob import glob
+import subprocess
 from time import time
-
+from config.swift_cli_config import init_cmd
 import requests
 from grobid_client.grobid_client import GrobidClient
 from software_mentions_client.client import software_mentions_client as smc
@@ -29,13 +31,14 @@ logger_console = get_logger(__name__, level=LOGGER_LEVEL)
 def create_task_unpaywall(args):
     logger_console.debug(f'launching task with args {args}')
     sample_seed = args.get('sample_seed', 1)
-    nb_samples = args.get('nb_samples', 1)
+    nb_samples = args.get('nb_samples', -1)
     metadata_file = args.get('metadata_file', '')
     metadata_folder = args.get('metadata_folder', '')
 
     swift_handler = Swift(config_harvester)
     db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
-
+    logger_console.debug('Database before harvesting')
+    logger_console.debug(db_handler.fetch_all())
     if ((metadata_file == '') and (metadata_folder == '')) or ((metadata_file != '') and (metadata_folder != '')):
         logger_console.debug(f'Only one of the two arguments metadata_file of metadata_folder should be provided!')
     else:
@@ -70,13 +73,19 @@ def create_task_unpaywall(args):
             harvester = OAHarvester(config_harvester, sample=nb_samples, sample_seed=sample_seed)
             logger_console.debug(f'metadata file in harvest unpaywall : {file}')
             logger_console.debug(f'metadata folder in harvest unpaywall : {destination_dir_output}')
+            with gzip.open(file, 'rt') as f:
+                logger_console.debug("doi in metadata file")
+                logger_console.debug([json.loads(line)['doi'] for line in f.readlines()])
             harvester.harvestUnpaywall(file, destination_dir=destination_dir_output)
-
+            harvester.diagnostic()
         try:
             db_handler.update_database()
             harvester.reset_lmdb()
         except Exception as e:
             logger_console.debug(e)
+        logger_console.debug('Database after harvesting')
+        logger_console.debug(db_handler.fetch_all())
+
 
 
 def get_softcite_version(local_files):
@@ -123,3 +132,26 @@ def create_task_process(files, do_grobid, do_softcite):
         db_handler.update_database(grobid_version, softcite_version)  # update database
     except Exception as e:
         logger_console.debug(e)
+
+
+def create_task_prepare_harvest(doi_list, source_metadata_file, filtered_metadata_filename, force):
+    logger_console.debug(f'doi_list {doi_list}')
+    logger_console.debug(f'filtered_metadata_file {filtered_metadata_filename}')
+    logger_console.debug(f'force {force}')
+    swift_handler = Swift(config_harvester)
+    db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
+    if not force: # don't redo the ones already done
+        doi_already_harvested = [entry[0] for entry in db_handler.fetch_all()]
+        doi_list = [doi for doi in doi_list if doi not in doi_already_harvested]
+    source_metadata_file = load_metadata(metadata_container=METADATA_DUMP,
+                                  metadata_file=source_metadata_file,
+                                  destination_dir=DESTINATION_DIR_METADATA)
+    with gzip.open(source_metadata_file, 'rt') as f_in:
+        content = [json.loads(line) for line in f_in.readlines()]
+    with gzip.open(os.path.join(DESTINATION_DIR_METADATA, filtered_metadata_filename), 'wt') as f_out:
+        f_out.write(os.linesep.join([json.dumps(entry) for entry in content if entry['doi'] in doi_list]))
+
+
+def create_task_clean_up(filtered_metadata_file):
+    from config.swift_cli_config import init_cmd
+    subprocess.check_call(f'{init_cmd} delete {METADATA_DUMP} {filtered_metadata_file}', shell=True)
