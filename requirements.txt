@@ -16,6 +16,11 @@ click==8.1.0
     #   rq
 cloudscraper==1.2.58
     # via -r requirements.in
+debtcollector==2.5.0
+    # via
+    #   oslo-config
+    #   oslo-utils
+    #   python-keystoneclient
 deprecated==1.2.13
     # via redis
 dominate==2.6.0
@@ -33,22 +38,64 @@ idna==3.3
 importlib-metadata==4.11.3
     # via
     #   click
+    #   debtcollector
+    #   oslo-config
     #   redis
     #   sqlalchemy
+    #   stevedore
+iso8601==1.0.2
+    # via
+    #   keystoneauth1
+    #   oslo-utils
 itsdangerous==2.1.2
     # via flask
 jinja2==3.1.1
     # via flask
-lmdb==1.2.1
+keystoneauth1==4.5.0
+    # via python-keystoneclient
+lmdb==0.94
     # via -r requirements.in
 markupsafe==2.1.1
     # via jinja2
+msgpack==1.0.3
+    # via oslo-serialization
+netaddr==0.8.0
+    # via
+    #   oslo-config
+    #   oslo-utils
+netifaces==0.11.0
+    # via oslo-utils
 numpy==1.21.5
     # via pandas
+os-service-types==1.7.0
+    # via keystoneauth1
+oslo-config==8.8.0
+    # via python-keystoneclient
+oslo-i18n==5.1.0
+    # via
+    #   oslo-config
+    #   oslo-utils
+    #   python-keystoneclient
+oslo-serialization==4.3.0
+    # via python-keystoneclient
+oslo-utils==4.12.2
+    # via
+    #   oslo-serialization
+    #   python-keystoneclient
 packaging==21.3
-    # via redis
+    # via
+    #   oslo-utils
+    #   redis
 pandas==1.3.4
     # via -r requirements.in
+pbr==5.8.1
+    # via
+    #   keystoneauth1
+    #   oslo-i18n
+    #   oslo-serialization
+    #   oslo-utils
+    #   python-keystoneclient
+    #   stevedore
 psycopg2==2.9.3
     # via -r requirements.in
 psycopg2-binary==2.9.3
@@ -56,17 +103,25 @@ psycopg2-binary==2.9.3
 pyparsing==3.0.7
     # via
     #   cloudscraper
+    #   oslo-utils
     #   packaging
 python-dateutil==2.8.2
     # via pandas
 python-dotenv==0.20.0
+    # via -r requirements.in
+python-keystoneclient==4.0.0
     # via -r requirements.in
 python-magic==0.4.25
     # via -r requirements.in
 python-swiftclient==3.13.1
     # via -r requirements.in
 pytz==2022.1
-    # via pandas
+    # via
+    #   oslo-serialization
+    #   oslo-utils
+    #   pandas
+pyyaml==6.0
+    # via oslo-config
 redis==4.1.2
     # via
     #   -r requirements.in
@@ -75,20 +130,32 @@ requests==2.26.0
     # via
     #   -r requirements.in
     #   cloudscraper
+    #   keystoneauth1
+    #   oslo-config
+    #   python-keystoneclient
     #   python-swiftclient
     #   requests-toolbelt
 requests-toolbelt==0.9.1
     # via cloudscraper
+rfc3986==2.0.0
+    # via oslo-config
 rq==1.10.1
     # via -r requirements.in
 six==1.16.0
     # via
+    #   keystoneauth1
     #   python-dateutil
+    #   python-keystoneclient
     #   python-swiftclient
 soupsieve==2.3.1
     # via beautifulsoup4
 sqlalchemy==1.4.31
     # via -r requirements.in
+stevedore==3.5.0
+    # via
+    #   keystoneauth1
+    #   oslo-config
+    #   python-keystoneclient
 tqdm==4.21.0
     # via -r requirements.in
 typing-extensions==4.1.1
@@ -102,8 +169,8 @@ visitor==0.1.3
 werkzeug==2.1.0
     # via flask
 wrapt==1.14.0
-    # via deprecated
+    # via
+    #   debtcollector
+    #   deprecated
 zipp==3.7.0
     # via importlib-metadata
-python-keystoneclient==4.0.0
-    # via -r requirements.in
