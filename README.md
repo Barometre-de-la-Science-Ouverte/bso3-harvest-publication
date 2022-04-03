@@ -4,7 +4,7 @@ This repo is a fork of the repo https://github.com/kermitt2/biblio-glutton-harve
 
 Python utility for harvesting efficiently a large Open Access collection of scholar PDF: 
 
-* The downloaded PDF can be stored either on an Amazon S3 bucket, on a SWIFT object storage (OpenStack) or on a local storage, with UUID renaming/mapping. 
+* The downloaded PDF can be stored on a SWIFT object storage (OpenStack) or on a local storage, with UUID renaming/mapping. 
 
 * Downloads and storage uploads over HTTP(S) are multi-threaded for best robustness and efficiency. 
 
@@ -16,15 +16,15 @@ Python utility for harvesting efficiently a large Open Access collection of scho
 
 * Optionally, aggregated metadata from biblio-glutton for an article are accessed and stored together with the full text resources. 
 
-* As a bonus, image thumbnails of the front page of the PDF are created and stored with the PDF.
-
 * It is also possible to harvest only a random sample of PDF instead of complete sets. 
+
+* A postgres database can track the harvesting of the publications harvested when launched with docker-compose. 
 
 The utility can be used in particular to harvest the **Unpaywall** dataset (PDF) and the **PMC** publications (PDF and corresponding NLM XML files).
 
 ## Requirements
 
-The utility requires Python 3.6 or more. It is developed for a deployment on a POSIX/Linux server (it uses `imagemagick` to generate thumbnails, `gzip` and `wget` as external process). An S3 account and a dedicated S3 bucket or a SWIFT object storage and a dedicated SWIFT container must have been created for the cloud storage of the data collection. 
+The utility requires Python 3.6 or more. It is developed for a deployment on a POSIX/Linux server (`gzip` and `wget` as external process). A SWIFT object storage and a dedicated SWIFT container must have been created for the cloud storage of the data collection. 
 
 The utility will use some local storage dedicated to the embedded databases keeping track of the advancement of the harvesting, metadata and temporary downloaded resources. Consider a few GB of free space for a large scale harvesting of TB of PDF. 
 
@@ -88,20 +88,6 @@ A configuration file must be completed, by default the file `config.json` will b
     "publications_dump": ""
 }
 ```
-
-Configuration for a S3 storage uses the following parameters:
-
-```json
-{
-    "aws_access_key_id": "",
-    "aws_secret_access_key": "",
-    "bucket_name": "",
-    "region": ""
-}
-```
-
-If you are not using a S3 storage, remove these keys or leave these values empty.
-Important: It is assumed that the complete S3 bucket is dedicated to the harvesting. The `--reset` parameter will clear all the objects stored in the bucket, so be careful. 
 
 The configuration for a SWIFT object storage uses the following parameters:
 
