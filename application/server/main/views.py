@@ -29,7 +29,7 @@ def run_task_unpaywall():
     """
     args = request.get_json(force=True)
     force = args.setdefault('force', False)
-    source_metadata_file = args.get('metadata_file', '')
+    source_metadata_file = args.get('metadata_file')
     response_objects = []
 
     # Prepare task
