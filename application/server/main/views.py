@@ -19,7 +19,7 @@ main_blueprint = Blueprint('main', __name__, )
 
 @main_blueprint.route('/', methods=['GET'])
 def home():
-    return render_template('home.html')
+    return render_template('index.html')
 
 
 @main_blueprint.route('/harvest', methods=['POST'])
@@ -85,11 +85,10 @@ def run_task_process():
     partition_size = args.get('partition_size', 1_000)
     do_grobid = args.get('do_grobid', True)
     do_softcite = args.get('do_softcite', True)
-    partition_size = args.get('partition_size', 1_000)
-    sub_dir = args.get('sub_dir', '')
+    prefix = args.get('prefix', '')
     break_after_one = args.get('break_after_one', True)
     storage_handler = Swift(config_harvester)
-    partitions = get_partitions(storage_handler, sub_dir, partition_size)
+    partitions = get_partitions(storage_handler, prefix, partition_size)
     response_objects = []
     with Connection(redis.from_url(current_app.config['REDIS_URL'])):
         q = Queue(name='pdf-processor', default_timeout=default_timeout)

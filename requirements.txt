@@ -156,8 +156,6 @@ stevedore==3.5.0
     #   keystoneauth1
     #   oslo-config
     #   python-keystoneclient
-tqdm==4.21.0
-    # via -r requirements.in
 typing-extensions==4.1.1
     # via importlib-metadata
 urllib3==1.26.7

@@ -14,9 +14,9 @@ def generateStoragePath(identifier):
     return os.path.join(identifier[:2], identifier[2:4], identifier[4:6], identifier[6:8], identifier)
 
 
-def get_partitions(_swift: Swift, sub_dir, partition_size: int) -> List:
+def get_partitions(_swift: Swift, prefix, partition_size: int) -> List:
     """Return a list a partitions of gzipped or flat pdf files"""
-    files = _swift.get_swift_list(config_harvester['publications_dump'], dir_name=sub_dir)
+    files = _swift.get_swift_list(config_harvester['publications_dump'], dir_name=prefix)
     files = [file for file in files if (file.endswith('.pdf.gz') or file.endswith('.pdf'))]
     partitions = [files[i:i + partition_size] for i in range(0, len(files), partition_size)]
     return partitions

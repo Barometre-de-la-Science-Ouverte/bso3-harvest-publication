@@ -136,7 +136,7 @@ def create_task_process(files, do_grobid, do_softcite):
 
 def create_task_prepare_harvest(doi_list, source_metadata_file, filtered_metadata_filename, force):
     logger_console.debug(f'doi_list {doi_list}')
-    logger_console.debug(f'filtered_metadata_file {filtered_metadata_filename}')
+    logger_console.debug(f'filtered_metadata_filename {filtered_metadata_filename}')
     logger_console.debug(f'force {force}')
     swift_handler = Swift(config_harvester)
     db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
