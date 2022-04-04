@@ -45,6 +45,7 @@ requirements:
 	grep -v "grobid_client" requirements.in > requirements_tmp; mv requirements_tmp requirements.in
 	grep -v "testing" requirements.in > requirements_tmp; mv requirements_tmp requirements.in
 	echo "python-keystoneclient==4.0.0" >> requirements.in
+	echo "testing.postgresql==1.3.0" >> requirements.in
 	pip-compile requirements.in
 	rm requirements.in
 	# echo "# Grobid client package" >> requirements.txt
