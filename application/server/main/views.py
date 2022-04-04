@@ -29,21 +29,25 @@ def run_task_unpaywall():
     """
     args = request.get_json(force=True)
     force = args.setdefault('force', False)
-    source_metadata_file = args.get('metadata_file')
+    source_metadata_file = args.get('metadata_file', '')
     response_objects = []
+
     # Prepare task
     FILTERED_METADATA_FILE = 'bso-publications-filtered.jsonl.gz'
-    doi_list = args.get('doi_list')
-    with Connection(redis.from_url(current_app.config['REDIS_URL'])):
-        q = Queue(name='pdf-harvester', default_timeout=default_timeout)
-        task = q.enqueue(create_task_prepare_harvest, doi_list, source_metadata_file, FILTERED_METADATA_FILE, force)
-    response_objects.append({
-        'status': 'success',
-        'data': {
-            'task_id': task.get_id()
-        }
-    })
-    args['metadata_file'] = FILTERED_METADATA_FILE
+    doi_list = args.get('doi_list', [])
+
+    if len(doi_list) > 0:
+        with Connection(redis.from_url(current_app.config['REDIS_URL'])):
+            q = Queue(name='pdf-harvester', default_timeout=default_timeout)
+            task = q.enqueue(create_task_prepare_harvest, doi_list, source_metadata_file, FILTERED_METADATA_FILE, force)
+        response_objects.append({
+            'status': 'success',
+            'data': {
+                'task_id': task.get_id()
+            }
+        })
+        args['metadata_file'] = FILTERED_METADATA_FILE
+
     # Harvest task
     with Connection(redis.from_url(current_app.config['REDIS_URL'])):
         q = Queue(name='pdf-harvester', default_timeout=default_timeout)
