@@ -48,10 +48,6 @@ Install the dependencies, use:
 
 > pip3 install -r requirements.txt
 
-For generating thumbnails corresponding to the harvested PDF, ImageMagick must be installed. For instance on Ubuntu:
-
-> apt-get install imagemagick
-
 For Windows:
 
 > pip uninstall python-magic  
