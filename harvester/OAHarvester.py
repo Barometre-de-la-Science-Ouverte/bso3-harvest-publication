@@ -49,7 +49,10 @@ class Continue(Exception):
     pass
 
 def calculate_pct(i, count):
-    return int(i // (count / 100))
+    try:
+        return int(i // (count / 100))
+    except ZeroDivisionError:
+        return 0
 
 
 class OAHarvester(object):
