@@ -32,8 +32,8 @@ class DBHandler:
                     INSERT INTO {self.table_name} (doi, uuid, is_harvested, softcite_version, grobid_version, harvester_used, domain, url_used)
                     VALUES {args_str}
                     ON CONFLICT (doi) DO UPDATE
-                        SET softcite_version = '{softcite_version}',
-                            grobid_version = '{grobid_version}';
+                        SET softcite_version = excluded.softcite_version,
+                            grobid_version = excluded.grobid_version;
                 """
                 connection.execute(text(statement))
             except Exception:
