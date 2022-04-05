@@ -22,6 +22,7 @@ from bs4 import BeautifulSoup
 from config.harvest_strategy_config import oa_harvesting_strategy
 from config.path_config import DATA_PATH, METADATA_PREFIX, PUBLICATION_PREFIX
 from infrastructure.storage import swift
+from domain.ovh_path import OvhPath
 from logger import logger
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -207,11 +208,6 @@ class OAHarvester(object):
                     valid_file = True
                     local_entry["valid_fulltext_pdf"] = True
 
-            if os.path.isfile(local_filename + ".nxml"):
-                if _is_valid_file(local_filename + ".nxml", "xml"):
-                    valid_file = True
-                    local_entry["valid_fulltext_xml"] = True
-
             if (result is None or result == "0" or result == "success") and valid_file:
                 # logger.info(json.dumps({"Stats": {"is_harvested": True, "entry": local_entry}}))
                 # update DB
@@ -241,9 +237,6 @@ class OAHarvester(object):
                 local_filename = os.path.join(DATA_PATH, local_entry['id'] + ".tar.gz")
                 if os.path.isfile(local_filename):
                     os.remove(local_filename)
-                local_filename = os.path.join(DATA_PATH, local_entry['id'] + ".nxml")
-                if os.path.isfile(local_filename):
-                    os.remove(local_filename)
 
         # finally we can parallelize the thumbnail/upload/file cleaning steps for this batch
         destination_dirs = len(entries) * [destination_dir]
@@ -254,18 +247,13 @@ class OAHarvester(object):
         with self.env_doi.begin() as txn:
             return txn.get(identifier.encode(encoding='UTF-8'))
 
-    def _compress_files(self, local_filename, local_filename_nxml,
-                        local_filename_json, local_entry_id, compression_suffix='.gz', **kwargs):
+    def _compress_files(self, local_filename, local_filename_json,
+                        local_entry_id, compression_suffix='.gz', **kwargs):
         try:
             if os.path.isfile(local_filename):
                 compress(local_filename)
                 os.remove(local_filename)
                 local_filename += compression_suffix
-
-            if os.path.isfile(local_filename_nxml):
-                compress(local_filename_nxml)
-                os.remove(local_filename_nxml)
-                local_filename_nxml += compression_suffix
 
             if os.path.isfile(local_filename_json):
                 compress(local_filename_json)
@@ -278,51 +266,37 @@ class OAHarvester(object):
         with open(local_filename_json, 'w') as outfile:
             json.dump(local_entry, outfile)
 
-    def _upload_files(self, local_filename, local_filename_nxml, local_filename_json,
-                      dest_path, **kwargs):
+    def _upload_files(self, dest_path:OvhPath, local_filename, local_filename_json, **kwargs):
         """Uploads all the resources associated to the entry to SWIFT object storage"""
         try:
             files_to_upload = []
             if os.path.isfile(local_filename):
-                list_to_upload = [
-                    (local_filename, PUBLICATION_PREFIX + '/' + dest_path + '/' + os.path.basename(local_filename))]
-                self.swift.upload_files_to_swift(self.storage_publications, list_to_upload)
-            if os.path.isfile(local_filename_nxml):
-                files_to_upload.append(
-                    (local_filename_nxml, os.path.join(dest_path, os.path.basename(local_filename_nxml))))
+                files_to_upload.append((local_filename, OvhPath(PUBLICATION_PREFIX, dest_path, os.path.basename(local_filename))))
             if os.path.isfile(local_filename_json):
-                self.swift.upload_files_to_swift(self.storage_publications, [
-                    (local_filename_json,
-                     os.path.join(METADATA_PREFIX, dest_path, os.path.basename(local_filename_json)))])
+                files_to_upload.append((local_filename_json, OvhPath(METADATA_PREFIX, dest_path, os.path.basename(local_filename_json))))
             if len(files_to_upload) > 0:
                 self.swift.upload_files_to_swift(self.storage_publications, files_to_upload)
         except Exception as e:
             logger.exception('Error when uploading', exc_info=True)
 
-    def _save_files_locally(self, dest_path, local_filename, local_entry_id,
-                            local_filename_nxml, local_filename_json, compression_suffix, **kwargs):
+    def _save_files_locally(self, dest_path: OvhPath, local_filename, local_entry_id,
+                            local_filename_json, compression_suffix, **kwargs):
         try:
-            local_dest_path = os.path.join(DATA_PATH, dest_path)
+            local_dest_path = os.path.join(DATA_PATH, dest_path.to_local())
             os.makedirs(local_dest_path, exist_ok=True)
             if os.path.isfile(local_filename):
                 shutil.copyfile(local_filename,
                                 os.path.join(local_dest_path, local_entry_id + ".pdf" + compression_suffix))
-            if os.path.isfile(local_filename_nxml):
-                shutil.copyfile(local_filename_nxml,
-                                os.path.join(local_dest_path, local_entry_id + ".nxml" + compression_suffix))
             if os.path.isfile(local_filename_json):
                 shutil.copyfile(local_filename_json,
                                 os.path.join(local_dest_path, local_entry_id + ".json" + compression_suffix))
         except IOError:
             logger.exception("Invalid path")
 
-    def _clean_up_files(self, local_filename, local_filename_nxml,
-                        local_filename_json, **kwargs):
+    def _clean_up_files(self, local_filename, local_filename_json, **kwargs):
         try:
             if os.path.isfile(local_filename):
                 os.remove(local_filename)
-            if os.path.isfile(local_filename_nxml):
-                os.remove(local_filename_nxml)
             if os.path.isfile(local_filename_json):
                 os.remove(local_filename_json)
         except IOError:
@@ -331,9 +305,8 @@ class OAHarvester(object):
     def manageFiles(self, local_entry, destination_dir=''):
         data_path = os.path.join(DATA_PATH, destination_dir)
         filepaths: dict = {
-            "dest_path": os.path.join(destination_dir, generateStoragePath(local_entry['id'])),
+            "dest_path": OvhPath(destination_dir, generateStoragePath(local_entry['id'])),
             "local_filename": os.path.join(data_path, local_entry['id'] + ".pdf"),
-            "local_filename_nxml": os.path.join(data_path, local_entry['id'] + ".nxml"),
             "local_filename_json": os.path.join(data_path, local_entry['id'] + ".json")
         }
         self._write_metadata_file(filepaths['local_filename_json'], local_entry)
@@ -544,10 +517,7 @@ def _download_publication(urls, filename, local_entry):
 
 def _is_valid_file(file, mime_type):
     target_mime = []
-    if mime_type == 'xml':
-        target_mime.append("application/xml")
-        target_mime.append("text/xml")
-    elif mime_type == 'png':
+    if mime_type == 'png':
         target_mime.append("image/png")
     else:
         target_mime.append("application/" + mime_type)
@@ -582,8 +552,6 @@ def _create_map_entry(local_entry):
 
     if "valid_fulltext_pdf" in local_entry and local_entry["valid_fulltext_pdf"]:
         resources.append("pdf")
-    if "valid_fulltext_xml" in local_entry and local_entry["valid_fulltext_xml"]:
-        resources.append("xml")
 
     if "valid_thumbnails" in local_entry and local_entry["valid_thumbnails"]:
         resources.append("thumbnails")
@@ -608,4 +576,4 @@ def generateStoragePath(identifier):
     Convert a file name into a path with file prefix as directory paths:
     123456789 -> 12/34/56/78/123456789
     """
-    return os.path.join(identifier[:2], identifier[2:4], identifier[4:6], identifier[6:8], identifier)
+    return OvhPath(identifier[:2], identifier[2:4], identifier[4:6], identifier[6:8], identifier)

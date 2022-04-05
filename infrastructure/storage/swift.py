@@ -4,6 +4,7 @@ from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
 from typing import List
 
 from config.harvester_config import config_harvester
+from domain.ovh_path import OvhPath
 from logger import logger
 
 METADATA_DUMP = config_harvester['metadata_dump']
@@ -59,7 +60,7 @@ class Swift(object):
         """
         # Slightly modified to be able to upload to more than one dest_path
         objs = [SwiftUploadObject(file_path, object_name=dest_path) for file_path, dest_path in
-                file_path_dest_path_tuples]
+                file_path_dest_path_tuples if isinstance(dest_path, OvhPath)]
         try:
             for result in self.swift.upload(container, objs):
                 if not result['success']:

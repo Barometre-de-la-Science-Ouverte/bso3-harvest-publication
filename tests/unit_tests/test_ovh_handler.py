@@ -1,8 +1,9 @@
 import unittest
 from unittest import TestCase, mock
 from ovh_handler import generateStoragePath, download_files, upload_and_clean_up, glob, os
-from tests.unit_tests.fixtures.swift_object import _swift, local_dir, softcite_files_to_upload
+from tests.unit_tests.fixtures.swift_object import _swift, local_dir, grobid_files_to_upload, softcite_files_to_upload
 from infrastructure.storage.swift import Swift
+from domain.ovh_path import OvhPath
 
 
 class OvhHandler(TestCase):
@@ -13,7 +14,7 @@ class OvhHandler(TestCase):
         # When
         prefix = generateStoragePath(filename)
         # Then
-        expected_prefix = os.path.join('12', '34', '56', '78', '123456789')
+        expected_prefix = OvhPath('12', '34', '56', '78', '123456789')
         self.assertEqual(prefix, expected_prefix)
 
     @mock.patch.object(Swift, "download_files")
@@ -48,7 +49,7 @@ class OvhHandler(TestCase):
         # Given
         mock_glob.return_value = local_dir
         local_dir_path = '.'
-        upload_files = softcite_files_to_upload
+        upload_files = grobid_files_to_upload + softcite_files_to_upload
         last_file = local_dir[-1]
         # When
         upload_and_clean_up(_swift, local_dir_path)

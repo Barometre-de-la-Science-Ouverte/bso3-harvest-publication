@@ -6,7 +6,8 @@ from unittest import TestCase, mock
 from harvester.OAHarvester import (Continue, OAHarvester, _apply_selection,
                                    _check_entry, _count_entries, _download_publication,
                                    _sample_selection, compress, uuid,
-                                   generateStoragePath, url_to_path, update_dict, get_nth_key, _process_request)
+                                   generateStoragePath, url_to_path, update_dict, get_nth_key,
+                                   _process_request, OvhPath, METADATA_PREFIX, PUBLICATION_PREFIX)
 from tests.unit_tests.fixtures.harvester import *
 
 
@@ -247,11 +248,7 @@ class ManageFiles(TestCase):
         self.filepaths = {
             "dest_path": generateStoragePath(local_entry['id']),
             "local_filename": os.path.join(self.DATA_PATH, local_entry['id'] + ".pdf"),
-            "local_filename_nxml": os.path.join(self.DATA_PATH, local_entry['id'] + ".nxml"),
             "local_filename_json": os.path.join(self.DATA_PATH, local_entry['id'] + ".json"),
-            "thumb_file_small": os.path.join(self.DATA_PATH, local_entry['id'] + '-thumb-small.png'),
-            "thumb_file_medium": os.path.join(self.DATA_PATH, local_entry['id'] + '-thumb-medium.png'),
-            "thumb_file_large": os.path.join(self.DATA_PATH, local_entry['id'] + '-thumb-large.png'),
         }
 
     def test_generate_thumbnails(self):
@@ -295,8 +292,8 @@ class ManageFiles(TestCase):
         harvester_2_publications.swift.upload_files_to_swift.assert_called_with( \
             harvester_2_publications.storage_publications, \
             [
-                (self.filepaths['local_filename_nxml'],
-                 os.path.join(self.filepaths['dest_path'], os.path.basename(self.filepaths['local_filename_nxml']))),
+                (self.filepaths['local_filename'], OvhPath(PUBLICATION_PREFIX, self.filepaths['dest_path'], os.path.basename(self.filepaths['local_filename']))),
+                (self.filepaths['local_filename_json'], OvhPath(METADATA_PREFIX, self.filepaths['dest_path'], os.path.basename(self.filepaths['local_filename_json']))),
             ] \
             )
 
@@ -304,7 +301,7 @@ class ManageFiles(TestCase):
     @mock.patch('harvester.OAHarvester.os.makedirs')
     def test_save_files_locally(self, mock_makedirs, mock_copyfile):
         # Given
-        local_dest_path = os.path.join(DATA_PATH, self.filepaths['dest_path'])
+        local_dest_path = os.path.join(DATA_PATH, self.filepaths['dest_path'].to_local())
         compression_suffix = ''
         # When
         harvester_2_publications._save_files_locally(**self.filepaths, local_entry_id=self.entry['id'],

@@ -6,12 +6,12 @@ from typing import List
 
 from config.harvester_config import config_harvester
 from infrastructure.storage.swift import Swift
-
+from domain.ovh_path import OvhPath
 
 def generateStoragePath(identifier):
     """Convert a file name into a path with file prefix as directory paths:
     123456789 -> 12/34/56/78/123456789/"""
-    return os.path.join(identifier[:2], identifier[2:4], identifier[4:6], identifier[6:8], identifier)
+    return OvhPath(identifier[:2], identifier[2:4], identifier[4:6], identifier[6:8], identifier)
 
 
 def get_partitions(_swift: Swift, prefix, partition_size: int) -> List:
@@ -33,12 +33,11 @@ def download_files(_swift, dest_dir, files):
 def upload_and_clean_up(_swift, local_dir):
     files = glob(local_dir + '*')
     grobid_files = [
-        (file, os.path.join('grobid', generateStoragePath(os.path.basename(file).split('.')[0]), os.path.basename(file)))
+        (file, OvhPath('grobid', generateStoragePath(os.path.basename(file).split('.')[0]), os.path.basename(file)))
         for file in files if file.endswith('.tei.xml')]
     softcite_files = [
-        (file, os.path.join('softcite', generateStoragePath(os.path.basename(file).split('.')[0]), os.path.basename(file)))
+        (file, OvhPath('softcite', generateStoragePath(os.path.basename(file).split('.')[0]), os.path.basename(file)))
         for file in files if file.endswith('.software.json')]
-    _swift.upload_files_to_swift(_swift.config['publications_dump'], grobid_files)
-    _swift.upload_files_to_swift(_swift.config['publications_dump'], softcite_files)
+    _swift.upload_files_to_swift(_swift.config['publications_dump'], grobid_files + softcite_files)
     for file in files:
         os.remove(file)
