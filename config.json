@@ -10,5 +10,5 @@
     "publications_dump": "bso3_publications_dump",
     "lmdb_size_Go": 25,
     "is_db_local": 0,
-    "is_level_debug": 1
+    "is_level_debug": 0
 }
