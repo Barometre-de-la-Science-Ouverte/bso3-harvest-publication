@@ -8,7 +8,10 @@ from typing import List
 from config.path_config import PUBLICATION_PREFIX, GROBID_PREFIX, SOFTCITE_PREFIX, DEFAULT_GROBID_TAG, \
     DEFAULT_SOFTCITE_TAG
 from domain.processed_entry import ProcessedEntry
-from logger import logger
+from application.server.main.logger import get_logger
+from config.logger_config import LOGGER_LEVEL
+logger = get_logger(__name__, level=LOGGER_LEVEL)
+
 
 
 class DBHandler:

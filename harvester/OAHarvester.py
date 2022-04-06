@@ -23,7 +23,9 @@ from config.harvest_strategy_config import oa_harvesting_strategy
 from config.path_config import DATA_PATH, METADATA_PREFIX, PUBLICATION_PREFIX
 from infrastructure.storage import swift
 from domain.ovh_path import OvhPath
-from logger import logger
+from application.server.main.logger import get_logger
+from config.logger_config import LOGGER_LEVEL
+logger = get_logger(__name__, level=LOGGER_LEVEL)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
