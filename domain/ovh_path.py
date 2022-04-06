@@ -7,7 +7,7 @@ class OvhPath:
     OvhPath(a,b,c,file) -> a/b/c/file
     """
     def __init__(self, *args):
-        self.components = [str(e) for e in args]
+        self.components = [self._strip_slashes(str(e)) for e in args]
     def __repr__(self) -> str:
         return "'" + '/'.join(self.components) + "'"
     def __str__(self) -> str:
@@ -18,3 +18,5 @@ class OvhPath:
         return False
     def to_local(self):
         return os.path.join(*self.components)
+    def _strip_slashes(self, _str: str) -> str:
+        return _str.strip('/').strip('\\').strip('/').strip('\\')

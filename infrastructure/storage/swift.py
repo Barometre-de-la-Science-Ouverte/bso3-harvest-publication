@@ -59,7 +59,7 @@ class Swift(object):
         Bulk upload of a list of files to current SWIFT object storage container under the same destination path
         """
         # Slightly modified to be able to upload to more than one dest_path
-        objs = [SwiftUploadObject(file_path, object_name=dest_path) for file_path, dest_path in
+        objs = [SwiftUploadObject(file_path, object_name=str(dest_path)) for file_path, dest_path in
                 file_path_dest_path_tuples if isinstance(dest_path, OvhPath)]
         try:
             for result in self.swift.upload(container, objs):
@@ -71,8 +71,9 @@ class Swift(object):
                     else:
                         logger.exception("%s" % error, exc_info=True)
                 else:
-                    logger.debug(f'Result upload : {result}')
-        except SwiftError as e:
+                    if result['action'] == "upload_object":
+                        logger.debug(f'Result upload : {result["object"]} succesfully uploaded on {result["container"]} (from {result["path"]})')
+        except SwiftError:
             logger.exception("error uploading file to SWIFT container", exc_info=True)
 
     def download_files(self, container, file_path, dest_path):
