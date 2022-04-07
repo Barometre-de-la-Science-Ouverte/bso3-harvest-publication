@@ -456,7 +456,7 @@ def wiley_curl(wiley_doi, filename):
     from config.wiley_config import wiley_curl_cmd
     wiley_doi = wiley_doi.replace('/', '%2F')
     wiley_curl_cmd += f'{wiley_doi}" -o {filename}'
-    subprocess.check_call(wiley_curl_cmd, shell=True)
+    subprocess.check_call(wiley_curl_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
 
 
 def url_to_path(url, ext='.pdf.gz'):
@@ -507,6 +507,8 @@ def _download_publication(urls, filename, local_entry):
                 result = 'success'
                 harvester_used = 'standard'
                 break
+            else:
+                raise Exception
         except Exception:
             logger.exception(f"Download failed for {url}", exc_info=True)
             harvester_used = ''
