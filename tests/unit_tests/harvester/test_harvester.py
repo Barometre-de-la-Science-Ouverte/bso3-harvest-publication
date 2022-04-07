@@ -364,9 +364,10 @@ class Download(TestCase):
         # Given
         urls, local_entry, filename = wiley_parsed_entry
         # When
-        result, _ = _download_publication(urls, filename, local_entry)
+        result, local_entry = _download_publication(urls, filename, local_entry)
         # Then
         self.assertEqual(result, "success")
+        self.assertEqual(local_entry['harvester_used'], "wiley")
         self.assertTrue(os.path.getsize(filename) > 0)
         os.remove(filename)
 
@@ -419,9 +420,10 @@ class Download(TestCase):
         # Given
         urls, local_entry, filename = arXiv_parsed_entry
         # When
-        result, _ = _download_publication(urls, filename, local_entry)
+        result, local_entry = _download_publication(urls, filename, local_entry)
         # Then
         self.assertEqual(result, "success")
+        self.assertEqual(local_entry['harvester_used'], "arxiv")
         self.assertTrue(os.path.getsize(filename) > 0)
         os.remove(filename)
 
