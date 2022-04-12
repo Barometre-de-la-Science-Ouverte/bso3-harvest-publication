@@ -32,26 +32,44 @@ Storage: as a rule of thumb, consider bewteen 1 and 1.5 TB for storage 1 million
 
 ## Install
 
-Get the github repo:
+1. Get the github repository:
+```shell
+$ git clone https://github.com/Barometre-de-la-Science-Ouverte/bso3-harvest-publication.git
+$ cd bso3-harvest-publication
+```
 
-> git clone https://github.com/Barometre-de-la-Science-Ouverte/bso3-harvest-publication.git
+2. [Install PostgreSQL](https://www.postgresql.org/download/)
+```shell
+$ brew install postgresql # for mac users
+```
 
-> cd bso3-harvest-publication
+3. Setup the Python virtual environment
+```shell
+$ virtualenv --system-site-packages -p python3 env
+$ source env/bin/activate
+$ pip3 install -r requirements.txt
+```
 
-It is advised to setup first a virtual environment to avoid falling into one of these gloomy python dependency marshlands:
+4. For generating thumbnails corresponding to the harvested PDF, ImageMagick must be installed. For instance on Ubuntu:
+```shell
+# for linux users
+$ apt-get install imagemagick
+# for windows and mac
+$ pip uninstall python-magic  
+$ pip install python-magic-bin==0.4.14
+```
 
-> virtualenv --system-site-packages -p python3 env
+5. Install grobid and software mentions clients
+```shell
+$ pip install git+https://github.com/Barometre-de-la-Science-Ouverte/grobid_client_python.git#egg=grobid_client_python
+$ pip install git+https://github.com/Barometre-de-la-Science-Ouverte/software_mentions_client#egg=software_mentions_client
+```
 
-> source env/bin/activate
+6. Add the configuration files for *arxiv* (arxiv_config.py) and *wiley* (wiley_config.py) to the config folder (ask a developer for them).
 
-Install the dependencies, use:
 
-> pip3 install -r requirements.txt
 
-For Windows:
 
-> pip uninstall python-magic  
-> pip install python-magic-bin==0.4.14
 
 ## Configuration
 
