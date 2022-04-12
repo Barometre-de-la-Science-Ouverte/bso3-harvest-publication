@@ -7,7 +7,7 @@ from rq import Connection, Queue
 from application.server.main.tasks import (create_task_process,
                                            create_task_unpaywall,
                                            create_task_prepare_harvest,
-                                           create_task_clean_up)
+                                           create_task_clean_up, create_task_fileter_already_harvested_publications)
 from config.harvester_config import config_harvester
 from infrastructure.storage.swift import Swift
 from ovh_handler import get_partitions
@@ -33,7 +33,7 @@ def run_task_unpaywall():
     response_objects = []
 
     # Prepare task
-    FILTERED_METADATA_FILE = 'bso-publications-filtered.jsonl.gz'
+    FILTERED_METADATA_FILE = f'filtered_{source_metadata_file}'
     doi_list = args.get('doi_list', [])
 
     if len(doi_list) > 0:
@@ -46,7 +46,17 @@ def run_task_unpaywall():
                 'task_id': task.get_id()
             }
         })
-        args['metadata_file'] = FILTERED_METADATA_FILE
+    else:
+        with Connection(redis.from_url(current_app.config['REDIS_URL'])):
+            q = Queue(name='pdf-harvester', default_timeout=default_timeout)
+            task = q.enqueue(create_task_fileter_already_harvested_publications, source_metadata_file, FILTERED_METADATA_FILE)
+        response_objects.append({
+            'status': 'success',
+            'data': {
+                'task_id': task.get_id()
+            }
+        })
+    args['metadata_file'] = FILTERED_METADATA_FILE
 
     # Harvest task
     with Connection(redis.from_url(current_app.config['REDIS_URL'])):

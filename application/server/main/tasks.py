@@ -155,3 +155,28 @@ def create_task_prepare_harvest(doi_list, source_metadata_file, filtered_metadat
 def create_task_clean_up(filtered_metadata_file):
     from config.swift_cli_config import init_cmd
     subprocess.check_call(f'{init_cmd} delete {METADATA_DUMP} {filtered_metadata_file}', shell=True)
+
+
+def create_task_fileter_already_harvested_publications(
+        source_metadata_file: str, filtered_metadata_filename: str) -> None:
+    logger_console.debug(f'filtered_metadata_filename {filtered_metadata_filename}')
+
+    swift_handler = Swift(config_harvester)
+    db_handler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
+
+    source_metadata_file = load_metadata(metadata_container=METADATA_DUMP,
+                                         metadata_file=source_metadata_file,
+                                         destination_dir=DESTINATION_DIR_METADATA)
+
+    doi_already_harvested_list = [entry[0] for entry in db_handler.fetch_all()]
+
+    with gzip.open(source_metadata_file, 'rt') as f_in:
+        metadata_input_file_content_list = [json.loads(line) for line in f_in.readlines()]
+    with gzip.open(os.path.join(DESTINATION_DIR_METADATA, filtered_metadata_filename), 'wt') as f_out:
+        f_out.write(os.linesep.join([json.dumps(entry) for entry in metadata_input_file_content_list \
+                                     if entry['doi'] not in doi_already_harvested_list]))
+
+
+def create_task_clean_up(filtered_metadata_file):
+    from config.swift_cli_config import init_cmd
+    subprocess.check_call(f'{init_cmd} delete {METADATA_DUMP} {filtered_metadata_file}', shell=True)
