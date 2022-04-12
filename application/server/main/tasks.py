@@ -87,7 +87,6 @@ def create_task_unpaywall(args):
         logger_console.debug(db_handler.fetch_all())
 
 
-
 def get_softcite_version(local_files):
     softcite_files = [file for file in local_files if file.endswith('.software.json')]
     if softcite_files:
@@ -140,21 +139,16 @@ def create_task_prepare_harvest(doi_list, source_metadata_file, filtered_metadat
     logger_console.debug(f'force {force}')
     swift_handler = Swift(config_harvester)
     db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
-    if not force: # don't redo the ones already done
+    if not force:  # don't redo the ones already done
         doi_already_harvested = [entry[0] for entry in db_handler.fetch_all()]
         doi_list = [doi for doi in doi_list if doi not in doi_already_harvested]
     source_metadata_file = load_metadata(metadata_container=METADATA_DUMP,
-                                  metadata_file=source_metadata_file,
-                                  destination_dir=DESTINATION_DIR_METADATA)
+                                         metadata_file=source_metadata_file,
+                                         destination_dir=DESTINATION_DIR_METADATA)
     with gzip.open(source_metadata_file, 'rt') as f_in:
         content = [json.loads(line) for line in f_in.readlines()]
     with gzip.open(os.path.join(DESTINATION_DIR_METADATA, filtered_metadata_filename), 'wt') as f_out:
         f_out.write(os.linesep.join([json.dumps(entry) for entry in content if entry['doi'] in doi_list]))
-
-
-def create_task_clean_up(filtered_metadata_file):
-    from config.swift_cli_config import init_cmd
-    subprocess.check_call(f'{init_cmd} delete {METADATA_DUMP} {filtered_metadata_file}', shell=True)
 
 
 def create_task_fileter_already_harvested_publications(
@@ -173,8 +167,16 @@ def create_task_fileter_already_harvested_publications(
     with gzip.open(source_metadata_file, 'rt') as f_in:
         metadata_input_file_content_list = [json.loads(line) for line in f_in.readlines()]
     with gzip.open(os.path.join(DESTINATION_DIR_METADATA, filtered_metadata_filename), 'wt') as f_out:
-        f_out.write(os.linesep.join([json.dumps(entry) for entry in metadata_input_file_content_list \
-                                     if entry['doi'] not in doi_already_harvested_list]))
+        not_harvested_publications_metadata_json_list = [
+            json.dumps(entry) for entry in metadata_input_file_content_list \
+            if entry['doi'] not in doi_already_harvested_list
+        ]
+        f_out.write(os.linesep.join(not_harvested_publications_metadata_json_list))
+
+    logger_console.debug(f"Number of elements in raw metadata file: {len(metadata_input_file_content_list)}")
+    logger_console.debug(f"Number of elements in the database: {len(doi_already_harvested_list)}")
+    logger_console.debug(
+        f"Number of elements in the filtered metadata file: {len(not_harvested_publications_metadata_json_list)}")
 
 
 def create_task_clean_up(filtered_metadata_file):
