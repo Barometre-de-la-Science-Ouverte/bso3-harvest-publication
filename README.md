@@ -22,7 +22,9 @@ Python utility for harvesting efficiently a large Open Access collection of scho
 
 The utility can be used in particular to harvest the **Unpaywall** dataset (PDF) and the **PMC** publications (PDF and corresponding NLM XML files).
 
-## Requirements
+## Environment setup
+
+### Requirements
 
 The utility requires Python 3.6 or more. It is developed for a deployment on a POSIX/Linux server (`gzip` and `wget` as external process). A SWIFT object storage and a dedicated SWIFT container must have been created for the cloud storage of the data collection. 
 
@@ -30,7 +32,7 @@ The utility will use some local storage dedicated to the embedded databases keep
 
 Storage: as a rule of thumb, consider bewteen 1 and 1.5 TB for storage 1 million scholar PDF.
 
-## Install
+### Install
 
 1. Get the github repository:
 ```shell
