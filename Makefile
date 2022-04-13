@@ -13,6 +13,11 @@ clean_up_files:
 	rm -rf */__pycache__/
 	rm -rf */*/__pycache__/
 	rm -rf */*/*/__pycache__/
+	rm -rf *.pyc
+	rm -rf */*.pyc
+	rm -rf */*/*.pyc
+	rm -rf */*/*/*.pyc
+	rm -rf .ipynb_checkpoints/
 
 docker-build: clean_up_files
 	@echo Building a new docker image
