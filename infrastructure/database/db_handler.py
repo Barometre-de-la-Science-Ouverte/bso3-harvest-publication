@@ -26,7 +26,7 @@ class DBHandler:
         result = self.engine.execute(f'SELECT * FROM {self.table_name}')
         return [ProcessedEntry(*entry) for entry in result.fetchall()]
 
-    def write_entity_batch(self, records: List, grobid_version, softcite_version):
+    def write_entity_batch(self, records: List):
         cur = self.engine.raw_connection().cursor()
         args_str = ','.join(cur.mogrify("(%s,%s,%s,%s,%s,%s,%s,%s)", x).decode("utf-8") for x in records)
         with self.engine.connect() as connection:
@@ -72,12 +72,7 @@ class DBHandler:
     def _get_harvester_used(self, uuid):
         pass
 
-    def update_database(self, grobid_version=None, softcite_version=None):
-        if not grobid_version:
-            grobid_version = DEFAULT_GROBID_TAG
-        if not softcite_version:
-            softcite_version = DEFAULT_SOFTCITE_TAG
-
+    def update_database(self):
         container = self.config['publications_dump']
         lmdb_size = self.config['lmdb_size_Go'] * 1024 * 1024 * 1024
 
@@ -107,4 +102,4 @@ class DBHandler:
                                   dict_local_uuid_entries[entry[1]]['url_used']) for entry in doi_uuid_uploaded]
 
         if records:
-            self.write_entity_batch(records, softcite_version, grobid_version)
+            self.write_entity_batch(records)

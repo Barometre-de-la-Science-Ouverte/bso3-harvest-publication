@@ -7,7 +7,7 @@ from rq import Connection, Queue
 from application.server.main.tasks import (create_task_process,
                                            create_task_unpaywall,
                                            create_task_prepare_harvest,
-                                           create_task_clean_up, create_task_fileter_already_harvested_publications)
+                                           create_task_clean_up, create_task_harvest_partition)
 from config.harvester_config import config_harvester
 from infrastructure.storage.swift import Swift
 from ovh_handler import get_partitions
@@ -20,6 +20,28 @@ main_blueprint = Blueprint('main', __name__, )
 @main_blueprint.route('/', methods=['GET'])
 def home():
     return render_template('index.html')
+
+
+@main_blueprint.route('/harvest_partitions', methods=['POST'])
+def run_task_harvest_partitions():
+    args = request.get_json(force=True)
+    source_metadata_file = args.get('metadata_file')
+    total_partition_number = args.get('total_partition_number')
+    doi_list = args.get('doi_list', [])
+    response_objects = []
+    with Connection(redis.from_url(current_app.config['REDIS_URL'])):
+        q = Queue(name='pdf-harvester', default_timeout=default_timeout)
+        for partition_index in range(total_partition_number + 1):
+            task = q.enqueue(create_task_harvest_partition, kwargs={'source_metadata_file': source_metadata_file, 'partition_index': partition_index, 'total_partition_number': total_partition_number, 'doi_list': doi_list})
+            response_objects.append({
+                'status': 'success',
+                'data': {
+                    'task_id': task.get_id()
+                }
+            })
+    return jsonify(response_objects)
+
+
 
 
 @main_blueprint.route('/harvest', methods=['POST'])
