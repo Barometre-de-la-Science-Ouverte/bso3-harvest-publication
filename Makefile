@@ -1,7 +1,7 @@
 DOCKER_IMAGE_NAME=dataesr/bso3-harvest-publication
 CURRENT_VERSION=$(shell cat application/__init__.py | cut -d "'" -f 2)
-LOCAL_ENDPOINT="http://127.0.0.1:5004/harvest"
-PAYLOAD='{"nb_samples": 10, "metadata_file": "bso-publications-5k.jsonl.gz", "sample_seed":51552}'
+LOCAL_ENDPOINT="http://127.0.0.1:5004/harvest_partitions"
+PAYLOAD='{"metadata_file": "bso-publications-5k.jsonl.gz", "total_partition_number": 2, "doi_list": ["10.1111/jdv.15719"]}'
 
 clean_up_files:
 	rm -rf logs/*
