@@ -1,5 +1,3 @@
-from os import remove
-from typing import List
 import redis
 from flask import Blueprint, current_app, jsonify, render_template, request
 from rq import Connection, Queue
@@ -7,12 +5,12 @@ from rq import Connection, Queue
 from application.server.main.tasks import (create_task_process,
                                            create_task_unpaywall,
                                            create_task_prepare_harvest,
-                                           create_task_clean_up, create_task_harvest_partition)
+                                           create_task_harvest_partition)
 from config.harvester_config import config_harvester
 from infrastructure.storage.swift import Swift
 from ovh_handler import get_partitions
 
-default_timeout = 43200000
+default_timeout = 10800 * 2  # 6 hours
 
 main_blueprint = Blueprint('main', __name__, )
 
@@ -32,7 +30,12 @@ def run_task_harvest_partitions():
     with Connection(redis.from_url(current_app.config['REDIS_URL'])):
         q = Queue(name='pdf-harvester', default_timeout=default_timeout)
         for partition_index in range(total_partition_number + 1):
-            task = q.enqueue(create_task_harvest_partition, kwargs={'source_metadata_file': source_metadata_file, 'partition_index': partition_index, 'total_partition_number': total_partition_number, 'doi_list': doi_list})
+            task_kwargs = {
+                'source_metadata_file': source_metadata_file, 'partition_index': partition_index,
+                'total_partition_number': total_partition_number, 'doi_list': doi_list,
+                'job_timeout': 10800  # 3 hours
+            }
+            task = q.enqueue(create_task_harvest_partition, **task_kwargs)
             response_objects.append({
                 'status': 'success',
                 'data': {
@@ -40,57 +43,6 @@ def run_task_harvest_partitions():
                 }
             })
     return jsonify(response_objects)
-
-
-
-
-@main_blueprint.route('/harvest', methods=['POST'])
-def run_task_unpaywall():
-    """
-    Prepare a metadata file containing specific publications to (re)harvest and harvest it
-    """
-    args = request.get_json(force=True)
-    force = args.setdefault('force', False)
-    source_metadata_file = args.get('metadata_file')
-    response_objects = []
-
-    # Prepare task
-    FILTERED_METADATA_FILE = f'filtered_{source_metadata_file}'
-    doi_list = args.get('doi_list', [])
-
-    if len(doi_list) > 0:
-        with Connection(redis.from_url(current_app.config['REDIS_URL'])):
-            q = Queue(name='pdf-harvester', default_timeout=default_timeout)
-            task = q.enqueue(create_task_prepare_harvest, doi_list, source_metadata_file, FILTERED_METADATA_FILE, force)
-        response_objects.append({
-            'status': 'success',
-            'data': {
-                'task_id': task.get_id()
-            }
-        })
-    else:
-        with Connection(redis.from_url(current_app.config['REDIS_URL'])):
-            q = Queue(name='pdf-harvester', default_timeout=default_timeout)
-            task = q.enqueue(create_task_fileter_already_harvested_publications, source_metadata_file, FILTERED_METADATA_FILE)
-        response_objects.append({
-            'status': 'success',
-            'data': {
-                'task_id': task.get_id()
-            }
-        })
-    args['metadata_file'] = FILTERED_METADATA_FILE
-
-    # Harvest task
-    with Connection(redis.from_url(current_app.config['REDIS_URL'])):
-        q = Queue(name='pdf-harvester', default_timeout=default_timeout)
-        task = q.enqueue(create_task_unpaywall, args)
-    response_objects.append({
-        'status': 'success',
-        'data': {
-            'task_id': task.get_id()
-        }
-    })
-    return jsonify(response_objects), 202
 
 
 @main_blueprint.route('/harvester_tasks/<task_id>', methods=['GET'])
@@ -129,7 +81,8 @@ def run_task_process():
     with Connection(redis.from_url(current_app.config['REDIS_URL'])):
         q = Queue(name='pdf-processor', default_timeout=default_timeout)
         for partition in partitions:
-            task = q.enqueue(create_task_process, kwargs={'files': partition, 'do_grobid': do_grobid, 'do_softcite': do_softcite})
+            task = q.enqueue(create_task_process,
+                             kwargs={'files': partition, 'do_grobid': do_grobid, 'do_softcite': do_softcite})
             response_objects.append({
                 'status': 'success',
                 'data': {
