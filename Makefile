@@ -24,17 +24,17 @@ docker-build: clean_up_files
 	./confirm_before_build.sh
 
 docker-build-local-image:
-	@echo Building a new docker image
+	@echo Building a new docker image (local)
 	docker build -t $(DOCKER_IMAGE_NAME):$(CURRENT_VERSION)_local -t $(DOCKER_IMAGE_NAME):latest_local .
 	@echo Docker image built
 
 docker-build-prod-image:
-	@echo Building a new docker image
-	docker build -t $(DOCKER_IMAGE_NAME):$(CURRENT_VERSION)_prod -t $(DOCKER_IMAGE_NAME):latest_prod .
+	@echo Building a new docker image (prod)
+	docker build -t $(DOCKER_IMAGE_NAME):$(CURRENT_VERSION) -t $(DOCKER_IMAGE_NAME):latest .
 	@echo Docker image built
 
 docker-push:
-	@echo Pushing a new docker image
+	@echo Pushing a new docker image (prod)
 	docker push $(DOCKER_IMAGE_NAME):$(CURRENT_VERSION)
 	docker push $(DOCKER_IMAGE_NAME):latest
 	@echo Docker image pushed
