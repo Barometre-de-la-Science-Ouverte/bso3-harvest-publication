@@ -489,7 +489,7 @@ class ProcessRequest(TestCase):
         # When
         _process_request(scraper, url)
         # Then
-        scraper.get.assert_called_with(url, headers=expected_headers, timeout=180)
+        scraper.get.assert_called_with(url, headers=expected_headers, timeout_in_seconds=180)
 
     def test_process_request_standard_url_no_specific_header(self):
         # Given
@@ -499,7 +499,7 @@ class ProcessRequest(TestCase):
         # When
         _process_request(scraper, url)
         # Then
-        scraper.get.assert_called_with(url, timeout=180)
+        scraper.get.assert_called_with(url, timeout_in_seconds=180)
 
     def test_process_request_not_200(self):
         # Given
@@ -563,7 +563,7 @@ class ProcessRequest(TestCase):
         # Given
         scraper = cloudscraper.create_scraper(interpreter="nodejs")
         # When
-        content = _process_request(scraper, timeout_url, n=0, timeout=10)
+        content = _process_request(scraper, timeout_url, n=0, timeout_in_seconds=10)
         # Then
         self.assertIsNone(content)
 
