@@ -16,6 +16,7 @@ from time import sleep
 import cloudscraper
 import lmdb
 import magic
+from requests.exceptions import ConnectTimeout
 import urllib3
 from bs4 import BeautifulSoup
 
@@ -432,24 +433,26 @@ def get_nth_key(dictionary, n=0):
     raise IndexError("dictionary index out of range")
 
 
-def _process_request(scraper, url, n=0):
-    if "cairn" in url:
-        headers = {'User-Agent': 'MESRI-Barometre-de-la-Science-Ouverte'}
-        file_data = scraper.get(url, headers=headers, timeout=180)
-    else:
-        file_data = scraper.get(url, timeout=180)
-    if file_data.status_code == 200:
-        if file_data.text[:5] == '%PDF-':
-            return file_data.content
-        elif n < 10:
-            soup = BeautifulSoup(file_data.text, 'html.parser')
-            if soup.select_one('a#redirect'):
-                redirect_url = soup.select_one('a#redirect')['href']
-                logger.debug('Waiting 5 seconds before following redirect url')
-                sleep(5)
-                logger.debug(f'Retry number {n + 1}')
-                return _process_request(scraper, redirect_url, n + 1)
-    return
+def _process_request(scraper, url, n=0, timeout=180):
+    try:
+        if "cairn" in url:
+            headers = {'User-Agent': 'MESRI-Barometre-de-la-Science-Ouverte'}
+            file_data = scraper.get(url, headers=headers, timeout=timeout)
+        else:
+            file_data = scraper.get(url, timeout=timeout)
+        if file_data.status_code == 200:
+            if file_data.text[:5] == '%PDF-':
+                return file_data.content
+            elif n < 10:
+                soup = BeautifulSoup(file_data.text, 'html.parser')
+                if soup.select_one('a#redirect'):
+                    redirect_url = soup.select_one('a#redirect')['href']
+                    logger.debug('Waiting 5 seconds before following redirect url')
+                    sleep(5)
+                    logger.debug(f'Retry number {n + 1}')
+                    return _process_request(scraper, redirect_url, n + 1)
+    except ConnectTimeout:
+        return
 
 
 def wiley_curl(wiley_doi, filename):
