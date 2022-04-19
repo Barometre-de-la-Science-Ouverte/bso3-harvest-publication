@@ -435,9 +435,9 @@ def get_nth_key(dictionary, n=0):
 def _process_request(scraper, url, n=0):
     if "cairn" in url:
         headers = {'User-Agent': 'MESRI-Barometre-de-la-Science-Ouverte'}
-        file_data = scraper.get(url, headers=headers)
+        file_data = scraper.get(url, headers=headers, timeout=180)
     else:
-        file_data = scraper.get(url)
+        file_data = scraper.get(url, timeout=180)
     if file_data.status_code == 200:
         if file_data.text[:5] == '%PDF-':
             return file_data.content
