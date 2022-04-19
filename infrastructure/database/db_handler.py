@@ -28,7 +28,8 @@ class DBHandler:
 
     def count(self):
         """Return the number of rows in the table"""
-        return self.engine.execute(f'SELECT count(*) FROM {self.table_name}')
+        # (X,) rows
+        return self.engine.execute(f'SELECT count(*) FROM {self.table_name}').fetchone()[0]
 
     def write_entity_batch(self, records: List):
         cur = self.engine.raw_connection().cursor()
