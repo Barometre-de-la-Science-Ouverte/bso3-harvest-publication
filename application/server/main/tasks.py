@@ -29,12 +29,6 @@ METADATA_DUMP = config_harvester['metadata_dump']
 logger_console = get_logger(__name__, level=LOGGER_LEVEL)
 
 
-def get_partition_size(source_metadata_file, total_partition_number):
-    with gzip.open(source_metadata_file, 'rt') as f:
-        number_of_lines = len(f.readlines())
-    return (number_of_lines // total_partition_number)
-
-
 def create_task_harvest_partition(source_metadata_file, partition_index, total_partition_number, doi_list):
     swift_handler = Swift(config_harvester)
     db_handler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
@@ -43,9 +37,11 @@ def create_task_harvest_partition(source_metadata_file, partition_index, total_p
                                          metadata_file=source_metadata_file,
                                          destination_dir=DESTINATION_DIR_METADATA)
     partition_size = get_partition_size(source_metadata_file, total_partition_number)
-    filtered_metadata_filename = os.path.join(os.path.dirname(source_metadata_file), 'filtered_' + os.path.basename(source_metadata_file))
-    write_partitionned_metadata_file(source_metadata_file, filtered_metadata_filename, partition_size, partition_index)
-    write_filtered_metadata_file(db_handler, filtered_metadata_filename, filtered_metadata_filename, doi_list)
+    filtered_metadata_filename = os.path.join(os.path.dirname(source_metadata_file),
+                                              'filtered_' + os.path.basename(source_metadata_file))
+    write_partitioned_metadata_file(source_metadata_file, filtered_metadata_filename, partition_size, partition_index)
+    write_partitioned_filtered_metadata_file(db_handler, filtered_metadata_filename, filtered_metadata_filename,
+                                             doi_list)
     harvester = OAHarvester(config_harvester)
     harvester.harvestUnpaywall(filtered_metadata_filename)
     harvester.diagnostic()
@@ -54,7 +50,6 @@ def create_task_harvest_partition(source_metadata_file, partition_index, total_p
     db_handler.update_database()
     logger_console.debug('Database after harvesting')
     logger_console.debug(db_handler.fetch_all())
-
 
 
 def create_task_unpaywall(args):
@@ -180,16 +175,29 @@ def create_task_prepare_harvest(doi_list, source_metadata_file, filtered_metadat
         f_out.write(os.linesep.join([json.dumps(entry) for entry in content if entry['doi'] in doi_list]))
 
 
-def write_partitionned_metadata_file(source_metadata_file: str, filtered_metadata_filename: str, partition_size:int, partition_index:int):
+def get_partition_size(source_metadata_file, total_partition_number):
+    with gzip.open(source_metadata_file, 'rt') as f:
+        number_of_lines = len(f.readlines())
+    partition_size = (number_of_lines // total_partition_number)
+    logger_console.debug(f'****** Number of publications in the partition file BEFORE filtering = {partition_size}')
+    return partition_size
+
+
+def write_partitioned_metadata_file(source_metadata_file: str, filtered_metadata_filename: str, partition_size: int,
+                                    partition_index: int):
     with gzip.open(source_metadata_file, 'rt') as f_in:
         with gzip.open(filtered_metadata_filename, 'wt') as f_out:
             content = f_in.readlines()
-            f_out.write(''.join(content[(partition_index * partition_size):((partition_index + 1) * partition_size)]))
+            filtered_file_content = ''.join(
+                content[(partition_index * partition_size):((partition_index + 1) * partition_size)])
+            logger_console.debug(
+                f'****** Number of publications in the partition file AFTER filtering = {filtered_file_content}')
+            f_out.write(filtered_file_content)
 
 
-def write_filtered_metadata_file(db_handler: DBHandler,
-        source_metadata_file: str, filtered_metadata_filename: str, doi_list:List[str]) -> None:
-
+def write_partitioned_filtered_metadata_file(db_handler: DBHandler,
+                                             source_metadata_file: str, filtered_metadata_filename: str,
+                                             doi_list: List[str]) -> None:
     doi_already_harvested_list = [entry[0] for entry in db_handler.fetch_all()]
 
     with gzip.open(source_metadata_file, 'rt') as f_in:

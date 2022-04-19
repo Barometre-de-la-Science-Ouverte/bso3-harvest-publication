@@ -57,3 +57,6 @@ requirements:
 	# echo "git+https://github.com/Barometre-de-la-Science-Ouverte/grobid_client_python.git#egg=grobid_client_python" >> requirements.txt
 	# echo "# Softcite client package" >> requirements.txt
 	# echo "git+https://github.com/Barometre-de-la-Science-Ouverte/software_mentions_client#egg=software_mentions_client" >> requirements.txt
+
+kube-count-nb-publications-in-db:
+	kubectl exec $(kubectl get pods -n default --no-headers=true | awk '/postgres/{print $1}') -- psql -d postgres_db -U postgres -c 'SELECT count(*) FROM harvested_status_table LIMIT 1;'
