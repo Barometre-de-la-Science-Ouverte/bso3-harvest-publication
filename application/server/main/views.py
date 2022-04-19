@@ -10,7 +10,9 @@ from config.harvester_config import config_harvester
 from infrastructure.storage.swift import Swift
 from ovh_handler import get_partitions
 
-default_timeout = 10800 * 2  # 6 hours
+HOURS = 3600
+
+default_timeout = 6 * HOURS
 
 main_blueprint = Blueprint('main', __name__, )
 
@@ -33,7 +35,7 @@ def run_task_harvest_partitions():
             task_kwargs = {
                 'source_metadata_file': source_metadata_file, 'partition_index': partition_index,
                 'total_partition_number': total_partition_number, 'doi_list': doi_list,
-                'job_timeout': 10800  # 3 hours
+                'job_timeout': 3 * HOURS
             }
             task = q.enqueue(create_task_harvest_partition, **task_kwargs)
             response_objects.append({
