@@ -45,11 +45,9 @@ def create_task_harvest_partition(source_metadata_file, partition_index, total_p
     harvester = OAHarvester(config_harvester)
     harvester.harvestUnpaywall(filtered_metadata_filename)
     harvester.diagnostic()
-    logger_console.debug('Database before harvesting')
-    logger_console.debug(db_handler.fetch_all())
+    logger_console.debug(f'{db_handler.count()} rows in database before harvesting')
     db_handler.update_database()
-    logger_console.debug('Database after harvesting')
-    logger_console.debug(db_handler.fetch_all())
+    logger_console.debug(f'{db_handler.count()} rows in database after harvesting')
 
 
 def create_task_unpaywall(args):
@@ -179,7 +177,6 @@ def get_partition_size(source_metadata_file, total_partition_number):
     with gzip.open(source_metadata_file, 'rt') as f:
         number_of_lines = len(f.readlines())
     partition_size = (number_of_lines // total_partition_number)
-    logger_console.debug(f'****** Number of publications in the partition file BEFORE filtering = {partition_size}')
     return partition_size
 
 
@@ -188,10 +185,11 @@ def write_partitioned_metadata_file(source_metadata_file: str, filtered_metadata
     with gzip.open(source_metadata_file, 'rt') as f_in:
         with gzip.open(filtered_metadata_filename, 'wt') as f_out:
             content = f_in.readlines()
+            logger_console.debug(f'Number of publications in original file: {len(content)}')
             filtered_file_content = ''.join(
                 content[(partition_index * partition_size):((partition_index + 1) * partition_size)])
-            logger_console.debug(
-                f'****** Number of publications in the partition file AFTER filtering = {filtered_file_content}')
+            logger_console.debug('Number of publications in the partition file: '
+                                + f'{len(content[(partition_index * partition_size):((partition_index + 1) * partition_size)])}')
             f_out.write(filtered_file_content)
 
 
@@ -213,7 +211,7 @@ def write_partitioned_filtered_metadata_file(db_handler: DBHandler,
         entry for entry in filtered_publications_metadata_json_list \
         if entry['doi'] not in doi_already_harvested_list
     ]
-
+    logger_console.debug(f'Number of publications in the file after filtering: {len(filtered_publications_metadata_json_list)}')
     with gzip.open(os.path.join(DESTINATION_DIR_METADATA, filtered_metadata_filename), 'wt') as f_out:
         f_out.write(os.linesep.join([json.dumps(entry) for entry in filtered_publications_metadata_json_list]))
 

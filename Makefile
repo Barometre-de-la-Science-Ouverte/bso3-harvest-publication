@@ -20,12 +20,21 @@ clean_up_files:
 	rm -rf .ipynb_checkpoints/
 
 docker-build: clean_up_files
-	@echo Building a new docker image
+	cat config.json | jq
+	./confirm_before_build.sh
+
+docker-build-local-image:
+	@echo Building a local image
+	docker build -t $(DOCKER_IMAGE_NAME):$(CURRENT_VERSION)_local -t $(DOCKER_IMAGE_NAME):latest_local .
+	@echo Docker image built
+
+docker-build-prod-image:
+	@echo Building a prod image
 	docker build -t $(DOCKER_IMAGE_NAME):$(CURRENT_VERSION) -t $(DOCKER_IMAGE_NAME):latest .
 	@echo Docker image built
 
 docker-push:
-	@echo Pushing a new docker image
+	@echo Pushing the prod image
 	docker push $(DOCKER_IMAGE_NAME):$(CURRENT_VERSION)
 	docker push $(DOCKER_IMAGE_NAME):latest
 	@echo Docker image pushed

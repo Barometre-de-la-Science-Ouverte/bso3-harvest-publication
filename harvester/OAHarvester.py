@@ -433,13 +433,13 @@ def get_nth_key(dictionary, n=0):
     raise IndexError("dictionary index out of range")
 
 
-def _process_request(scraper, url, n=0, timeout=180):
+def _process_request(scraper, url, n=0, timeout_in_seconds=180):
     try:
         if "cairn" in url:
             headers = {'User-Agent': 'MESRI-Barometre-de-la-Science-Ouverte'}
-            file_data = scraper.get(url, headers=headers, timeout=timeout)
+            file_data = scraper.get(url, headers=headers, timeout=timeout_in_seconds)
         else:
-            file_data = scraper.get(url, timeout=timeout)
+            file_data = scraper.get(url, timeout=timeout_in_seconds)
         if file_data.status_code == 200:
             if file_data.text[:5] == '%PDF-':
                 return file_data.content

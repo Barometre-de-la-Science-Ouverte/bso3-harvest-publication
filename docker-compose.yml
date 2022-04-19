@@ -26,7 +26,7 @@ services:
       - redis
 
   worker:
-    image: dataesr/bso3-harvest-publication:latest
+    image: dataesr/bso3-harvest-publication:latest_local
     privileged: true
     command: python3 manage.py run_worker
     env_file:
@@ -34,9 +34,11 @@ services:
     depends_on:
       - redis
       - postgres
+    restart: always
+
 
   web:
-    image: dataesr/bso3-harvest-publication:latest
+    image: dataesr/bso3-harvest-publication:latest_local
     privileged: true
     ports:
       - "5004:5000"
@@ -45,6 +47,8 @@ services:
       - .env
     depends_on:
       - worker
+    restart: always
+
 
 volumes:
   bso3-harvest-publication:
