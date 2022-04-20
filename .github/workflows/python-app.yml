@@ -5,9 +5,8 @@ name: Python tests and linter for BSO3
 
 on:
   push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, dev ]
 
 jobs:
   build:
