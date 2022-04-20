@@ -433,7 +433,7 @@ def get_nth_key(dictionary, n=0):
     raise IndexError("dictionary index out of range")
 
 
-def _process_request(scraper, url, n=0, timeout_in_seconds=180):
+def _process_request(scraper, url, n=0, timeout_in_seconds=60):
     try:
         if "cairn" in url:
             headers = {'User-Agent': 'MESRI-Barometre-de-la-Science-Ouverte'}
@@ -443,7 +443,7 @@ def _process_request(scraper, url, n=0, timeout_in_seconds=180):
         if file_data.status_code == 200:
             if file_data.text[:5] == '%PDF-':
                 return file_data.content
-            elif n < 10:
+            elif n < 5:
                 soup = BeautifulSoup(file_data.text, 'html.parser')
                 if soup.select_one('a#redirect'):
                     redirect_url = soup.select_one('a#redirect')['href']
