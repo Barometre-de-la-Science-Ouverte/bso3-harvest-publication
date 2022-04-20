@@ -5,19 +5,17 @@ services:
     ports:
       - 5432:5432
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password-dataESR-bso3
-      - POSTGRES_DB=postgres_db
-    # env_file:
-      #      - .env
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     restart: always
 
   redis:
     image: redis:5.0.7-alpine
     ports:
       - "6379:6379"
-  
-  dashboard: 
+
+  dashboard:
     image: dataesr/dashboard-crawler:1.0
     ports:
       - "9181:9181"
@@ -26,9 +24,9 @@ services:
       - redis
 
   worker:
-    image: dataesr/bso3-harvest-publication:latest_local
+    image: dataesr/bso3-harvest-publication:latest
     privileged: true
-    command: python3 manage.py run_worker
+    command: bash -c "sleep 10 && python3 manage.py run_worker"
     env_file:
       - .env
     depends_on:
@@ -38,13 +36,39 @@ services:
 
 
   web:
-    image: dataesr/bso3-harvest-publication:latest_local
+    image: dataesr/bso3-harvest-publication:latest
     privileged: true
     ports:
       - "5004:5000"
-    command: python3 manage.py run -h 0.0.0.0
-    env_file:
-      - .env
+    command: bash -c "sleep 10 && python3 manage.py run -h 0.0.0.0"
+    environment:
+      - AUTH_VERSION=${AUTH_VERSION}
+      - OS_USERNAME=${OS_USERNAME}
+      - OS_PASSWORD=${OS_PASSWORD}
+      - OS_USER_DOMAIN_NAME=${OS_USER_DOMAIN_NAME}
+      - OS_PROJECT_DOMAIN_NAME=${OS_PROJECT_DOMAIN_NAME}
+      - OS_PROJECT_NAME=${OS_PROJECT_NAME}
+      - OS_PROJECT_ID=${OS_PROJECT_ID}
+      - OS_REGION_NAME=${OS_REGION_NAME}
+      - OS_AUTH_URL=${OS_AUTH_URL}
+      - OS_TENANT_NAME=${OS_TENANT_NAME}
+      - OS_TENANT_ID=${OS_TENANT_ID}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - FLASK_ENV=${FLASK_ENV}
+      - FLASK_IP=${FLASK_IP}
+      - FLASK_PORT=${FLASK_PORT}
+      - FLASK_DEBUG=${FLASK_DEBUG}
+      - APP_SETTINGS=${APP_SETTINGS}
+      - TOKEN_WILEY=${TOKEN_WILEY}
+      - TOKEN_ELSEVIER=${TOKEN_ELSEVIER}
+      - TOKEN_SPRINGER=${TOKEN_SPRINGER}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     depends_on:
       - worker
     restart: always
