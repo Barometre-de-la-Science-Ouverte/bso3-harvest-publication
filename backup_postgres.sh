@@ -4,6 +4,9 @@
 ## The idea would be to launch a CRON every week to backup the DB, but it needs to remove the previous backup... Which is not
 ## done yet in this script.
 
+## LAUNCH this script by running : bash backup_postgres.sh [path_to_save_db_dump]
+## LAUNCH in the postgres pod
+
 ## Check if arguments supplied
 if [ -z "$1" ] || [ $# -eq 0 ]
   then
