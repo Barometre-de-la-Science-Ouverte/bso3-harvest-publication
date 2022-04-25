@@ -29,8 +29,8 @@ meta = MetaData()
 harvested_status_table = Table(
     "harvested_status_table",
     meta,
-    Column("doi", String, primary_key=True),
-    Column("uuid", String),
+    Column("doi", String),
+    Column("uuid", String, primary_key=True),
     Column("is_harvested", String),
     Column("softcite_version", String),
     Column("grobid_version", String),
