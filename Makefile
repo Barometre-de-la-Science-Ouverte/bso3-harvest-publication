@@ -10,14 +10,7 @@ clean_up_files:
 	rm -rf lmdb/entries_software
 	rm -rf data/
 	rm -rf tmp/*
-	rm -rf __pycache__/
-	rm -rf */__pycache__/
-	rm -rf */*/__pycache__/
-	rm -rf */*/*/__pycache__/
-	rm -rf *.pyc
-	rm -rf */*.pyc
-	rm -rf */*/*.pyc
-	rm -rf */*/*/*.pyc
+	find . | grep -E "(__pycache__|\.pyc|\.pyo)" | xargs rm -rf
 	rm -rf .ipynb_checkpoints/
 
 docker-build: clean_up_files

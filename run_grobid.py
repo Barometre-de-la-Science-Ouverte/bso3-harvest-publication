@@ -11,5 +11,6 @@ def run_grobid(config_path, data_path, GrobidClient):
 
 if __name__ == "__main__":
     from grobid_client.grobid_client import GrobidClient
+    # from tests.unit_tests.fixtures.grobid_client import GrobidClient
     run_grobid(CONFIG_PATH_GROBID, PUBLICATIONS_DOWNLOAD_DIR, GrobidClient)
 
