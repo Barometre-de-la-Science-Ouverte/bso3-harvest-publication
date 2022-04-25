@@ -7,8 +7,6 @@ from time import time
 from typing import List
 from config.swift_cli_config import init_cmd
 import requests
-from grobid_client.grobid_client import GrobidClient
-from software_mentions_client.client import software_mentions_client as smc
 
 from application.server.main.logger import get_logger
 from config.db_config import engine
@@ -16,7 +14,11 @@ from config.harvester_config import config_harvester
 from config.logger_config import LOGGER_LEVEL
 from config.path_config import (CONFIG_PATH_GROBID, CONFIG_PATH_SOFTCITE,
                                 DESTINATION_DIR_METADATA,
-                                PUBLICATIONS_DOWNLOAD_DIR)
+                                PUBLICATIONS_DOWNLOAD_DIR, PROJECT_DIRNAME)
+
+from grobid_client.grobid_client import GrobidClient
+from software_mentions_client.client import software_mentions_client as smc
+
 from harvester.OAHarvester import OAHarvester
 from infrastructure.database.db_handler import DBHandler
 from infrastructure.storage.swift import Swift
@@ -131,28 +133,70 @@ def get_grobid_version(local_files):
     return grobid_version
 
 
-def create_task_process(files, do_grobid, do_softcite):
+def filter_publications(db_handler, spec_softcite_version, spec_grobid_version):
+    entries_publications_grobid = []
+    entries_publications_softcite = []
+    for record in db_handler.fetch_all():
+        uuid, doi = record[1], record[0]
+        softcite_version, grobid_version = record[3], record[4]
+        if softcite_version != spec_softcite_version:
+            entries_publications_softcite.append((doi, uuid))
+        if grobid_version != spec_grobid_version:
+            entries_publications_grobid.append((doi, uuid))
+    return entries_publications_softcite, entries_publications_grobid
+
+
+# def fill_db(db_handler):
+#     from domain.processed_entry import ProcessedEntry
+#     DUMMY_DATA = ''
+#     entries = [('10.1371/journal.pone.0219681', '0011c088-efff-4d91-9844-22b6d128a242'),
+#     ('10.1016/j.cmet.2019.01.002', '0014464d-c193-4d67-a61d-43ec3787f036'),
+#     ('10.1186/s13071-019-3609-2', '0024cf27-91cf-4d2d-b386-dd4b607f30cd'),
+#     ('10.1002/bit.27102', '0035fcee-be20-4c92-9aad-6c6d9eb4483a'),
+#     ('10.1016/j.ijpam.2018.05.004', '00480a53-8253-4c65-843e-58bcb1f5d1c1'),
+#     ('10.1016/j.molcel.2019.02.036', '00502f70-22ea-4726-b378-6e24f57220cf'),
+#     ('10.1186/s12913-019-4307-7', '0052a35f-038a-4457-b44f-d838ea3e1f2d'),
+#     ('10.1111/ajt.15543', '0072a07e-e653-44de-a42e-0ea29ab77c4b'),
+#     ('10.1007/s00590-019-02497-1', '007b6408-afe0-4741-afbc-9c9f4287d23a'),
+#     ('10.14309/ctg.0000000000000058', '009c2076-3b89-49d7-80f8-b1298eb01747')]
+#     records = [ProcessedEntry(*entry, "1", "0", "0", DUMMY_DATA, DUMMY_DATA, DUMMY_DATA) for entry in entries]
+#     db_handler.write_entity_batch(records)
+
+
+def create_task_process(files, spec_grobid_version, spec_softcite_version):
+    logger_console.debug(f"Call with args: {files, spec_grobid_version, spec_softcite_version}")
     _swift = Swift(config_harvester)
-    download_files(_swift, PUBLICATIONS_DOWNLOAD_DIR, files)
+    db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=_swift)
+    # fill_db(db_handler)
+    entries_publications_softcite, entries_publications_grobid = filter_publications(db_handler, spec_softcite_version, spec_grobid_version)
+    publications_grobid = [file for file in files if db_handler._get_uuid_from_path(file) in [e[1] for e in entries_publications_grobid]]
+    publications_softcite = [file for file in files if db_handler._get_uuid_from_path(file) in [e[1] for e in entries_publications_softcite]]
+    files_to_process = list(set(publications_softcite + publications_grobid))
+    download_files(_swift, PUBLICATIONS_DOWNLOAD_DIR, files_to_process)
     start_time = time()
-    if do_grobid:
+    if publications_grobid:
         run_grobid(CONFIG_PATH_GROBID, PUBLICATIONS_DOWNLOAD_DIR, GrobidClient)
     time_grobid = time()
     logger_console.info(f"Runtime for Grobid: {round(time_grobid - start_time, 3)}s for {len(files)} files")
-    if do_softcite:
+    if publications_softcite:
         run_softcite(CONFIG_PATH_SOFTCITE, PUBLICATIONS_DOWNLOAD_DIR, smc)
     time_softcite = time()
     logger_console.info(f"Runtime for Softcite: {round(time_softcite - time_grobid, 3)}s for {len(files)} files")
     logger_console.info(f"Total runtime: {round(time_softcite - start_time, 3)}s for {len(files)} files")
+
     local_files = glob(PUBLICATIONS_DOWNLOAD_DIR + '*')
+    grobid_uuids = [db_handler._get_uuid_from_path(file) for file in local_files if file.endswith('.tei.xml')]
+    softcite_uuids = [db_handler._get_uuid_from_path(file) for file in local_files if file.endswith('.software.json')]
+    entries_publications_softcite = [entry for entry in entries_publications_softcite if entry[1] in softcite_uuids]
+    entries_publications_grobid = [entry for entry in entries_publications_grobid if entry[1] in grobid_uuids]
+
     softcite_version = get_softcite_version(local_files)
     grobid_version = get_grobid_version(local_files)
     upload_and_clean_up(_swift, PUBLICATIONS_DOWNLOAD_DIR)
-    db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=_swift)
     try:
-        db_handler.update_database(grobid_version, softcite_version)  # update database
-    except Exception as e:
-        logger_console.debug(e)
+        db_handler.update_database_processing(list(set(entries_publications_softcite + entries_publications_grobid)), grobid_version, softcite_version)  # update database
+    except Exception:
+        logger_console.exception(exc_info=True)
 
 
 def create_task_prepare_harvest(doi_list, source_metadata_file, filtered_metadata_filename, force):

@@ -77,6 +77,19 @@ class DBHandler:
     def _get_harvester_used(self, uuid):
         pass
 
+    def update_database_processing(self, entries, grobid_version, softcite_version):
+        DUMMY_DATA = ""
+        records = [ProcessedEntry(*entry,
+                                  "1",
+                                  grobid_version if grobid_version else "0",
+                                  softcite_version if softcite_version else "0",
+                                  DUMMY_DATA,
+                                  DUMMY_DATA,
+                                  DUMMY_DATA) for entry in entries]
+
+        if records:
+            self.write_entity_batch(records)
+
     def update_database(self):
         container = self.config['publications_dump']
         lmdb_size = self.config['lmdb_size_Go'] * 1024 * 1024 * 1024
@@ -90,18 +103,18 @@ class DBHandler:
         doi_uuid_uploaded = [content_tuple for content_tuple in local_doi_uuid if
                              content_tuple[1] in files_uuid_remote]  #
 
-        results_softcite = self.swift_handler.get_swift_list(container, dir_name=SOFTCITE_PREFIX)
+        # results_softcite = self.swift_handler.get_swift_list(container, dir_name=SOFTCITE_PREFIX)
         # uuids_softcite = [self._get_uuid_from_path(path) for path in results_softcite]
 
-        results_grobid = self.swift_handler.get_swift_list(container, dir_name=GROBID_PREFIX)
+        # results_grobid = self.swift_handler.get_swift_list(container, dir_name=GROBID_PREFIX)
         # uuids_grobid = [self._get_uuid_from_path(path) for path in results_grobid]
 
         # [(doi:str, uuid:str, is_harvested:bool, is_processed_softcite:bool, is_processed_grobid:bool),
         # harvester_used:str, domain:str, url_used:str]
         records = [ProcessedEntry(*entry,
                                   "1",
-                                  "0",  # self._is_uuid_in_list(entry[1], uuids_softcite)
-                                  "0",  # self._is_uuid_in_list(entry[1], uuids_grobid)
+                                  "0",
+                                  "0",
                                   dict_local_uuid_entries[entry[1]]['harvester_used'],
                                   dict_local_uuid_entries[entry[1]]['domain'],
                                   dict_local_uuid_entries[entry[1]]['url_used']) for entry in doi_uuid_uploaded]

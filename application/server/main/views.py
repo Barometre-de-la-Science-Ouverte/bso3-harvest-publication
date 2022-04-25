@@ -73,9 +73,9 @@ def run_task_process():
     """
     args = request.get_json(force=True)
     partition_size = args.get('partition_size', 1_000)
-    do_grobid = args.get('do_grobid', True)
-    do_softcite = args.get('do_softcite', True)
-    prefix = args.get('prefix', '')
+    spec_grobid_version = args.get('spec_grobid_version', '0')
+    spec_softcite_version = args.get('spec_softcite_version', '0')
+    prefix = args.get('prefix', 'publication')
     break_after_one = args.get('break_after_one', True)
     storage_handler = Swift(config_harvester)
     partitions = get_partitions(storage_handler, prefix, partition_size)
@@ -84,7 +84,7 @@ def run_task_process():
         q = Queue(name='pdf-processor', default_timeout=default_timeout)
         for partition in partitions:
             task = q.enqueue(create_task_process,
-                             kwargs={'files': partition, 'do_grobid': do_grobid, 'do_softcite': do_softcite})
+                             kwargs={'files': partition, 'spec_grobid_version': spec_grobid_version, 'spec_softcite_version': spec_softcite_version})
             response_objects.append({
                 'status': 'success',
                 'data': {
