@@ -3,10 +3,7 @@
 
 name: Python tests and linter for BSO3
 
-on:
-  push:
-  pull_request:
-    branches: [ main, dev ]
+on: [ push, pull_request ]
 
 jobs:
   build:
@@ -40,5 +37,4 @@ jobs:
 
       - name: Test with pytest
         run: |
-          python -m unittest discover
-          python -m unittest
+          make unit-tests
