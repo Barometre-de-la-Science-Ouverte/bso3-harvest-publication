@@ -146,28 +146,10 @@ def filter_publications(db_handler, spec_softcite_version, spec_grobid_version):
     return entries_publications_softcite, entries_publications_grobid
 
 
-# def fill_db(db_handler):
-#     from domain.processed_entry import ProcessedEntry
-#     DUMMY_DATA = ''
-#     entries = [('10.1371/journal.pone.0219681', '0011c088-efff-4d91-9844-22b6d128a242'),
-#     ('10.1016/j.cmet.2019.01.002', '0014464d-c193-4d67-a61d-43ec3787f036'),
-#     ('10.1186/s13071-019-3609-2', '0024cf27-91cf-4d2d-b386-dd4b607f30cd'),
-#     ('10.1002/bit.27102', '0035fcee-be20-4c92-9aad-6c6d9eb4483a'),
-#     ('10.1016/j.ijpam.2018.05.004', '00480a53-8253-4c65-843e-58bcb1f5d1c1'),
-#     ('10.1016/j.molcel.2019.02.036', '00502f70-22ea-4726-b378-6e24f57220cf'),
-#     ('10.1186/s12913-019-4307-7', '0052a35f-038a-4457-b44f-d838ea3e1f2d'),
-#     ('10.1111/ajt.15543', '0072a07e-e653-44de-a42e-0ea29ab77c4b'),
-#     ('10.1007/s00590-019-02497-1', '007b6408-afe0-4741-afbc-9c9f4287d23a'),
-#     ('10.14309/ctg.0000000000000058', '009c2076-3b89-49d7-80f8-b1298eb01747')]
-#     records = [ProcessedEntry(*entry, "1", "0", "0", DUMMY_DATA, DUMMY_DATA, DUMMY_DATA) for entry in entries]
-#     db_handler.write_entity_batch(records)
-
-
 def create_task_process(files, spec_grobid_version, spec_softcite_version):
     logger_console.debug(f"Call with args: {files, spec_grobid_version, spec_softcite_version}")
     _swift = Swift(config_harvester)
     db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=_swift)
-    # fill_db(db_handler)
     entries_publications_softcite, entries_publications_grobid = filter_publications(db_handler, spec_softcite_version, spec_grobid_version)
     publications_grobid = [file for file in files if db_handler._get_uuid_from_path(file) in [e[1] for e in entries_publications_grobid]]
     publications_softcite = [file for file in files if db_handler._get_uuid_from_path(file) in [e[1] for e in entries_publications_softcite]]
