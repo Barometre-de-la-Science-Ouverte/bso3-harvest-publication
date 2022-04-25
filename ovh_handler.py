@@ -21,9 +21,7 @@ def generateStoragePath(identifier):
 def get_partitions(_swift: Swift, prefix, partition_size: int) -> List:
     """Return a list of partitions of gzipped pdf files"""
     db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=_swift)
-    files = sorted([OvhPath(PUBLICATION_PREFIX, generateStoragePath(record[1]), record[1] + '.pdf.gz') for record in db_handler.fetch_all()])
-    # files = _swift.get_swift_list(config_harvester["publications_dump"], dir_name=prefix)
-    # files = [file for file in files if (file.endswith(".pdf.gz") or file.endswith(".pdf"))]
+    files = sorted([str(OvhPath(PUBLICATION_PREFIX, generateStoragePath(record[1]), record[1] + '.pdf.gz')) for record in db_handler.fetch_all()])
     partitions = [files[i : i + partition_size] for i in range(0, len(files), partition_size)]
     return partitions
 
