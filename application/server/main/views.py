@@ -3,8 +3,6 @@ from flask import Blueprint, current_app, jsonify, render_template, request
 from rq import Connection, Queue
 
 from application.server.main.tasks import (create_task_process,
-                                           create_task_unpaywall,
-                                           create_task_prepare_harvest,
                                            create_task_harvest_partition)
 from config.harvester_config import config_harvester
 from infrastructure.storage.swift import Swift
