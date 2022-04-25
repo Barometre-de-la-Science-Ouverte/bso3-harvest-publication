@@ -38,7 +38,3 @@ jobs:
       - name: Test with pytest
         run: |
           make unit-tests
-
-      - name: Run e2e test using docker
-        run: |
-          # make integration-test
