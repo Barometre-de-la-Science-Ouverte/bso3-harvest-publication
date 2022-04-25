@@ -41,4 +41,4 @@ jobs:
 
       - name: Run e2e test using docker
         run: |
-          make integration-test
+          # make integration-test
