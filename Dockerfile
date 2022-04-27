@@ -23,8 +23,8 @@ RUN mkdir /src/data
 RUN mkdir /src/tmp
 
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install git+https://github.com/Barometre-de-la-Science-Ouverte/grobid_client_python.git#egg=grobid_client_python
-RUN pip install git+https://github.com/Barometre-de-la-Science-Ouverte/software_mentions_client#egg=software_mentions_client
+RUN pip install --no-cache-dir git+https://github.com/Barometre-de-la-Science-Ouverte/grobid_client_python.git#egg=grobid_client_python
+RUN pip install --no-cache-dir git+https://github.com/Barometre-de-la-Science-Ouverte/software_mentions_client#egg=software_mentions_client
 
 COPY . .
 
