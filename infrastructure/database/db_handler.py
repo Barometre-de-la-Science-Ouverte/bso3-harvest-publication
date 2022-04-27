@@ -39,7 +39,7 @@ class DBHandler:
                 statement = f"""
                     INSERT INTO {self.table_name} (doi, uuid, is_harvested, softcite_version, grobid_version, harvester_used, domain, url_used)
                     VALUES {args_str}
-                    ON CONFLICT (doi) DO UPDATE
+                    ON CONFLICT (uuid) DO UPDATE
                         SET softcite_version = excluded.softcite_version,
                             grobid_version = excluded.grobid_version;
                 """
