@@ -5,7 +5,7 @@
 # Recommendation: launch a CRON every week to backup the DB.
 # Careful: old backups are removed before dumping current backup
 # Launch: enter in the postgres pods (kubectl exec -it [POD_ID] -- bash) and run ./df_migration/bash backup_postgres.sh [PATH_TO_DB_DUMP]
-# To recover: run : CREATE DATABASE targetdb; psql -U postgres -d targetdb -f [PATH_TO_DB_DUMP]
+# To recover: run : psql -d postgres_db  -U postgres -f [PATH_TO_DB_DUMP]
 ##-------------------------------------------------------------------------------------------------------------------
 
 ##----- 1. File location

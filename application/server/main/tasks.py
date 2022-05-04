@@ -1,3 +1,5 @@
+from asyncio import futures
+from concurrent.futures import ThreadPoolExecutor
 import gzip
 import json
 import os
@@ -156,15 +158,16 @@ def create_task_process(files, spec_grobid_version, spec_softcite_version):
     files_to_process = list(set(publications_softcite + publications_grobid))
     download_files(_swift, PUBLICATIONS_DOWNLOAD_DIR, files_to_process)
     start_time = time()
-    if publications_grobid:
-        run_grobid(CONFIG_PATH_GROBID, PUBLICATIONS_DOWNLOAD_DIR, GrobidClient)
-    time_grobid = time()
-    logger_console.info(f"Runtime for Grobid: {round(time_grobid - start_time, 3)}s for {len(files)} files")
-    if publications_softcite:
-        run_softcite(CONFIG_PATH_SOFTCITE, PUBLICATIONS_DOWNLOAD_DIR, smc)
-    time_softcite = time()
-    logger_console.info(f"Runtime for Softcite: {round(time_softcite - time_grobid, 3)}s for {len(files)} files")
-    logger_console.info(f"Total runtime: {round(time_softcite - start_time, 3)}s for {len(files)} files")
+    processing_futures = []
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        if publications_grobid:
+            processing_futures.append(executor.submit(run_grobid, CONFIG_PATH_GROBID, PUBLICATIONS_DOWNLOAD_DIR, GrobidClient))
+        if publications_softcite:
+            processing_futures.append(executor.submit(run_softcite, CONFIG_PATH_SOFTCITE, PUBLICATIONS_DOWNLOAD_DIR, smc))
+    for future in processing_futures:
+        future.result()
+    total_time = time()
+    logger_console.info(f"Total runtime: {round(total_time - start_time, 3)}s for {len(files)} files")
 
     local_files = glob(PUBLICATIONS_DOWNLOAD_DIR + '*')
     grobid_uuids = [db_handler._get_uuid_from_path(file) for file in local_files if file.endswith('.tei.xml')]
