@@ -2,16 +2,33 @@ import shutil
 
 from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
 from typing import List
+import os
 
-from config.harvester_config import config_harvester
+from static_config.config_generator import config_json
 from domain.ovh_path import OvhPath
 from application.server.main.logger import get_logger
-from config.logger_config import LOGGER_LEVEL
+from static_config.logger_config import LOGGER_LEVEL
 logger = get_logger(__name__, level=LOGGER_LEVEL)
 
-METADATA_DUMP = config_harvester['metadata_dump']
-PUBLICATIONS_DUMP = config_harvester['publications_dump']
+METADATA_DUMP = config_json['metadata_dump']
+PUBLICATIONS_DUMP = config_json['publications_dump']
 
+OS_USERNAME = config_json['swift']['OS_USERNAME']
+KEY = config_json['swift']['OS_PASSWORD']
+PROJECT_ID = config_json['swift']['OS_PROJECT_ID']
+PROJECT_NAME = config_json['swift']['OS_PROJECT_NAME']
+OS_TENANT_NAME = config_json['swift']['OS_TENANT_NAME']
+
+USER = f'{OS_TENANT_NAME}:{OS_USERNAME}'
+
+init_cmd = f'swift --os-auth-url https://auth.cloud.ovh.net/v3 --auth-version 3 \
+      --key {KEY}\
+      --user {USER} \
+      --os-user-domain-name Default \
+      --os-project-domain-name Default \
+      --os-project-id {PROJECT_ID} \
+      --os-project-name {PROJECT_NAME} \
+      --os-region-name GRA'
 
 class Swift(object):
 

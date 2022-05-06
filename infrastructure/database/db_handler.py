@@ -5,13 +5,11 @@ from sqlalchemy.engine import Engine
 from sqlalchemy import text
 from typing import List
 
-from config.path_config import PUBLICATION_PREFIX, GROBID_PREFIX, SOFTCITE_PREFIX, DEFAULT_GROBID_TAG, \
-    DEFAULT_SOFTCITE_TAG
+from static_config.path_config import PUBLICATION_PREFIX
 from domain.processed_entry import ProcessedEntry
 from application.server.main.logger import get_logger
-from config.logger_config import LOGGER_LEVEL
+from static_config.logger_config import LOGGER_LEVEL
 logger = get_logger(__name__, level=LOGGER_LEVEL)
-
 
 
 class DBHandler:
@@ -102,12 +100,6 @@ class DBHandler:
         local_doi_uuid = self._get_lmdb_content_str('data/doi', lmdb_size)
         doi_uuid_uploaded = [content_tuple for content_tuple in local_doi_uuid if
                              content_tuple[1] in files_uuid_remote]  #
-
-        # results_softcite = self.swift_handler.get_swift_list(container, dir_name=SOFTCITE_PREFIX)
-        # uuids_softcite = [self._get_uuid_from_path(path) for path in results_softcite]
-
-        # results_grobid = self.swift_handler.get_swift_list(container, dir_name=GROBID_PREFIX)
-        # uuids_grobid = [self._get_uuid_from_path(path) for path in results_grobid]
 
         # [(doi:str, uuid:str, is_harvested:bool, is_processed_softcite:bool, is_processed_grobid:bool),
         # harvester_used:str, domain:str, url_used:str]

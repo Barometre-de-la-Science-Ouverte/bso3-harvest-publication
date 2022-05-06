@@ -4,5 +4,6 @@
     "batch_size": 10,
     "sleep_time": 1,
     "timeout": 3600,
-    "coordinates": [ "persName", "figure", "ref", "biblStruct", "formula", "s" ]
+    "coordinates": [ "persName", "figure", "ref", "biblStruct", "formula", "s" ],
+    "prefix_ovh": "grobid"
 }

@@ -20,12 +20,12 @@ from requests.exceptions import ConnectTimeout
 import urllib3
 from bs4 import BeautifulSoup
 
-from config.harvest_strategy_config import oa_harvesting_strategy
-from config.path_config import DATA_PATH, METADATA_PREFIX, PUBLICATION_PREFIX
+from static_config.harvest_strategy_config import oa_harvesting_strategy
+from static_config.path_config import DATA_PATH, METADATA_PREFIX, PUBLICATION_PREFIX
 from infrastructure.storage import swift
 from domain.ovh_path import OvhPath
 from application.server.main.logger import get_logger
-from config.logger_config import LOGGER_LEVEL
+from static_config.logger_config import LOGGER_LEVEL
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
 
@@ -463,7 +463,7 @@ def _process_request(scraper, url, n=0, timeout_in_seconds=60):
 
 
 def wiley_curl(wiley_doi, filename):
-    from config.wiley_config import wiley_curl_cmd
+    from static_config.wiley_config import wiley_curl_cmd
     wiley_doi = wiley_doi.replace('/', '%2F')
     wiley_curl_cmd += f'{wiley_doi}" -o {filename}'
     subprocess.check_call(wiley_curl_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
@@ -481,7 +481,7 @@ def url_to_path(url, ext='.pdf.gz'):
 
 
 def arXiv_download(url, filename):
-    from config.swift_cli_config import init_cmd
+    from infrastructure.storage.swift import init_cmd
     file_path = url_to_path(url)
     subprocess.check_call(f'{init_cmd} download arxiv_harvesting {file_path} -o {filename}', shell=True)
 

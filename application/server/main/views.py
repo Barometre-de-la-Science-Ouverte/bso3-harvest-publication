@@ -4,7 +4,7 @@ from rq import Connection, Queue
 
 from application.server.main.tasks import (create_task_process,
                                            create_task_harvest_partition)
-from config.harvester_config import config_harvester
+from static_config.config_generator import config_json
 from infrastructure.storage.swift import Swift
 from ovh_handler import get_partitions
 
@@ -75,7 +75,7 @@ def run_task_process():
     spec_softcite_version = args.get('spec_softcite_version', '0')
     prefix = args.get('prefix', 'publication')
     break_after_one = args.get('break_after_one', True)
-    storage_handler = Swift(config_harvester)
+    storage_handler = Swift(config_json)
     partitions = get_partitions(storage_handler, prefix, partition_size)
     response_objects = []
     with Connection(redis.from_url(current_app.config['REDIS_URL'])):

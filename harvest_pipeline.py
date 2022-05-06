@@ -1,22 +1,22 @@
 import os
-from config.harvester_config import config_harvester
-from config.path_config import METADATA_LOCAL_FILE, DESTINATION_DIR_METADATA
+from static_config.config_generator import config_json
+from static_config.path_config import METADATA_LOCAL_FILE, DESTINATION_DIR_METADATA
 from harvester.OAHarvester import OAHarvester
 from infrastructure.database.db_handler import DBHandler
-from config.db_config import engine
+from infrastructure.database.db_init import engine
 from load_metadata import load_metadata
 from infrastructure.storage.swift import Swift
 from application.server.main.logger import get_logger
-from config.logger_config import LOGGER_LEVEL
+from static_config.logger_config import LOGGER_LEVEL
 logger = get_logger(__name__, level=LOGGER_LEVEL)
 
 
 
-METADATA_DUMP = config_harvester['metadata_dump']
+METADATA_DUMP = config_json['metadata_dump']
 
 NB_SAMPLES = 10
-harvester = OAHarvester(config_harvester, sample=NB_SAMPLES, sample_seed=4135)
-swift_handler = Swift(config_harvester)
+harvester = OAHarvester(config_json, sample=NB_SAMPLES, sample_seed=4135)
+swift_handler = Swift(config_json)
 db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
 
 if __name__ == '__main__':

@@ -1,0 +1,7 @@
+{
+  "FLASK_ENV": "dev",
+  "FLASK_IP": "127.0.0.1",
+  "FLASK_PORT": "",
+  "FLASK_DEBUG": 1
+}
+

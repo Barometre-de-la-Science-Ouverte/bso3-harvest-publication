@@ -1,10 +1,10 @@
 import json
 import os
 from infrastructure.storage.swift import Swift
-from config.harvester_config import config_harvester
+from static_config.config_generator import config_json
 from domain.ovh_path import OvhPath
 
-_swift = Swift(config_harvester)
+_swift = Swift(config_json)
 
 local_dir = [
     './tmp/downloaded_publications/9fea8e3a-344c-4552-874c-6852074bcdd1.json',

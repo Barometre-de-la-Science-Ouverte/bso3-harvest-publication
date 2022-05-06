@@ -106,6 +106,7 @@ celerybeat.pid
 
 # Environments
 .env
+refacto.env
 .venv
 env/
 venv/
@@ -153,8 +154,8 @@ OAHarvesterStreaming.py
 dump.json*
 map.json*
 failures.csv
-config/wiley_config.py
-config/arXiv_config.py
+static_config/wiley_config.py
+static_config/arXiv_config.py
 tests/cookies.txt
 tests/headers.txt
 htmlcov/

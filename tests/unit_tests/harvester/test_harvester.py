@@ -573,7 +573,7 @@ class HarvesterInit(TestCase):
     @mock.patch.object(OAHarvester, "_init_lmdb")
     def test_OAHarvester_init(self, mock_init_lmdb, mock_Swift):
         # Given
-        config_with_swift = config_harvester.copy()
+        config_with_swift = config_json.copy()
         config_with_swift["swift"] = "yes"
         # When
         harvester = OAHarvester(config_with_swift)

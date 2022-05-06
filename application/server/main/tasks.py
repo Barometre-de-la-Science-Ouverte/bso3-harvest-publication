@@ -5,16 +5,15 @@ from glob import glob
 import subprocess
 from time import time
 from typing import List
-from config.swift_cli_config import init_cmd
 import requests
 
 from application.server.main.logger import get_logger
-from config.db_config import engine
-from config.harvester_config import config_harvester
-from config.logger_config import LOGGER_LEVEL
-from config.path_config import (CONFIG_PATH_GROBID, CONFIG_PATH_SOFTCITE,
-                                DESTINATION_DIR_METADATA,
-                                PUBLICATIONS_DOWNLOAD_DIR, PROJECT_DIRNAME)
+from infrastructure.database.db_init import engine
+from static_config.config_generator import config_json
+from static_config.logger_config import LOGGER_LEVEL
+from static_config.path_config import (CONFIG_PATH_GROBID, CONFIG_PATH_SOFTCITE,
+                                       DESTINATION_DIR_METADATA,
+                                       PUBLICATIONS_DOWNLOAD_DIR)
 
 from grobid_client.grobid_client import GrobidClient
 from software_mentions_client.client import software_mentions_client as smc
@@ -27,12 +26,12 @@ from ovh_handler import download_files, upload_and_clean_up
 from run_grobid import run_grobid
 from run_softcite import run_softcite
 
-METADATA_DUMP = config_harvester['metadata_dump']
+METADATA_DUMP = config_json['metadata_dump']
 logger_console = get_logger(__name__, level=LOGGER_LEVEL)
 
 
 def create_task_harvest_partition(source_metadata_file, partition_index, total_partition_number, doi_list):
-    swift_handler = Swift(config_harvester)
+    swift_handler = Swift(config_json)
     db_handler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
 
     source_metadata_file = load_metadata(metadata_container=METADATA_DUMP,
@@ -44,7 +43,7 @@ def create_task_harvest_partition(source_metadata_file, partition_index, total_p
     write_partitioned_metadata_file(source_metadata_file, filtered_metadata_filename, partition_size, partition_index)
     write_partitioned_filtered_metadata_file(db_handler, filtered_metadata_filename, filtered_metadata_filename,
                                              doi_list)
-    harvester = OAHarvester(config_harvester)
+    harvester = OAHarvester(config_json)
     harvester.harvestUnpaywall(filtered_metadata_filename)
     harvester.diagnostic()
     logger_console.debug(f'{db_handler.count()} rows in database before harvesting')
@@ -59,7 +58,7 @@ def create_task_unpaywall(args):
     metadata_file = args.get('metadata_file', '')
     metadata_folder = args.get('metadata_folder', '')
 
-    swift_handler = Swift(config_harvester)
+    swift_handler = Swift(config_json)
     db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
     logger_console.debug('Database before harvesting')
     logger_console.debug(db_handler.fetch_all())
@@ -94,7 +93,7 @@ def create_task_unpaywall(args):
             else:
                 destination_dir_output = ''
                 logger_console.debug(f'destination dir output (file statement): {destination_dir_output}')
-            harvester = OAHarvester(config_harvester, sample=nb_samples, sample_seed=sample_seed)
+            harvester = OAHarvester(config_json, sample=nb_samples, sample_seed=sample_seed)
             logger_console.debug(f'metadata file in harvest unpaywall : {file}')
             logger_console.debug(f'metadata folder in harvest unpaywall : {destination_dir_output}')
             with gzip.open(file, 'rt') as f:
@@ -148,7 +147,7 @@ def filter_publications(db_handler, spec_softcite_version, spec_grobid_version):
 
 def create_task_process(files, spec_grobid_version, spec_softcite_version):
     logger_console.debug(f"Call with args: {files, spec_grobid_version, spec_softcite_version}")
-    _swift = Swift(config_harvester)
+    _swift = Swift(config_json)
     db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=_swift)
     entries_publications_softcite, entries_publications_grobid = filter_publications(db_handler, spec_softcite_version, spec_grobid_version)
     publications_grobid = [file for file in files if db_handler._get_uuid_from_path(file) in [e[1] for e in entries_publications_grobid]]
@@ -185,7 +184,7 @@ def create_task_prepare_harvest(doi_list, source_metadata_file, filtered_metadat
     logger_console.debug(f'doi_list {doi_list}')
     logger_console.debug(f'filtered_metadata_filename {filtered_metadata_filename}')
     logger_console.debug(f'force {force}')
-    swift_handler = Swift(config_harvester)
+    swift_handler = Swift(config_json)
     db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
     if not force:  # don't redo the ones already done
         doi_already_harvested = [entry[0] for entry in db_handler.fetch_all()]
@@ -243,5 +242,5 @@ def write_partitioned_filtered_metadata_file(db_handler: DBHandler,
 
 
 def create_task_clean_up(filtered_metadata_file):
-    from config.swift_cli_config import init_cmd
+    from infrastructure.storage.swift import init_cmd
     subprocess.check_call(f'{init_cmd} delete {METADATA_DUMP} {filtered_metadata_file}', shell=True)

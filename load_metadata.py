@@ -1,6 +1,6 @@
 import os
 
-from config.harvester_config import config_harvester
+from static_config.config_generator import config_json
 from infrastructure.storage.swift import Swift
 
 
@@ -9,7 +9,7 @@ def load_metadata(metadata_container, metadata_file, destination_dir, subfolder_
     Download latest publications staging file on bso_dump object storage
     Returns the path of the file once downloaded
     """
-    swift_handler = Swift(config_harvester)
+    swift_handler = Swift(config_json)
     local_file_destination = os.path.normpath(os.path.join(f'{destination_dir}', f'{metadata_file}'))
 
     if not os.path.isdir(destination_dir):

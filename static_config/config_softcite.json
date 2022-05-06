@@ -15,5 +15,6 @@
     "timeout": 3600,
     "log_file": "client.log",
     "log_level": "DEBUG",
-    "biblio_glutton_url": ""
+    "biblio_glutton_url": "",
+    "prefix_ovh": "softcite"
 }

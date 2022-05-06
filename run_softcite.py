@@ -1,6 +1,6 @@
 import os
 import sys
-from config.path_config import PUBLICATIONS_DOWNLOAD_DIR, CONFIG_PATH_SOFTCITE
+from static_config.path_config import PUBLICATIONS_DOWNLOAD_DIR, CONFIG_PATH_SOFTCITE
 
 
 def run_softcite(config_path, data_path, smc):

@@ -2,13 +2,13 @@ import json
 import os
 
 from harvester.OAHarvester import OAHarvester
-from config.path_config import CONFIG_PATH_TEST, DATA_PATH
+from static_config.path_config import CONFIG_PATH_TEST, DATA_PATH
 
 FIXTURES_PATH = os.path.dirname(__file__)
 
-config_harvester = json.load(open(CONFIG_PATH_TEST, "r"))
-harvester_2_publications = OAHarvester(config_harvester)
-harvester_2_publications_sample = OAHarvester(config_harvester, sample=1)
+config_json = json.load(open(CONFIG_PATH_TEST, "r"))
+harvester_2_publications = OAHarvester(config_json)
+harvester_2_publications_sample = OAHarvester(config_json, sample=1)
 
 sample_entries = [
     {

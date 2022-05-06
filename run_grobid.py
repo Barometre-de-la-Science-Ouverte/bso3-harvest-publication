@@ -1,7 +1,7 @@
 import os
 import sys
 from glob import glob
-from config.path_config import CONFIG_PATH_GROBID, PUBLICATIONS_DOWNLOAD_DIR
+from static_config.path_config import CONFIG_PATH_GROBID, PUBLICATIONS_DOWNLOAD_DIR
 
 
 def run_grobid(config_path, data_path, GrobidClient):
