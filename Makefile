@@ -1,7 +1,8 @@
 DOCKER_IMAGE_NAME=dataesr/bso3-harvest-publication
 CURRENT_VERSION=$(shell cat application/__init__.py | cut -d "'" -f 2)
-LOCAL_ENDPOINT="http://127.0.0.1:5004/harvest"
-PAYLOAD='{"nb_samples": 10, "metadata_file": "bso-publications-5k.jsonl.gz", "sample_seed":51552}'
+LOCAL_ENDPOINT="http://127.0.0.1:5004/harvest_partitions"
+PAYLOAD='{"metadata_file": "bso-publications-5k.jsonl.gz", "total_partition_number": 2, "doi_list": ["10.1111/jdv.15719"]}'
+ENV_VARIABLE_FILENAME=.env
 
 clean_up_files:
 	rm -rf logs/*
@@ -9,23 +10,30 @@ clean_up_files:
 	rm -rf lmdb/entries_software
 	rm -rf data/
 	rm -rf tmp/*
-	rm -rf __pycache__/
-	rm -rf */__pycache__/
-	rm -rf */*/__pycache__/
-	rm -rf */*/*/__pycache__/
+	find . | grep -E "(__pycache__|\.pyc|\.pyo)" | xargs rm -rf
+	rm -rf .ipynb_checkpoints/
 
 docker-build: clean_up_files
-	@echo Building a new docker image
+	cat config.json
+	./confirm_before_build.sh
+
+docker-build-local-image:
+	@echo Building a local image
+	docker build -t $(DOCKER_IMAGE_NAME):$(CURRENT_VERSION)_local -t $(DOCKER_IMAGE_NAME):latest_local .
+	@echo Docker image built
+
+docker-build-prod-image:
+	@echo Building a prod image
 	docker build -t $(DOCKER_IMAGE_NAME):$(CURRENT_VERSION) -t $(DOCKER_IMAGE_NAME):latest .
 	@echo Docker image built
 
 docker-push:
-	@echo Pushing a new docker image
+	@echo Pushing the prod image
 	docker push $(DOCKER_IMAGE_NAME):$(CURRENT_VERSION)
 	docker push $(DOCKER_IMAGE_NAME):latest
 	@echo Docker image pushed
 
-docker-up:
+integration-test: set-env-variables
 	@echo Start end-to-end testing
 	docker-compose up -d
 	sleep 15
@@ -33,6 +41,7 @@ docker-up:
 	sleep 200
 	records_counts_table=$(docker exec -e PGPASSWORD=password-dataESR-bso3 -i $(docker ps --filter "NAME=postgres" -q) psql -d postgres_db -U postgres -c 'SELECT count(*) FROM harvested_status_table LIMIT 1;' | awk 'FNR == 3 {print $1}')
 	if [[ "$records_counts_table" -eq "0" ]]; then echo "Test failure no records in postgres..."; else echo "Test success : record in postgres..."; fi
+	make unset-env-variables
 
 install: requirements
 	@echo Installing dependencies...
@@ -52,3 +61,17 @@ requirements:
 	# echo "git+https://github.com/Barometre-de-la-Science-Ouverte/grobid_client_python.git#egg=grobid_client_python" >> requirements.txt
 	# echo "# Softcite client package" >> requirements.txt
 	# echo "git+https://github.com/Barometre-de-la-Science-Ouverte/software_mentions_client#egg=software_mentions_client" >> requirements.txt
+
+unit-tests:
+	python -m unittest discover
+	python -m unittest
+
+set-env-variables:
+	export $(grep -v '^#' $(ENV_VARIABLE_FILENAME) | xargs)
+
+unset-env-variables:
+	unset $(grep -v '^#' .env | sed -E 's/(.*)=.*/\1/' | xargs)
+
+
+kube-count-nb-publications-in-db:
+	kubectl exec $(kubectl get pods -n default --no-headers=true | awk '/postgres/{print $1}') -- psql -d postgres_db -U postgres -c 'SELECT count(*) FROM harvested_status_table LIMIT 1;'

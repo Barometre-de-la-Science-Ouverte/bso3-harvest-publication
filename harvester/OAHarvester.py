@@ -16,6 +16,7 @@ from time import sleep
 import cloudscraper
 import lmdb
 import magic
+from requests.exceptions import ConnectTimeout
 import urllib3
 from bs4 import BeautifulSoup
 
@@ -25,6 +26,7 @@ from infrastructure.storage import swift
 from domain.ovh_path import OvhPath
 from application.server.main.logger import get_logger
 from config.logger_config import LOGGER_LEVEL
+
 logger = get_logger(__name__, level=LOGGER_LEVEL)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -50,6 +52,7 @@ only when the first is entirely processed. The harvesting process is not CPU bou
 
 class Continue(Exception):
     pass
+
 
 def calculate_pct(i, count):
     try:
@@ -164,10 +167,10 @@ class OAHarvester(object):
                                                                                                'bso_classification']}, os.path.join(
                     DATA_PATH, entry['id'] + ".pdf")
             elif entry.get("publisher_normalized") == "Springer":
-                #return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+                # return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
                 pass
             elif entry.get("publisher_normalized") == "Elsevier":
-                #return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+                # return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
                 pass
         raise Continue
 
@@ -268,14 +271,16 @@ class OAHarvester(object):
         with open(local_filename_json, 'w') as outfile:
             json.dump(local_entry, outfile)
 
-    def _upload_files(self, dest_path:OvhPath, local_filename, local_filename_json, **kwargs):
+    def _upload_files(self, dest_path: OvhPath, local_filename, local_filename_json, **kwargs):
         """Uploads all the resources associated to the entry to SWIFT object storage"""
         try:
             files_to_upload = []
             if os.path.isfile(local_filename):
-                files_to_upload.append((local_filename, OvhPath(PUBLICATION_PREFIX, dest_path, os.path.basename(local_filename))))
+                files_to_upload.append(
+                    (local_filename, OvhPath(PUBLICATION_PREFIX, dest_path, os.path.basename(local_filename))))
             if os.path.isfile(local_filename_json):
-                files_to_upload.append((local_filename_json, OvhPath(METADATA_PREFIX, dest_path, os.path.basename(local_filename_json))))
+                files_to_upload.append(
+                    (local_filename_json, OvhPath(METADATA_PREFIX, dest_path, os.path.basename(local_filename_json))))
             if len(files_to_upload) > 0:
                 self.swift.upload_files_to_swift(self.storage_publications, files_to_upload)
         except Exception as e:
@@ -432,24 +437,29 @@ def get_nth_key(dictionary, n=0):
     raise IndexError("dictionary index out of range")
 
 
-def _process_request(scraper, url, n=0):
-    if "cairn" in url:
-        headers = {'User-Agent': 'MESRI-Barometre-de-la-Science-Ouverte'}
-        file_data = scraper.get(url, headers=headers)
-    else:
-        file_data = scraper.get(url)
-    if file_data.status_code == 200:
-        if file_data.text[:5] == '%PDF-':
-            return file_data.content
-        elif n < 10:
-            soup = BeautifulSoup(file_data.text, 'html.parser')
-            if soup.select_one('a#redirect'):
-                redirect_url = soup.select_one('a#redirect')['href']
-                logger.debug('Waiting 5 seconds before following redirect url')
-                sleep(5)
-                logger.debug(f'Retry number {n + 1}')
-                return _process_request(scraper, redirect_url, n + 1)
-    return
+def _process_request(scraper, url, n=0, timeout_in_seconds=60):
+    try:
+        if "cairn" in url:
+            headers = {'User-Agent': 'MESRI-Barometre-de-la-Science-Ouverte'}
+            file_data = scraper.get(url, headers=headers, timeout=timeout_in_seconds)
+        else:
+            file_data = scraper.get(url, timeout=timeout_in_seconds)
+        if file_data.status_code == 200:
+            if file_data.text[:5] == '%PDF-':
+                return file_data.content
+            elif n < 5:
+                soup = BeautifulSoup(file_data.text, 'html.parser')
+                if soup.select_one('a#redirect'):
+                    redirect_url = soup.select_one('a#redirect')['href']
+                    logger.debug('Waiting 5 seconds before following redirect url')
+                    sleep(5)
+                    logger.debug(f'Retry number {n + 1}')
+                    return _process_request(scraper, redirect_url, n + 1)
+        else:
+            logger.debug(f"Response code is not successful: {file_data.status_code}")
+    except ConnectTimeout:
+        logger.exception("Connection Timeout", exc_info=True)
+        return
 
 
 def wiley_curl(wiley_doi, filename):
@@ -508,7 +518,7 @@ def _download_publication(urls, filename, local_entry):
                 harvester_used = 'standard'
                 break
             else:
-                raise Exception
+                raise Exception("The PDF content returned by _process_request is empty")
         except Exception:
             logger.exception(f"Download failed for {url}", exc_info=True)
             harvester_used = ''

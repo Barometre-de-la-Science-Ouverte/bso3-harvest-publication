@@ -1,128 +1,110 @@
-from os import remove
-from typing import List
 import redis
 from flask import Blueprint, current_app, jsonify, render_template, request
 from rq import Connection, Queue
 
-from application.server.main.tasks import (create_task_process,
-                                           create_task_unpaywall,
-                                           create_task_prepare_harvest,
-                                           create_task_clean_up)
+from application.server.main.tasks import create_task_process, create_task_harvest_partition
 from config.harvester_config import config_harvester
 from infrastructure.storage.swift import Swift
 from ovh_handler import get_partitions
 
-default_timeout = 43200000
+HOURS = 3600
 
-main_blueprint = Blueprint('main', __name__, )
+default_timeout = 6 * HOURS
+
+main_blueprint = Blueprint("main", __name__)
 
 
-@main_blueprint.route('/', methods=['GET'])
+@main_blueprint.route("/", methods=["GET"])
 def home():
-    return render_template('index.html')
+    return render_template("index.html")
 
 
-@main_blueprint.route('/harvest', methods=['POST'])
-def run_task_unpaywall():
-    """
-    Prepare a metadata file containing specific publications to (re)harvest and harvest it
-    """
+@main_blueprint.route("/harvest_partitions", methods=["POST"])
+def run_task_harvest_partitions():
     args = request.get_json(force=True)
-    force = args.setdefault('force', False)
-    source_metadata_file = args.get('metadata_file')
+    source_metadata_file = args.get("metadata_file")
+    total_partition_number = args.get("total_partition_number")
+    doi_list = args.get("doi_list", [])
     response_objects = []
-
-    # Prepare task
-    FILTERED_METADATA_FILE = 'bso-publications-filtered.jsonl.gz'
-    doi_list = args.get('doi_list', [])
-
-    if len(doi_list) > 0:
-        with Connection(redis.from_url(current_app.config['REDIS_URL'])):
-            q = Queue(name='pdf-harvester', default_timeout=default_timeout)
-            task = q.enqueue(create_task_prepare_harvest, doi_list, source_metadata_file, FILTERED_METADATA_FILE, force)
-        response_objects.append({
-            'status': 'success',
-            'data': {
-                'task_id': task.get_id()
+    with Connection(redis.from_url(current_app.config["REDIS_URL"])):
+        q = Queue(name="pdf-harvester", default_timeout=default_timeout)
+        for partition_index in range(total_partition_number + 1):
+            task_kwargs = {
+                "source_metadata_file": source_metadata_file,
+                "partition_index": partition_index,
+                "total_partition_number": total_partition_number,
+                "doi_list": doi_list,
+                "job_timeout": 3 * HOURS,
             }
-        })
-        args['metadata_file'] = FILTERED_METADATA_FILE
-
-    # Harvest task
-    with Connection(redis.from_url(current_app.config['REDIS_URL'])):
-        q = Queue(name='pdf-harvester', default_timeout=default_timeout)
-        task = q.enqueue(create_task_unpaywall, args)
-    response_objects.append({
-        'status': 'success',
-        'data': {
-            'task_id': task.get_id()
-        }
-    })
-    return jsonify(response_objects), 202
+            task = q.enqueue(create_task_harvest_partition, **task_kwargs)
+            response_objects.append({"status": "success", "data": {"task_id": task.get_id()}})
+    return jsonify(response_objects)
 
 
-@main_blueprint.route('/harvester_tasks/<task_id>', methods=['GET'])
+@main_blueprint.route("/harvester_tasks/<task_id>", methods=["GET"])
 def get_status_harvester(task_id):
-    with Connection(redis.from_url(current_app.config['REDIS_URL'])):
-        q = Queue('pdf-harvester')
+    with Connection(redis.from_url(current_app.config["REDIS_URL"])):
+        q = Queue("pdf-harvester")
         task = q.fetch_job(task_id)
     if task:
         response_object = {
-            'status': 'success',
-            'data': {
-                'task_id': task.get_id(),
-                'task_status': task.get_status(),
-                'task_result': task.result,
-            }
+            "status": "success",
+            "data": {
+                "task_id": task.get_id(),
+                "task_status": task.get_status(),
+                "task_result": task.result,
+            },
         }
     else:
-        response_object = {'status': 'error'}
+        response_object = {"status": "error"}
     return jsonify(response_object)
 
 
-@main_blueprint.route('/process', methods=['POST'])
+@main_blueprint.route("/process", methods=["POST"])
 def run_task_process():
     """
     Process publications using Grobid and Softcite
     """
     args = request.get_json(force=True)
-    partition_size = args.get('partition_size', 1_000)
-    do_grobid = args.get('do_grobid', True)
-    do_softcite = args.get('do_softcite', True)
-    prefix = args.get('prefix', '')
-    break_after_one = args.get('break_after_one', True)
+    partition_size = args.get("partition_size", 1_000)
+    spec_grobid_version = args.get("spec_grobid_version", "0")
+    spec_softcite_version = args.get("spec_softcite_version", "0")
+    prefix = args.get("prefix", "publication")
+    break_after_one = args.get("break_after_one", False)
     storage_handler = Swift(config_harvester)
     partitions = get_partitions(storage_handler, prefix, partition_size)
     response_objects = []
-    with Connection(redis.from_url(current_app.config['REDIS_URL'])):
-        q = Queue(name='pdf-processor', default_timeout=default_timeout)
+    with Connection(redis.from_url(current_app.config["REDIS_URL"])):
+        q = Queue(name="pdf-processor", default_timeout=default_timeout)
         for partition in partitions:
-            task = q.enqueue(create_task_process, kwargs={'files': partition, 'do_grobid': do_grobid, 'do_softcite': do_softcite})
-            response_objects.append({
-                'status': 'success',
-                'data': {
-                    'task_id': task.get_id()
-                }
-            })
+            task = q.enqueue(
+                create_task_process,
+                kwargs={
+                    "files": partition,
+                    "spec_grobid_version": spec_grobid_version,
+                    "spec_softcite_version": spec_softcite_version,
+                },
+            )
+            response_objects.append({"status": "success", "data": {"task_id": task.get_id()}})
             if break_after_one:
                 break
     return jsonify(response_objects)
 
 
-@main_blueprint.route('/processor_tasks/<task_id>', methods=['GET'])
+@main_blueprint.route("/processor_tasks/<task_id>", methods=["GET"])
 def get_status_processing(task_id):
-    with Connection(redis.from_url(current_app.config['REDIS_URL'])):
-        q = Queue('pdf-processor')
+    with Connection(redis.from_url(current_app.config["REDIS_URL"])):
+        q = Queue("pdf-processor")
         task = q.fetch_job(task_id)
     if task:
         response_object = {
-            'status': 'success',
-            'data': {
-                'task_id': task.get_id(),
-                'task_status': task.get_status(),
-                'task_result': task.result,
-            }
+            "status": "success",
+            "data": {
+                "task_id": task.get_id(),
+                "task_status": task.get_status(),
+                "task_result": task.result,
+            },
         }
     else:
-        response_object = {'status': 'error'}
+        response_object = {"status": "error"}
     return jsonify(response_object)

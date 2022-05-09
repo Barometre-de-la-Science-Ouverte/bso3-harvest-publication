@@ -1,7 +1,7 @@
 {
     "software_mention_host": "softcite", 
     "software_mention_port": "8060",
-    "data_path": "./lmdb",
+    "data_path": "./data",
     "aws_access_key_id": "",
     "aws_secret_access_key": "",
     "bucket_name": "",
