@@ -141,7 +141,7 @@ class OAHarvester(object):
 
     def _parse_entry(self, entry):
         """Parse entry to get url, entry, filename"""
-        latest_observation = entry['oa_details'][get_nth_key(entry['oa_details'], -1)]
+        latest_observation = get_latest_publication(entry)
         if latest_observation['is_oa']:
             urls_for_pdf = {}
             oa_locations = {}
@@ -339,7 +339,6 @@ class OAHarvester(object):
         with self.env.begin(write=True) as txn:
             nb_total = txn.stat()['entries']
         logger.info(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
-        print(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
 
     def reset_lmdb(self):
         """
@@ -428,13 +427,11 @@ def _count_entries(open_fn, filepath):
         raise FileNotFoundError(f'{filepath} does not exist')
 
 
-def get_nth_key(dictionary, n=0):
-    if n < 0:
-        n += len(dictionary)
-    for i, key in enumerate(dictionary.keys()):
-        if i == n:
-            return key
-    raise IndexError("dictionary index out of range")
+def get_latest_publication(publication_metadata: dict) -> dict:
+    latest_publication_date_sorted_list = list(publication_metadata['oa_details'].keys())
+    latest_publication_date_sorted_list.sort()
+    latest_publication_date = latest_publication_date_sorted_list[-1]
+    return publication_metadata['oa_details'][latest_publication_date]
 
 
 def _process_request(scraper, url, n=0, timeout_in_seconds=60):
@@ -483,6 +480,7 @@ def url_to_path(url, ext='.pdf.gz'):
 def arXiv_download(url, filename):
     from config.swift_cli_config import init_cmd
     file_path = url_to_path(url)
+    logger.debug(f"URL arxiv to Download: Before = {url}. *** After = {file_path}")
     subprocess.check_call(f'{init_cmd} download arxiv_harvesting {file_path} -o {filename}', shell=True)
 
 
@@ -490,6 +488,7 @@ def _download_publication(urls, filename, local_entry):
     result = "fail"
     for url in urls:
         try:
+            logger.debug(f"Publication URL to download = {url}. Filename = {filename}")
             if 'arxiv' in url:
                 arXiv_download(url, filename)
                 if os.path.getsize(filename) > 0:
@@ -518,7 +517,7 @@ def _download_publication(urls, filename, local_entry):
                 harvester_used = 'standard'
                 break
             else:
-                raise Exception("The PDF content returned by _process_request is empty")
+                raise Exception(f"The PDF content returned by _process_request is empty. URL = {url}")
         except Exception:
             logger.exception(f"Download failed for {url}", exc_info=True)
             harvester_used = ''

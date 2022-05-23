@@ -6,8 +6,8 @@ from unittest import TestCase, mock
 from harvester.OAHarvester import (Continue, OAHarvester, _apply_selection, _check_entry,
                                    _count_entries, _download_publication, cloudscraper,
                                    _sample_selection, compress, uuid, url_to_path,
-                                   generateStoragePath, update_dict, get_nth_key, _process_request,
-                                   OvhPath, METADATA_PREFIX, PUBLICATION_PREFIX)
+                                   generateStoragePath, update_dict, _process_request,
+                                   OvhPath, METADATA_PREFIX, PUBLICATION_PREFIX, get_latest_publication)
 from tests.unit_tests.fixtures.harvester import *
 
 
@@ -81,7 +81,7 @@ class HarvestUnpaywall(TestCase):
     @mock.patch.object(OAHarvester, "processBatch")
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test_when_2_publications_and_sample_is_1_then_processBatch_is_called_with_1_element(
-        self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4, mock_sample_selection
+            self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4, mock_sample_selection
     ):
         # Given a file path
         filepath = os.path.join(FIXTURES_PATH, "dump_2_publications.jsonl.gz.test")
@@ -104,7 +104,7 @@ class HarvestUnpaywall(TestCase):
     @mock.patch.object(OAHarvester, "processBatch")
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test_when_2_publications_then_processBatch_is_called(
-        self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4
+            self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4
     ):
         # Given a file path
         filepath = os.path.join(FIXTURES_PATH, "dump_2_publications.jsonl.gz.test")
@@ -143,9 +143,9 @@ class HarvestUnpaywall(TestCase):
             urls = [e[0] for e in batch]
             entries = [e[1] for e in batch]
             filenames = [e[2] for e in batch]
-            self.assertEqual(urls, expected_urls[i * batch_size : (i + 1) * batch_size])
-            self.assertEqual(entries, expected_entries[i * batch_size : (i + 1) * batch_size])
-            self.assertEqual(filenames, expected_filenames[i * batch_size : (i + 1) * batch_size])
+            self.assertEqual(urls, expected_urls[i * batch_size: (i + 1) * batch_size])
+            self.assertEqual(entries, expected_entries[i * batch_size: (i + 1) * batch_size])
+            self.assertEqual(filenames, expected_filenames[i * batch_size: (i + 1) * batch_size])
 
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test__process_entry_when_entry_already_processed(self, mock_getUUIDByIdentifier):
@@ -243,8 +243,8 @@ class HarvestUnpaywall(TestCase):
         mock_uuid4.return_value = expected_id
         # When
         _check_entry(entry, entry["doi"], harvester_2_publications.getUUIDByIdentifier,
-                    reprocess=False, env=harvester_2_publications.env,
-                    env_doi=harvester_2_publications.env_doi)
+                     reprocess=False, env=harvester_2_publications.env,
+                     env_doi=harvester_2_publications.env_doi)
         # Then
         self.assertEqual(entry["id"], expected_id)
 
@@ -393,18 +393,24 @@ class UpdateDict(TestCase):
         self.assertDictEqual(mydict, expected_dict)
 
 
-class GetNthKey(TestCase):
-    def test_get_nth_key(self):
+class GetLatestPublication(TestCase):
+    def test_get_latest_publication(self):
         # Given
-        mydict = {"a": [1], "b": [1, 2], "c": [1, 2, 3]}
+        publication_metadata = {
+            'oa_details': {
+                '2019': {'b'},
+                '2020': {'c'},
+                '2021': {'d'},
+                '2021Q1': {'e'},
+                '2021Q4': {'f'}
+            }
+        }
+        expected_publication = {'f'}
+
+        # When
+        latest_publication = get_latest_publication(publication_metadata)
         # Then
-        self.assertEqual(get_nth_key(mydict, 0), "a")
-        self.assertEqual(get_nth_key(mydict, 1), "b")
-        self.assertEqual(get_nth_key(mydict, -1), "c")
-        with self.assertRaises(IndexError):
-            get_nth_key(mydict, 3)
-        with self.assertRaises(IndexError):
-            get_nth_key(mydict, -4)
+        self.assertEqual(latest_publication, expected_publication)
 
 
 class Download(TestCase):
@@ -438,7 +444,7 @@ class Download(TestCase):
     @mock.patch("harvester.OAHarvester._process_request")
     @mock.patch("harvester.OAHarvester.arXiv_download")
     def test_fallback_download_when_arXiv_download_does_not_work(
-        self, mock_arXiv_download, mock_process_request, mock_getsize
+            self, mock_arXiv_download, mock_process_request, mock_getsize
     ):
         # Given
         mock_arXiv_download.return_value = "fail"
@@ -454,7 +460,7 @@ class Download(TestCase):
     @mock.patch("harvester.OAHarvester._process_request")
     @mock.patch("harvester.OAHarvester.wiley_curl")
     def test_fallback_download_when_wiley_download_does_not_work(
-        self, mock_wiley_curl, mock_process_request, mock_getsize
+            self, mock_wiley_curl, mock_process_request, mock_getsize
     ):
         # Given
         mock_wiley_curl.return_value = "fail"
