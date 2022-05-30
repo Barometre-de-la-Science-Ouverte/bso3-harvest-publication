@@ -1,0 +1,3 @@
+
+class EmptyFileContentException(Exception):
+    pass

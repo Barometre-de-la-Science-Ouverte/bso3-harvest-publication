@@ -3,11 +3,12 @@ import gzip
 import unittest
 from unittest import TestCase, mock
 
-from harvester.OAHarvester import (Continue, OAHarvester, _apply_selection, _check_entry,
+from harvester.OAHarvester import (Continue, _apply_selection, _check_entry,
                                    _count_entries, _download_publication, cloudscraper,
                                    _sample_selection, compress, uuid, url_to_path,
                                    generateStoragePath, update_dict, _process_request,
                                    OvhPath, METADATA_PREFIX, PUBLICATION_PREFIX, get_latest_publication)
+from harvester.utils import is_file_not_empty
 from tests.unit_tests.fixtures.harvester import *
 
 
@@ -423,7 +424,7 @@ class Download(TestCase):
         # Then
         self.assertEqual(result, "success")
         self.assertEqual(local_entry["harvester_used"], "wiley")
-        self.assertTrue(os.path.getsize(filename) > 0)
+        self.assertTrue(is_file_not_empty(filename))
         os.remove(filename)
 
     def test_arXiv_url_to_path(self):
@@ -481,7 +482,7 @@ class Download(TestCase):
         # Then
         self.assertEqual(result, "success")
         self.assertEqual(local_entry["harvester_used"], "arxiv")
-        self.assertTrue(os.path.getsize(filename) > 0)
+        self.assertTrue(is_file_not_empty(filename))
         os.remove(filename)
 
 

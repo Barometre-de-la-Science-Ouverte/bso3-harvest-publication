@@ -1,9 +1,10 @@
 import unittest
 from unittest import TestCase, mock
-from ovh_handler import generateStoragePath, download_files, upload_and_clean_up, glob, os
-from tests.unit_tests.fixtures.swift_object import _swift, local_dir, grobid_files_to_upload, softcite_files_to_upload
-from infrastructure.storage.swift import Swift
+
 from domain.ovh_path import OvhPath
+from infrastructure.storage.swift import Swift
+from ovh_handler import generateStoragePath, download_files, upload_and_clean_up
+from tests.unit_tests.fixtures.swift_object import _swift, local_dir, grobid_files_to_upload, softcite_files_to_upload
 
 
 class OvhHandler(TestCase):
@@ -27,13 +28,15 @@ class OvhHandler(TestCase):
         # When
         download_files(_swift, dest_dir, files)
         # Then
-        mock_swift_download_files.assert_called_with(_swift.config['publications_dump'], ["file1.pdf", "file2.pdf"], dest_dir)
+        mock_swift_download_files.assert_called_with(_swift.config['publications_dump'], ["file1.pdf", "file2.pdf"],
+                                                     dest_dir)
 
     @mock.patch("ovh_handler.os.makedirs")
     @mock.patch("ovh_handler.os.path.exists")
     @mock.patch.object(Swift, "download_files")
     @mock.patch.object(Swift, "get_swift_list")
-    def test_download_dir_is_created_when_does_not_exists(self, mock_get_swift_list, mock_swift_download_files, mock_path_exists, mock_makedirs):
+    def test_download_dir_is_created_when_does_not_exists(self, mock_get_swift_list, mock_swift_download_files,
+                                                          mock_path_exists, mock_makedirs):
         # Given
         dest_dir = "."
         mock_path_exists.return_value = False
@@ -41,7 +44,7 @@ class OvhHandler(TestCase):
         download_files(_swift, dest_dir, files=[])
         # Then
         mock_makedirs.assert_called_with(dest_dir)
-    
+
     @mock.patch("ovh_handler.os.remove")
     @mock.patch("ovh_handler.glob")
     @mock.patch.object(Swift, "upload_files_to_swift")
@@ -57,6 +60,7 @@ class OvhHandler(TestCase):
         mock_glob.assert_called_once()
         mock_upload_files_to_swift.assert_called_with(_swift.config['publications_dump'], upload_files)
         mock_remove.assert_called_with(last_file)
+
 
 # TODO test clients directely
 # class SoftciteStep(TestCase):

@@ -22,6 +22,8 @@ from bs4 import BeautifulSoup
 
 from config.harvest_strategy_config import oa_harvesting_strategy
 from config.path_config import DATA_PATH, METADATA_PREFIX, PUBLICATION_PREFIX
+from harvester.exception import EmptyFileContentException
+from harvester.utils import is_file_not_empty
 from infrastructure.storage import swift
 from domain.ovh_path import OvhPath
 from application.server.main.logger import get_logger
@@ -491,14 +493,14 @@ def _download_publication(urls, filename, local_entry):
             logger.debug(f"Publication URL to download = {url}. Filename = {filename}")
             if 'arxiv' in url:
                 arXiv_download(url, filename)
-                if os.path.getsize(filename) > 0:
+                if is_file_not_empty(filename):
                     logger.debug(f"Download {local_entry['doi']} via arXiv_harvesting")
                     result = "success"
                     harvester_used = 'arxiv'
                     break
             elif 'wiley' in url:
                 wiley_curl(local_entry['doi'], filename)
-                if os.path.getsize(filename) > 0:
+                if is_file_not_empty(filename):
                     logger.debug(f"Download {local_entry['doi']} via wiley API")
                     result = "success"
                     harvester_used = 'wiley'
@@ -517,7 +519,7 @@ def _download_publication(urls, filename, local_entry):
                 harvester_used = 'standard'
                 break
             else:
-                raise Exception(f"The PDF content returned by _process_request is empty. URL = {url}")
+                raise EmptyFileContentException(f"The PDF content returned by _process_request is empty. URL = {url}")
         except Exception:
             logger.exception(f"Download failed for {url}", exc_info=True)
             harvester_used = ''
@@ -536,7 +538,7 @@ def _is_valid_file(file, mime_type):
         target_mime.append("application/" + mime_type)
     file_type = ""
     if os.path.isfile(file):
-        if os.path.getsize(file) == 0:
+        if not is_file_not_empty(file):
             return False
         file_type = magic.from_file(file, mime=True)
     return file_type in target_mime
