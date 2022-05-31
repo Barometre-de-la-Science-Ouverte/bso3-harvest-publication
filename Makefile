@@ -1,7 +1,7 @@
 DOCKER_IMAGE_NAME=dataesr/bso3-harvest-publication
 CURRENT_VERSION=$(shell cat application/__init__.py | cut -d "'" -f 2)
 LOCAL_ENDPOINT="http://127.0.0.1:5004/harvest_partitions"
-PAYLOAD='{"metadata_file": "bso-publications-5k.jsonl.gz", "total_partition_number": 2, "doi_list": ["10.1111/jdv.15719"]}'
+PAYLOAD='{"metadata_file": "bso-publications-5k.jsonl.gz", "total_partition_number": 2, "doi_list": ["10.1111/jdv.15719", "10.1016/s1773-035x(19)30258-8", "10.1016/s2055-6640(20)30035-2"]}'
 ENV_VARIABLE_FILENAME=.env
 
 clean_up_files:
@@ -33,7 +33,7 @@ docker-push:
 	docker push $(DOCKER_IMAGE_NAME):latest
 	@echo Docker image pushed
 
-integration-test: set-env-variables
+integration-test: set-env-variables docker-build
 	@echo Start end-to-end testing
 	docker-compose up -d
 	sleep 15

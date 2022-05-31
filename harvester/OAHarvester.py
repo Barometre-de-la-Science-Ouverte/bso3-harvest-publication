@@ -3,29 +3,25 @@ import json
 import logging
 import os
 import pickle
-import re
 import shutil
-import subprocess
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from multiprocessing import cpu_count
 from random import sample, seed
-from time import sleep
 
-import cloudscraper
 import lmdb
 import magic
-from requests.exceptions import ConnectTimeout
 import urllib3
-from bs4 import BeautifulSoup
 
-from config.harvest_strategy_config import oa_harvesting_strategy
-from config.path_config import DATA_PATH, METADATA_PREFIX, PUBLICATION_PREFIX
-from infrastructure.storage import swift
-from domain.ovh_path import OvhPath
 from application.server.main.logger import get_logger
+from config.harvest_strategy_config import oa_harvesting_strategy
 from config.logger_config import LOGGER_LEVEL
+from config.path_config import DATA_PATH, METADATA_PREFIX, PUBLICATION_PREFIX
+from domain.ovh_path import OvhPath
+from harvester.download_publication_utils import _download_publication
+from harvester.file_utils import is_file_not_empty
+from infrastructure.storage import swift
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
 
@@ -61,7 +57,7 @@ def calculate_pct(i, count):
         return 0
 
 
-class OAHarvester(object):
+class OAHarvester:
 
     def __init__(self, config, sample=None, sample_seed=None):
         self.config = config
@@ -141,7 +137,7 @@ class OAHarvester(object):
 
     def _parse_entry(self, entry):
         """Parse entry to get url, entry, filename"""
-        latest_observation = entry['oa_details'][get_nth_key(entry['oa_details'], -1)]
+        latest_observation = get_latest_publication(entry)
         if latest_observation['is_oa']:
             urls_for_pdf = {}
             oa_locations = {}
@@ -208,11 +204,16 @@ class OAHarvester(object):
             valid_file = False
 
             local_filename = os.path.join(DATA_PATH, local_entry['id'])
+            # TODO: if result = 'fail' no need to do the check?
+            logger.debug(
+                f'Validating the file of the publication with doi = {local_entry["doi"]},'
+                f'result = {result}, harvester used = {local_entry["harvester_used"]}')
             if os.path.isfile(local_filename + ".pdf"):
                 if _is_valid_file(local_filename + ".pdf", "pdf"):
                     valid_file = True
                     local_entry["valid_fulltext_pdf"] = True
 
+            # TODO: result = '', 'success' or 'fail' and never None or '0
             if (result is None or result == "0" or result == "success") and valid_file:
                 # logger.info(json.dumps({"Stats": {"is_harvested": True, "entry": local_entry}}))
                 # update DB
@@ -339,7 +340,6 @@ class OAHarvester(object):
         with self.env.begin(write=True) as txn:
             nb_total = txn.stat()['entries']
         logger.info(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
-        print(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
 
     def reset_lmdb(self):
         """
@@ -428,105 +428,11 @@ def _count_entries(open_fn, filepath):
         raise FileNotFoundError(f'{filepath} does not exist')
 
 
-def get_nth_key(dictionary, n=0):
-    if n < 0:
-        n += len(dictionary)
-    for i, key in enumerate(dictionary.keys()):
-        if i == n:
-            return key
-    raise IndexError("dictionary index out of range")
-
-
-def _process_request(scraper, url, n=0, timeout_in_seconds=60):
-    try:
-        if "cairn" in url:
-            headers = {'User-Agent': 'MESRI-Barometre-de-la-Science-Ouverte'}
-            file_data = scraper.get(url, headers=headers, timeout=timeout_in_seconds)
-        else:
-            file_data = scraper.get(url, timeout=timeout_in_seconds)
-        if file_data.status_code == 200:
-            if file_data.text[:5] == '%PDF-':
-                return file_data.content
-            elif n < 5:
-                soup = BeautifulSoup(file_data.text, 'html.parser')
-                if soup.select_one('a#redirect'):
-                    redirect_url = soup.select_one('a#redirect')['href']
-                    logger.debug('Waiting 5 seconds before following redirect url')
-                    sleep(5)
-                    logger.debug(f'Retry number {n + 1}')
-                    return _process_request(scraper, redirect_url, n + 1)
-        else:
-            logger.debug(f"Response code is not successful: {file_data.status_code}")
-    except ConnectTimeout:
-        logger.exception("Connection Timeout", exc_info=True)
-        return
-
-
-def wiley_curl(wiley_doi, filename):
-    from config.wiley_config import wiley_curl_cmd
-    wiley_doi = wiley_doi.replace('/', '%2F')
-    wiley_curl_cmd += f'{wiley_doi}" -o {filename}'
-    subprocess.check_call(wiley_curl_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-
-
-def url_to_path(url, ext='.pdf.gz'):
-    try:
-        _id = re.findall(r"arxiv\.org/pdf/(.*)$", url)[0]
-        prefix = "arxiv" if _id[0].isdigit() else _id.split('/')[0]
-        filename = url.split('/')[-1]
-        yymm = filename[:4]
-        return '/'.join([prefix, yymm, filename, filename + ext])
-    except:
-        logger.exception("Incorrect arXiv url format, could not extract path")
-
-
-def arXiv_download(url, filename):
-    from config.swift_cli_config import init_cmd
-    file_path = url_to_path(url)
-    subprocess.check_call(f'{init_cmd} download arxiv_harvesting {file_path} -o {filename}', shell=True)
-
-
-def _download_publication(urls, filename, local_entry):
-    result = "fail"
-    for url in urls:
-        try:
-            if 'arxiv' in url:
-                arXiv_download(url, filename)
-                if os.path.getsize(filename) > 0:
-                    logger.debug(f"Download {local_entry['doi']} via arXiv_harvesting")
-                    result = "success"
-                    harvester_used = 'arxiv'
-                    break
-            elif 'wiley' in url:
-                wiley_curl(local_entry['doi'], filename)
-                if os.path.getsize(filename) > 0:
-                    logger.debug(f"Download {local_entry['doi']} via wiley API")
-                    result = "success"
-                    harvester_used = 'wiley'
-                    break
-            elif 'springer' in url:
-                pass
-            elif 'elsevier' in url:
-                pass
-            scraper = cloudscraper.create_scraper(interpreter='nodejs')
-            content = _process_request(scraper, url)
-            if content:
-                logger.debug(f"Download {local_entry['doi']} via standard request")
-                with open(filename, 'wb') as f_out:
-                    f_out.write(content)
-                result = 'success'
-                harvester_used = 'standard'
-                break
-            else:
-                raise Exception("The PDF content returned by _process_request is empty")
-        except Exception:
-            logger.exception(f"Download failed for {url}", exc_info=True)
-            harvester_used = ''
-            url = ''
-    local_entry['harvester_used'] = harvester_used
-    local_entry['url_used'] = url
-
-    return result, local_entry
+def get_latest_publication(publication_metadata: dict) -> dict:
+    latest_publication_date_sorted_list = list(publication_metadata['oa_details'].keys())
+    latest_publication_date_sorted_list.sort()
+    latest_publication_date = latest_publication_date_sorted_list[-1]
+    return publication_metadata['oa_details'][latest_publication_date]
 
 
 def _is_valid_file(file, mime_type):
@@ -537,7 +443,7 @@ def _is_valid_file(file, mime_type):
         target_mime.append("application/" + mime_type)
     file_type = ""
     if os.path.isfile(file):
-        if os.path.getsize(file) == 0:
+        if not is_file_not_empty(file):
             return False
         file_type = magic.from_file(file, mime=True)
     return file_type in target_mime

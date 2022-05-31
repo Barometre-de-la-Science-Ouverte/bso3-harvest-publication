@@ -3,11 +3,9 @@ import gzip
 import unittest
 from unittest import TestCase, mock
 
-from harvester.OAHarvester import (Continue, OAHarvester, _apply_selection, _check_entry,
-                                   _count_entries, _download_publication, cloudscraper,
-                                   _sample_selection, compress, uuid, url_to_path,
-                                   generateStoragePath, update_dict, get_nth_key, _process_request,
-                                   OvhPath, METADATA_PREFIX, PUBLICATION_PREFIX)
+from harvester.OAHarvester import (Continue, _apply_selection, _check_entry,
+                                   _count_entries, _sample_selection, compress, uuid, generateStoragePath, update_dict,
+                                   OvhPath, METADATA_PREFIX, PUBLICATION_PREFIX, get_latest_publication)
 from tests.unit_tests.fixtures.harvester import *
 
 
@@ -81,7 +79,7 @@ class HarvestUnpaywall(TestCase):
     @mock.patch.object(OAHarvester, "processBatch")
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test_when_2_publications_and_sample_is_1_then_processBatch_is_called_with_1_element(
-        self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4, mock_sample_selection
+            self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4, mock_sample_selection
     ):
         # Given a file path
         filepath = os.path.join(FIXTURES_PATH, "dump_2_publications.jsonl.gz.test")
@@ -104,7 +102,7 @@ class HarvestUnpaywall(TestCase):
     @mock.patch.object(OAHarvester, "processBatch")
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test_when_2_publications_then_processBatch_is_called(
-        self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4
+            self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4
     ):
         # Given a file path
         filepath = os.path.join(FIXTURES_PATH, "dump_2_publications.jsonl.gz.test")
@@ -143,9 +141,9 @@ class HarvestUnpaywall(TestCase):
             urls = [e[0] for e in batch]
             entries = [e[1] for e in batch]
             filenames = [e[2] for e in batch]
-            self.assertEqual(urls, expected_urls[i * batch_size : (i + 1) * batch_size])
-            self.assertEqual(entries, expected_entries[i * batch_size : (i + 1) * batch_size])
-            self.assertEqual(filenames, expected_filenames[i * batch_size : (i + 1) * batch_size])
+            self.assertEqual(urls, expected_urls[i * batch_size: (i + 1) * batch_size])
+            self.assertEqual(entries, expected_entries[i * batch_size: (i + 1) * batch_size])
+            self.assertEqual(filenames, expected_filenames[i * batch_size: (i + 1) * batch_size])
 
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test__process_entry_when_entry_already_processed(self, mock_getUUIDByIdentifier):
@@ -243,8 +241,8 @@ class HarvestUnpaywall(TestCase):
         mock_uuid4.return_value = expected_id
         # When
         _check_entry(entry, entry["doi"], harvester_2_publications.getUUIDByIdentifier,
-                    reprocess=False, env=harvester_2_publications.env,
-                    env_doi=harvester_2_publications.env_doi)
+                     reprocess=False, env=harvester_2_publications.env,
+                     env_doi=harvester_2_publications.env_doi)
         # Then
         self.assertEqual(entry["id"], expected_id)
 
@@ -393,179 +391,24 @@ class UpdateDict(TestCase):
         self.assertDictEqual(mydict, expected_dict)
 
 
-class GetNthKey(TestCase):
-    def test_get_nth_key(self):
+class GetLatestPublication(TestCase):
+    def test_get_latest_publication(self):
         # Given
-        mydict = {"a": [1], "b": [1, 2], "c": [1, 2, 3]}
-        # Then
-        self.assertEqual(get_nth_key(mydict, 0), "a")
-        self.assertEqual(get_nth_key(mydict, 1), "b")
-        self.assertEqual(get_nth_key(mydict, -1), "c")
-        with self.assertRaises(IndexError):
-            get_nth_key(mydict, 3)
-        with self.assertRaises(IndexError):
-            get_nth_key(mydict, -4)
+        publication_metadata = {
+            'oa_details': {
+                '2019': {'b'},
+                '2020': {'c'},
+                '2021': {'d'},
+                '2021Q1': {'e'},
+                '2021Q4': {'f'}
+            }
+        }
+        expected_publication = {'f'}
 
-
-class Download(TestCase):
-    @unittest.skip("No config on github")
-    def test_wiley_download(self):
-        # Given
-        urls, local_entry, filename = wiley_parsed_entry
         # When
-        result, local_entry = _download_publication(urls, filename, local_entry)
+        latest_publication = get_latest_publication(publication_metadata)
         # Then
-        self.assertEqual(result, "success")
-        self.assertEqual(local_entry["harvester_used"], "wiley")
-        self.assertTrue(os.path.getsize(filename) > 0)
-        os.remove(filename)
-
-    def test_arXiv_url_to_path(self):
-        # Given
-        ext = ".pdf.gz"
-        post_07_arXiv_url = "http://arxiv.org/pdf/1501.00001"
-        expected_post_07_arXiv_path = "arxiv/1501/1501.00001/1501.00001" + ext
-        pre_07_arXiv_url = "https://arxiv.org/pdf/quant-ph/0602109"
-        expected_pre_07_arXiv_path = "quant-ph/0602/0602109/0602109" + ext
-        # When
-        post_07_arXiv_path = url_to_path(post_07_arXiv_url, ext)
-        pre_07_arXiv_path = url_to_path(pre_07_arXiv_url, ext)
-        # Then
-        self.assertEqual(post_07_arXiv_path, expected_post_07_arXiv_path)
-        self.assertEqual(pre_07_arXiv_path, expected_pre_07_arXiv_path)
-
-    @mock.patch("os.path.getsize")
-    @mock.patch("harvester.OAHarvester._process_request")
-    @mock.patch("harvester.OAHarvester.arXiv_download")
-    def test_fallback_download_when_arXiv_download_does_not_work(
-        self, mock_arXiv_download, mock_process_request, mock_getsize
-    ):
-        # Given
-        mock_arXiv_download.return_value = "fail"
-        mock_getsize.return_value = 0
-        urls, local_entry, filename = arXiv_parsed_entry
-        # When
-        result, _ = _download_publication(urls, filename, local_entry)
-        # Then
-        mock_process_request.assert_called()
-        os.remove(filename)
-
-    @mock.patch("os.path.getsize")
-    @mock.patch("harvester.OAHarvester._process_request")
-    @mock.patch("harvester.OAHarvester.wiley_curl")
-    def test_fallback_download_when_wiley_download_does_not_work(
-        self, mock_wiley_curl, mock_process_request, mock_getsize
-    ):
-        # Given
-        mock_wiley_curl.return_value = "fail"
-        mock_getsize.return_value = 0
-        urls, local_entry, filename = wiley_parsed_entry
-        # When
-        result, _ = _download_publication(urls, filename, local_entry)
-        # Then
-        mock_process_request.assert_called()
-        os.remove(filename)
-
-    @unittest.skip("No config on github")
-    def test_arXiv_download(self):
-        # Given
-        urls, local_entry, filename = arXiv_parsed_entry
-        # When
-        result, local_entry = _download_publication(urls, filename, local_entry)
-        # Then
-        self.assertEqual(result, "success")
-        self.assertEqual(local_entry["harvester_used"], "arxiv")
-        self.assertTrue(os.path.getsize(filename) > 0)
-        os.remove(filename)
-
-
-class ProcessRequest(TestCase):
-    def test_process_request_cairn_in_url(self):
-        # Given
-        url = "a_cairn_url"
-        expected_headers = {"User-Agent": "MESRI-Barometre-de-la-Science-Ouverte"}
-        scraper = abc
-        scraper.get = mock.MagicMock()
-        # When
-        _process_request(scraper, url)
-        # Then
-        scraper.get.assert_called_with(url, headers=expected_headers, timeout=60)
-
-    def test_process_request_standard_url_no_specific_header(self):
-        # Given
-        url = ""
-        scraper = abc
-        scraper.get = mock.MagicMock()
-        # When
-        _process_request(scraper, url)
-        # Then
-        scraper.get.assert_called_with(url, timeout=60)
-
-    def test_process_request_not_200(self):
-        # Given
-        url = ""
-        scraper = abc
-        scraper.get = mock.MagicMock()
-
-        expected_response = mock.MagicMock()
-        expected_response.status_code = 400
-
-        scraper.get.return_value = expected_response
-        # When
-        content = _process_request(scraper, url)
-        # Then
-        self.assertIsNone(content)
-
-    def test_process_request_200_pdf(self):
-        # Given
-        url = ""
-        scraper = abc
-        scraper.get = mock.MagicMock()
-
-        expected_response = mock.MagicMock()
-        expected_response.status_code = 200
-        expected_response.text = "%PDF-"
-        expected_content = "expected_content"
-        expected_response.content = expected_content
-
-        scraper.get.return_value = expected_response
-        # When
-        content = _process_request(scraper, url)
-        # Then
-        self.assertEqual(content, expected_content)
-
-    @mock.patch("harvester.OAHarvester.BeautifulSoup")
-    def test_process_request_200_not_pdf(self, mock_BeautifulSoup):
-        # Given
-        url = ""
-        scraper = abc
-        scraper.get = mock.MagicMock()
-
-        expected_response = mock.MagicMock()
-        expected_response.status_code = 200
-        expected_response.text = "html_content"
-
-        scraper.get.return_value = expected_response
-        soup_mock = mock.MagicMock()
-        redirect_url = "redirect_url"
-        soup_mock.select_one = mock.MagicMock(return_value={"href": redirect_url})
-        mock_BeautifulSoup.return_value = soup_mock
-        # Copy the function that is called recursively to be able to both use it and mock it
-        original_function = _process_request
-        with mock.patch("harvester.OAHarvester._process_request") as mock_process_request:
-            # When
-            original_function(scraper, url)
-            # Then
-            redirect_n = 1
-            mock_process_request.assert_called_with(scraper, redirect_url, redirect_n)
-
-    def test_cloudscrapper_download_timeout(self):
-        # Given
-        scraper = cloudscraper.create_scraper(interpreter="nodejs")
-        # When
-        content = _process_request(scraper, timeout_url, n=0, timeout_in_seconds=10)
-        # Then
-        self.assertIsNone(content)
+        self.assertEqual(latest_publication, expected_publication)
 
 
 class HarvesterInit(TestCase):
