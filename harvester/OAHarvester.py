@@ -204,11 +204,16 @@ class OAHarvester:
             valid_file = False
 
             local_filename = os.path.join(DATA_PATH, local_entry['id'])
+            # TODO: if result = 'fail' no need to do the check?
+            logger.debug(
+                f'Validating the file of the publication with doi = {local_entry["doi"]},'
+                f'result = {result}, harvester used = {local_entry["harvester_used"]}')
             if os.path.isfile(local_filename + ".pdf"):
                 if _is_valid_file(local_filename + ".pdf", "pdf"):
                     valid_file = True
                     local_entry["valid_fulltext_pdf"] = True
 
+            # TODO: result = '', 'success' or 'fail' and never None or '0
             if (result is None or result == "0" or result == "success") and valid_file:
                 # logger.info(json.dumps({"Stats": {"is_harvested": True, "entry": local_entry}}))
                 # update DB

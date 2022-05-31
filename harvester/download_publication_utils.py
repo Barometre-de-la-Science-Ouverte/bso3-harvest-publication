@@ -17,9 +17,10 @@ logger = get_logger(__name__, level=LOGGER_LEVEL)
 def _download_publication(urls, filename, local_entry):
     result = 'fail'
     doi = local_entry['doi']
+    logger.info(f'*** Start downloading the publication with doi = {doi}. {len(urls)} urls will be tested.')
     for url in urls:
         try:
-            logger.debug(f"Publication URL to download = {url}. Filename = {filename}")
+            logger.debug(f"Doi = {doi}, Publication URL to download = {url}")
             if 'arxiv' in url:
                 result, harvester_used = arxiv_download(url, filename, doi)
                 if result == 'success':
@@ -28,11 +29,11 @@ def _download_publication(urls, filename, local_entry):
                 result, harvester_used = wiley_curl(doi, filename)
                 if result == 'success':
                     break
-
+            # standard download always done if other methods do not work
             result, harvester_used = standard_download(url, filename, doi)
             break
         except Exception:
-            logger.exception(f"Download failed for {url}", exc_info=True)
+            logger.exception(f'The publication with doi = {doi} download failed with url = {url}', exc_info=True)
             harvester_used, url = '', ''
 
     local_entry['harvester_used'] = harvester_used
@@ -43,12 +44,13 @@ def _download_publication(urls, filename, local_entry):
 def arxiv_download(url: str, filepath: str, doi: str) -> (str, str):
     from config.swift_cli_config import init_cmd
     file_path = url_to_path(url)
-    logger.debug(f"URL arxiv to Download: Before = {url}. *** After = {file_path}")
     subprocess.check_call(f'{init_cmd} download arxiv_harvesting {file_path} -o {filepath}', shell=True)
     result, harvester_used = 'fail', 'arxiv'
     if is_file_not_empty(filepath):
         result = 'success'
-        logger.debug(f"Download {doi} via arXiv_harvesting")
+        logger.debug(f'The publication with doi = {doi} was successfully downloaded via arXiv_harvesting. url = {url}')
+    else:
+        logger.warning(f'The publication with doi = {doi} download failed via arXiv_harvesting. url = {url}')
     return result, harvester_used
 
 
@@ -60,7 +62,9 @@ def wiley_curl(wiley_doi: str, filepath: str) -> (str, str):
     result, harvester_used = 'fail', 'wiley'
     if is_file_not_empty(filepath):
         result = 'success'
-        logger.debug(f"Download {wiley_doi} via wiley API")
+        logger.debug(f'The publication with doi = {wiley_doi} was successfully downloaded via wiley API ')
+    else:
+        logger.error(f'The publication with doi = {wiley_doi} download failed via wiley API failed')
     return result, harvester_used
 
 
@@ -68,10 +72,11 @@ def standard_download(url: str, filename: str, doi: str) -> (str, str):
     scraper = cloudscraper.create_scraper(interpreter='nodejs')
     content = _process_request(scraper, url)
     if not content:
+        logger.error(f"The publication with doi = {doi} download failed via standard request. File content is empty")
         raise EmptyFileContentException(
-            f"The PDF content returned by _process_request is empty (standard download). URL = {url}")
+            f'The PDF content returned by _process_request is empty (standard download). doi = {doi}, URL = {url}')
 
-    logger.debug(f"Download {doi} via standard request")
+    logger.debug(f'The publication with doi = {doi} was successfully downloaded via standard request')
     with open(filename, 'wb') as f_out:
         f_out.write(content)
     result, harvester_used = 'success', 'standard'
