@@ -11,7 +11,6 @@ FIXTURES_PATH = os.path.dirname(__file__)
 config_harvester = get_harvester_config(CONFIG_PATH_TEST)
 harvester_2_publications = OAHarvester(config_harvester)
 harvester_2_publications_sample = OAHarvester(config_harvester, sample=1)
-wiley_client_mock = MagicMock()
 
 sample_entries = [
     {

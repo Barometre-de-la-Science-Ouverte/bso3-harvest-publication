@@ -67,7 +67,6 @@ class OAHarvester:
         self.env_doi = None  # lmdb env for storing mapping between doi/pmcid and uuid
         self.env_fail = None  # lmdb env for keeping track of failures
         self._init_lmdb()  # init db
-        self._init_api_clients()
         self._sample_seed = sample_seed  # sample seed
         self.sample = sample if sample != -1 else None
         self.input_swift = None  # swift
@@ -103,11 +102,6 @@ class OAHarvester:
 
         envFilePath = os.path.join(DATA_PATH, 'fail')
         self.env_fail = lmdb.open(envFilePath, map_size=lmdb_size)
-
-    def _init_api_clients(self):
-        # TODO: change sleep parametrized
-        wiley_sleep_time_in_seconds = 1
-        self.wiley_client = WileyClient(self.config[WILEY_KEY], wiley_sleep_time_in_seconds)
 
     def harvestUnpaywall(self, filepath, reprocess=False, filter_out=[], destination_dir=''):
         """
@@ -202,7 +196,7 @@ class OAHarvester:
     def processBatch(self, urls, filenames, entries, destination_dir=''):
         logger.debug('Processing batch')
         with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
-            results = executor.map(_download_publication, urls, filenames, entries, self.wiley_client, timeout=30)
+            results = executor.map(_download_publication, urls, filenames, entries, timeout=30)
         # LMDB write transaction must be performed in the thread that created the transaction, so
         # better to have the following lmdb updates out of the paralell process
         entries = []

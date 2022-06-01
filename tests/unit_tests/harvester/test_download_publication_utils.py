@@ -6,7 +6,7 @@ from unittest import TestCase, mock
 import cloudscraper
 
 from harvester.download_publication_utils import _process_request, _download_publication, url_to_path
-from tests.unit_tests.fixtures.harvester import timeout_url, wiley_parsed_entry, arXiv_parsed_entry, wiley_client_mock
+from tests.unit_tests.fixtures.harvester import timeout_url, wiley_parsed_entry, arXiv_parsed_entry
 from utils.file import is_file_not_empty
 
 TESTED_MODULE = 'harvester.download_publication_utils'
@@ -18,6 +18,7 @@ class Download(TestCase):
         # Given
         urls, local_entry, filename = wiley_parsed_entry
         # When
+        # TODO: need to instantiate a correct wiley client and make sure it is instantiated one time
         result, local_entry = _download_publication(urls, filename, local_entry)
         # Then
         self.assertEqual(result, "success")
@@ -52,7 +53,7 @@ class Download(TestCase):
         urls, local_entry, filename = arXiv_parsed_entry
 
         # When
-        result, _ = _download_publication(urls, filename, local_entry, wiley_client_mock)
+        result, _ = _download_publication(urls, filename, local_entry)
         # Then
         mock_process_request.assert_called()
         os.remove(filename)
@@ -68,7 +69,7 @@ class Download(TestCase):
         mock_getsize.return_value = 0
         urls, local_entry, filename = wiley_parsed_entry
         # When
-        result, _ = _download_publication(urls, filename, local_entry, wiley_client_mock)
+        result, _ = _download_publication(urls, filename, local_entry)
         # Then
         mock_process_request.assert_called()
         os.remove(filename)
@@ -78,7 +79,8 @@ class Download(TestCase):
         # Given
         urls, local_entry, filename = arXiv_parsed_entry
         # When
-        result, local_entry = _download_publication(urls, filename, local_entry, wiley_client_mock)
+        # TODO: need to instantiate a correct wiley client and make sure it is instantiated one time
+        result, local_entry = _download_publication(urls, filename, local_entry)
         # Then
         self.assertEqual(result, "success")
         self.assertEqual(local_entry["harvester_used"], "arxiv")
