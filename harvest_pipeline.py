@@ -1,16 +1,16 @@
 import os
+
+from application.server.main.logger import get_logger
+from config.db_config import engine
 from config.harvester_config import config_harvester
+from config.logger_config import LOGGER_LEVEL
 from config.path_config import METADATA_LOCAL_FILE, DESTINATION_DIR_METADATA
 from harvester.OAHarvester import OAHarvester
 from infrastructure.database.db_handler import DBHandler
-from config.db_config import engine
-from load_metadata import load_metadata
 from infrastructure.storage.swift import Swift
-from application.server.main.logger import get_logger
-from config.logger_config import LOGGER_LEVEL
+from load_metadata import load_metadata
+
 logger = get_logger(__name__, level=LOGGER_LEVEL)
-
-
 
 METADATA_DUMP = config_harvester['metadata_dump']
 

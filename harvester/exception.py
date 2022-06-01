@@ -1,3 +1,10 @@
+class PublicationDownloadFileException(Exception):
+    pass
 
-class EmptyFileContentException(Exception):
+
+class EmptyFileContentException(PublicationDownloadFileException):
+    pass
+
+
+class FailedRequest(PublicationDownloadFileException):
     pass

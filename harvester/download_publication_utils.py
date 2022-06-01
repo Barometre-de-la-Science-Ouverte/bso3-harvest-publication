@@ -8,13 +8,14 @@ from requests import ConnectTimeout
 
 from application.server.main.logger import get_logger
 from config.logger_config import LOGGER_LEVEL
-from harvester.exception import EmptyFileContentException
-from harvester.file_utils import is_file_not_empty
+from harvester.exception import EmptyFileContentException, PublicationDownloadFileException
+from harvester.wiley_client import WileyClient
+from utils.file import is_file_not_empty
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
 
 
-def _download_publication(urls, filename, local_entry):
+def _download_publication(urls, filename, local_entry, wiley_client: WileyClient):
     result = 'fail'
     doi = local_entry['doi']
     logger.info(f'*** Start downloading the publication with doi = {doi}. {len(urls)} urls will be tested.')
@@ -26,13 +27,13 @@ def _download_publication(urls, filename, local_entry):
                 if result == 'success':
                     break
             elif 'wiley' in url:
-                result, harvester_used = wiley_curl(doi, filename)
+                result, harvester_used = wiley_download(doi, filename, wiley_client)
                 if result == 'success':
                     break
             # standard download always done if other methods do not work
             result, harvester_used = standard_download(url, filename, doi)
             break
-        except Exception:
+        except (PublicationDownloadFileException, Exception):
             logger.exception(f'The publication with doi = {doi} download failed with url = {url}', exc_info=True)
             harvester_used, url = '', ''
 
@@ -54,17 +55,8 @@ def arxiv_download(url: str, filepath: str, doi: str) -> (str, str):
     return result, harvester_used
 
 
-def wiley_curl(wiley_doi: str, filepath: str) -> (str, str):
-    from config.wiley_config import wiley_curl_cmd
-    encoded_wiley_doi = wiley_doi.replace('/', '%2F')
-    wiley_curl_cmd += f'{encoded_wiley_doi}" -o {filepath}'
-    subprocess.check_call(wiley_curl_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-    result, harvester_used = 'fail', 'wiley'
-    if is_file_not_empty(filepath):
-        result = 'success'
-        logger.debug(f'The publication with doi = {wiley_doi} was successfully downloaded via wiley API ')
-    else:
-        logger.error(f'The publication with doi = {wiley_doi} download failed via wiley API failed')
+def wiley_download(doi: str, filepath: str, wiley_client: WileyClient) -> (str, str):
+    result, harvester_used = wiley_client.download_publication(doi, filepath)
     return result, harvester_used
 
 
@@ -72,7 +64,7 @@ def standard_download(url: str, filename: str, doi: str) -> (str, str):
     scraper = cloudscraper.create_scraper(interpreter='nodejs')
     content = _process_request(scraper, url)
     if not content:
-        logger.error(f"The publication with doi = {doi} download failed via standard request. File content is empty")
+        logger.error(f'The publication with doi = {doi} download failed via standard request. File content is empty')
         raise EmptyFileContentException(
             f'The PDF content returned by _process_request is empty (standard download). doi = {doi}, URL = {url}')
 

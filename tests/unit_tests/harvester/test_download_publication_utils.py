@@ -6,7 +6,7 @@ from unittest import TestCase, mock
 import cloudscraper
 
 from harvester.download_publication_utils import _process_request, _download_publication, url_to_path
-from harvester.file_utils import is_file_not_empty
+from utils.file import is_file_not_empty
 from tests.unit_tests.fixtures.harvester import timeout_url, wiley_parsed_entry, arXiv_parsed_entry
 
 

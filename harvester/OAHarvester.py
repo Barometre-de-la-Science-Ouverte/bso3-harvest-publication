@@ -15,12 +15,14 @@ import magic
 import urllib3
 
 from application.server.main.logger import get_logger
+from config import WILEY_KEY
 from config.harvest_strategy_config import oa_harvesting_strategy
 from config.logger_config import LOGGER_LEVEL
 from config.path_config import DATA_PATH, METADATA_PREFIX, PUBLICATION_PREFIX
 from domain.ovh_path import OvhPath
 from harvester.download_publication_utils import _download_publication
-from harvester.file_utils import is_file_not_empty
+from harvester.wiley_client import WileyClient
+from utils.file import is_file_not_empty
 from infrastructure.storage import swift
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
@@ -65,6 +67,7 @@ class OAHarvester:
         self.env_doi = None  # lmdb env for storing mapping between doi/pmcid and uuid
         self.env_fail = None  # lmdb env for keeping track of failures
         self._init_lmdb()  # init db
+        self._init_api_clients()
         self._sample_seed = sample_seed  # sample seed
         self.sample = sample if sample != -1 else None
         self.input_swift = None  # swift
@@ -100,6 +103,11 @@ class OAHarvester:
 
         envFilePath = os.path.join(DATA_PATH, 'fail')
         self.env_fail = lmdb.open(envFilePath, map_size=lmdb_size)
+
+    def _init_api_clients(self):
+        # TODO: change sleep parametrized
+        wiley_sleep_time_in_seconds = 1
+        self.wiley_client = WileyClient(self.config[WILEY_KEY], wiley_sleep_time_in_seconds)
 
     def harvestUnpaywall(self, filepath, reprocess=False, filter_out=[], destination_dir=''):
         """
@@ -192,8 +200,9 @@ class OAHarvester:
             yield batch
 
     def processBatch(self, urls, filenames, entries, destination_dir=''):
+        logger.debug('Processing batch')
         with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
-            results = executor.map(_download_publication, urls, filenames, entries, timeout=30)
+            results = executor.map(_download_publication, urls, filenames, entries, self.wiley_client, timeout=30)
         # LMDB write transaction must be performed in the thread that created the transaction, so
         # better to have the following lmdb updates out of the paralell process
         entries = []
