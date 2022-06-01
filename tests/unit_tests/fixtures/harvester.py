@@ -1,14 +1,17 @@
 import json
 import os
+from unittest.mock import MagicMock
 
-from harvester.OAHarvester import OAHarvester
 from config.path_config import CONFIG_PATH_TEST, DATA_PATH
+from config.utils import get_harvester_config
+from harvester.OAHarvester import OAHarvester
 
 FIXTURES_PATH = os.path.dirname(__file__)
 
-config_harvester = json.load(open(CONFIG_PATH_TEST, "r"))
+config_harvester = get_harvester_config(CONFIG_PATH_TEST)
 harvester_2_publications = OAHarvester(config_harvester)
 harvester_2_publications_sample = OAHarvester(config_harvester, sample=1)
+wiley_client_mock = MagicMock()
 
 sample_entries = [
     {
