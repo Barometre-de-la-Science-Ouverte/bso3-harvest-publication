@@ -419,7 +419,7 @@ class HarvesterInit(TestCase):
         config_with_swift = config_harvester.copy()
         config_with_swift["swift"] = "yes"
         # When
-        harvester = OAHarvester(config_with_swift)
+        harvester = OAHarvester(config_with_swift, wiley_client_mock)
         # Then
         mock_Swift.assert_called_with(config_with_swift)
 
