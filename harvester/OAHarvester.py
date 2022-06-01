@@ -15,13 +15,11 @@ import magic
 import urllib3
 
 from application.server.main.logger import get_logger
-from config import WILEY_KEY
 from config.harvest_strategy_config import oa_harvesting_strategy
 from config.logger_config import LOGGER_LEVEL
 from config.path_config import DATA_PATH, METADATA_PREFIX, PUBLICATION_PREFIX
 from domain.ovh_path import OvhPath
 from harvester.download_publication_utils import _download_publication
-from harvester.wiley_client import WileyClient
 from utils.file import is_file_not_empty
 from infrastructure.storage import swift
 
@@ -61,12 +59,13 @@ def calculate_pct(i, count):
 
 class OAHarvester:
 
-    def __init__(self, config, sample=None, sample_seed=None):
+    def __init__(self, config, wiley_client, sample=None, sample_seed=None):
         self.config = config
         self.env = None  # standard lmdb env for storing biblio entries by uuid
         self.env_doi = None  # lmdb env for storing mapping between doi/pmcid and uuid
         self.env_fail = None  # lmdb env for keeping track of failures
         self._init_lmdb()  # init db
+        self.wiley_client = wiley_client
         self._sample_seed = sample_seed  # sample seed
         self.sample = sample if sample != -1 else None
         self.input_swift = None  # swift
@@ -196,7 +195,9 @@ class OAHarvester:
     def processBatch(self, urls, filenames, entries, destination_dir=''):
         logger.debug('Processing batch')
         with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
-            results = executor.map(_download_publication, urls, filenames, entries, timeout=30)
+            results = executor.map(
+                _download_publication, urls, filenames, entries, [self.wiley_client] * len(entries), timeout=30
+            )
         # LMDB write transaction must be performed in the thread that created the transaction, so
         # better to have the following lmdb updates out of the paralell process
         entries = []

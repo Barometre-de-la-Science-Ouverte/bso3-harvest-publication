@@ -7,7 +7,6 @@ from bs4 import BeautifulSoup
 from requests import ConnectTimeout
 
 from application.server.main.logger import get_logger
-from config.api_client import wiley_client
 from config.logger_config import LOGGER_LEVEL
 from harvester.exception import EmptyFileContentException, PublicationDownloadFileException
 from utils.file import is_file_not_empty
@@ -15,7 +14,7 @@ from utils.file import is_file_not_empty
 logger = get_logger(__name__, level=LOGGER_LEVEL)
 
 
-def _download_publication(urls, filename, local_entry):
+def _download_publication(urls, filename, local_entry, wiley_client):
     result = 'fail'
     doi = local_entry['doi']
     logger.info(f'*** Start downloading the publication with doi = {doi}. {len(urls)} urls will be tested.')
@@ -27,7 +26,7 @@ def _download_publication(urls, filename, local_entry):
                 if result == 'success':
                     break
             elif 'wiley' in url:
-                result, harvester_used = wiley_download(doi, filename)
+                result, harvester_used = wiley_download(doi, filename, wiley_client)
                 if result == 'success':
                     break
             # standard download always done if other methods do not work
@@ -55,7 +54,7 @@ def arxiv_download(url: str, filepath: str, doi: str) -> (str, str):
     return result, harvester_used
 
 
-def wiley_download(doi: str, filepath: str) -> (str, str):
+def wiley_download(doi: str, filepath: str, wiley_client) -> (str, str):
     result, harvester_used = wiley_client.download_publication(doi, filepath)
     return result, harvester_used
 

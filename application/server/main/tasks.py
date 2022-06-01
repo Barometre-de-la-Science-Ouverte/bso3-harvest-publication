@@ -30,7 +30,7 @@ METADATA_DUMP = config_harvester['metadata_dump']
 logger_console = get_logger(__name__, level=LOGGER_LEVEL)
 
 
-def create_task_harvest_partition(source_metadata_file, partition_index, total_partition_number, doi_list):
+def create_task_harvest_partition(source_metadata_file, partition_index, total_partition_number, doi_list, wiley_client):
     swift_handler = Swift(config_harvester)
     db_handler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
 
@@ -43,7 +43,7 @@ def create_task_harvest_partition(source_metadata_file, partition_index, total_p
     write_partitioned_metadata_file(source_metadata_file, filtered_metadata_filename, partition_size, partition_index)
     write_partitioned_filtered_metadata_file(db_handler, filtered_metadata_filename, filtered_metadata_filename,
                                              doi_list)
-    harvester = OAHarvester(config_harvester)
+    harvester = OAHarvester(config_harvester, wiley_client)
     harvester.harvestUnpaywall(filtered_metadata_filename)
     harvester.diagnostic()
     logger_console.debug(f'{db_handler.count()} rows in database before harvesting')
