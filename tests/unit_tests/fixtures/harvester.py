@@ -93,6 +93,7 @@ for entry in sample_entries:
 sample_filenames = [os.path.join(DATA_PATH, uuid + ".pdf") for uuid in sample_uuids]
 
 pdf_file = os.path.join(FIXTURES_PATH, "original.pdf")
+pdf_gz_file = os.path.join(FIXTURES_PATH, "original_gz.pdf.gz")
 
 parsed_entry_filepath = os.path.join(FIXTURES_PATH, "oa_parsed_entry.json")
 with open(parsed_entry_filepath, "rt") as fp:
