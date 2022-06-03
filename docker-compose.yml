@@ -24,7 +24,7 @@ services:
       - redis
 
   worker:
-    image: dataesr/bso3-harvest-publication:latest
+    image: dataesr/bso3-harvest-publication:latest_local
     privileged: true
     command: bash -c "sleep 10 && python3 manage.py run_worker"
     env_file:
@@ -36,7 +36,7 @@ services:
 
 
   web:
-    image: dataesr/bso3-harvest-publication:latest
+    image: dataesr/bso3-harvest-publication:latest_local
     privileged: true
     ports:
       - "5004:5000"
