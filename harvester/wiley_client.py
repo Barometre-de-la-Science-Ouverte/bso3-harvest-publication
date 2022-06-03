@@ -8,6 +8,7 @@ from config.logger_config import LOGGER_LEVEL
 from harvester.exception import FailedRequest
 from utils.file import write_to_file
 from utils.utils import Singleton
+from harvester.download_publication_utils import SUCCESS_DOWNLOAD, WILEY_HARVESTER
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
 
@@ -15,13 +16,13 @@ logger = get_logger(__name__, level=LOGGER_LEVEL)
 class WileyClient(metaclass=Singleton):
     def __init__(self, config: dict, sleep_time_in_seconds: int = 1) -> None:
         logger.info('Initializing the Wiley API client')
-        self.api_client_id = 'wiley'
         self.config = config
         self.sleep_time_in_seconds = sleep_time_in_seconds
         self.session = self._init_session()
         self.publication_base_url = self._get_publication_base_url(config)
         # need to make a first request to the server to initialize the session
-        self.download_publication('10.1111/jdv.15719', 'file_to_remove')
+        default_publication_sure_to_succeed = '10.1111/jdv.15719'
+        self.download_publication(default_publication_sure_to_succeed, 'file_to_remove')
 
     def _init_session(self) -> requests.Session:
         logger.info('Initializing a requests session for Wiley API')
@@ -50,7 +51,7 @@ class WileyClient(metaclass=Singleton):
         sleep(self.sleep_time_in_seconds)
         self._print_session_information(response)
         self._validate_downloaded_content_and_write_it(response, doi, filepath)
-        return 'success', self.api_client_id
+        return SUCCESS_DOWNLOAD, WILEY_HARVESTER
 
     def _validate_downloaded_content_and_write_it(self, response, doi: str, filepath: str) -> None:
         if not response.ok:
