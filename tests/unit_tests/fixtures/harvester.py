@@ -3,7 +3,7 @@ import os
 from unittest.mock import MagicMock
 
 from config.path_config import CONFIG_PATH_TEST, DATA_PATH
-from config.utils import get_harvester_config
+from config.harvester_config import get_harvester_config
 from harvester.OAHarvester import OAHarvester
 from tests.unit_tests.fixtures.api_clients import wiley_client_mock
 
