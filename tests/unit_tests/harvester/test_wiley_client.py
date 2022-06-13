@@ -26,7 +26,6 @@ class WileyClientConstructor(TestCase):
 
         # then
         mock_init_session.assert_called_once_with()
-        mock_download_publication.assert_called_once_with('10.1111/jdv.15719', 'file_to_remove')
 
 
 @patch(f'{TESTED_MODULE}.write_to_file')
