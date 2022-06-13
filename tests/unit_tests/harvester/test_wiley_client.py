@@ -16,9 +16,7 @@ class WileyClientConstructor(TestCase):
         WileyClient.clear_instance()
 
     @patch.object(WileyClient, '_init_session')
-    @patch.object(WileyClient, 'download_publication')
-    def test_wiley_client_should_be_instantiated_only_one_time(
-            self, mock_download_publication, mock_init_session):
+    def test_wiley_client_should_be_instantiated_only_one_time(self, mock_init_session):
         # when
         _ = WileyClient(wiley_fake_config)
         _ = WileyClient(wiley_fake_config)
