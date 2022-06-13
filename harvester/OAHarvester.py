@@ -11,7 +11,6 @@ from multiprocessing import cpu_count
 from random import sample, seed
 
 import lmdb
-import magic
 import urllib3
 
 from application.server.main.logger import get_logger
@@ -20,8 +19,7 @@ from config.logger_config import LOGGER_LEVEL
 from config.path_config import DATA_PATH, METADATA_PREFIX, PUBLICATION_PREFIX
 from domain.ovh_path import OvhPath
 from harvester.download_publication_utils import _download_publication, SUCCESS_DOWNLOAD
-from harvester.gzip_utils import compress
-from utils.file import is_file_not_empty
+from utils.file import _is_valid_file, compress
 from infrastructure.storage import swift
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
@@ -481,21 +479,6 @@ def get_latest_publication(publication_metadata: dict) -> dict:
     latest_publication_date_sorted_list.sort()
     latest_publication_date = latest_publication_date_sorted_list[-1]
     return publication_metadata["oa_details"][latest_publication_date]
-
-
-def _is_valid_file(file, mime_type):
-    """Check if the file exists and is not empty and is of the correct mime_type"""
-    target_mime = []
-    if mime_type == "png":
-        target_mime.append("image/png")
-    else:
-        target_mime.append("application/" + mime_type)
-    file_type = ""
-    if os.path.isfile(file):
-        if not is_file_not_empty(file):
-            return False
-        file_type = magic.from_file(file, mime=True)
-    return file_type in target_mime
 
 
 def _create_map_entry(local_entry):

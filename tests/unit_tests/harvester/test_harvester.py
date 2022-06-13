@@ -8,7 +8,7 @@ from harvester.OAHarvester import (Continue, _apply_selection, _check_entry,
                                    uuid, generateStoragePath,
                                    update_dict, OvhPath, METADATA_PREFIX,
                                    PUBLICATION_PREFIX, get_latest_publication)
-from harvester.gzip_utils import compress, decompress
+from utils.file import compress, decompress
 from tests.unit_tests.fixtures.harvester import *
 
 

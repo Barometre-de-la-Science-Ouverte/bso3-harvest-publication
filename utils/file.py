@@ -1,4 +1,37 @@
 import os
+import magic
+import gzip
+
+
+def compress(file):
+    deflated_file = file + ".gz"
+    with open(file, "rb") as f_in:
+        with gzip.open(deflated_file, "wb") as f_out:
+            f_out.write(f_in.read())
+    return deflated_file
+
+
+def decompress(file):
+    inflated_file = os.path.splitext(file)[0]
+    with gzip.open(file, "rb") as f_in:
+        with open(inflated_file, "wb") as f_out:
+            f_out.write(f_in.read())
+    return inflated_file
+
+
+def _is_valid_file(file, mime_type):
+    """Check if the file exists and is not empty and is of the correct mime_type"""
+    target_mime = []
+    if mime_type == "png":
+        target_mime.append("image/png")
+    else:
+        target_mime.append("application/" + mime_type)
+    file_type = ""
+    if os.path.isfile(file):
+        if not is_file_not_empty(file):
+            return False
+        file_type = magic.from_file(file, mime=True)
+    return file_type in target_mime
 
 
 def is_file_not_empty(filepath: str) -> bool:

@@ -10,8 +10,7 @@ from requests import ConnectTimeout
 from application.server.main.logger import get_logger
 from config.logger_config import LOGGER_LEVEL
 from harvester.exception import EmptyFileContentException, PublicationDownloadFileException
-from utils.file import is_file_not_empty
-from harvester.gzip_utils import decompress
+from utils.file import is_file_not_empty, decompress
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
 
