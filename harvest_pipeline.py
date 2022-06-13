@@ -17,7 +17,7 @@ logger = get_logger(__name__, level=LOGGER_LEVEL)
 METADATA_DUMP = config_harvester['metadata_dump']
 
 NB_SAMPLES = 10
-wiley_client = WileyClient(config_harvester[WILEY_KEY], sleep_time_in_seconds=1)
+wiley_client = WileyClient(config_harvester[WILEY_KEY])
 harvester = OAHarvester(config_harvester, wiley_client, sample=NB_SAMPLES, sample_seed=4135)
 swift_handler = Swift(config_harvester)
 db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)

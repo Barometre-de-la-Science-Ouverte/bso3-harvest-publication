@@ -28,7 +28,7 @@ def run_task_harvest_partitions():
     total_partition_number = args.get("total_partition_number")
     doi_list = args.get("doi_list", [])
     response_objects = []
-    wiley_client = WileyClient(config_harvester[WILEY_KEY], sleep_time_in_seconds=1)
+    wiley_client = WileyClient(config_harvester[WILEY_KEY])
     with Connection(redis.from_url(current_app.config["REDIS_URL"])):
         q = Queue(name="pdf-harvester", default_timeout=default_timeout)
         for partition_index in range(total_partition_number + 1):
