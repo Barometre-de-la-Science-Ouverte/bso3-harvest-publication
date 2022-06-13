@@ -20,19 +20,13 @@ logger = get_logger(__name__, level=LOGGER_LEVEL)
 
 
 class WileyClient(metaclass=Singleton):
-<<<<<<< HEAD
-    def __init__(self, config: dict, sleep_time_in_seconds: int = 1) -> None:
-        logger.info('Initializing the Wiley API client')
-        self.api_client_id = 'wiley'
-=======
     def __init__(self, config: dict) -> None:
         logger.info("Initializing the Wiley API client")
->>>>>>> Add throttling mecanism to regulate the number of requests to Wiley
         self.config = config
         self.curr_window = datetime.now()
         self.curr_window_num_requests = 0
         self.max_num_requests = 1
-        self.window_size = 1 # second
+        self.window_size = 1  # second
         self.publication_base_url = self._get_publication_base_url(config)
         self.session = self._init_session()
 
@@ -80,7 +74,6 @@ class WileyClient(metaclass=Singleton):
             extra_padding_time = 0.1
             sleep(wait_time + extra_padding_time)
             self.throttle(self.window_size, self.max_num_requests)
-
 
     # TODO: change logging info to debug
     def download_publication(self, doi: str, filepath: str) -> (str, str):
