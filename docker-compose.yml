@@ -24,7 +24,7 @@ services:
       - redis
 
   worker:
-    image: dataesr/bso3-harvest-publication:latest_local
+    image: dataesr/bso3-harvest-publication:latest
     privileged: true
     command: bash -c "sleep 10 && python3 manage.py run_worker"
     env_file:
@@ -36,7 +36,7 @@ services:
 
 
   web:
-    image: dataesr/bso3-harvest-publication:latest_local
+    image: dataesr/bso3-harvest-publication:latest
     privileged: true
     ports:
       - "5004:5000"
@@ -69,6 +69,11 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
+      - WILEY_TOKEN=${WILEY_TOKEN}
+      - WILEY_EZPROXY_USER=${WILEY_EZPROXY_USER}
+      - WILEY_EZPROXY_PASS=${WILEY_EZPROXY_PASS}
+      - WILEY_PUBLICATION_URL=${WILEY_PUBLICATION_URL}
+      - WILEY_BASE_URL=${WILEY_BASE_URL}
     depends_on:
       - worker
     restart: always

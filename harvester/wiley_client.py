@@ -7,7 +7,7 @@ from config import CONFIG_WILEY_TOKEN_KEY, CONFIG_WILEY_EZPROXY_USER_KEY, CONFIG
 from config.logger_config import LOGGER_LEVEL
 from harvester.exception import FailedRequest
 from utils.file import write_to_file
-from utils.utils import Singleton
+from utils.singleton import Singleton
 from harvester.download_publication_utils import SUCCESS_DOWNLOAD, WILEY_HARVESTER
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
@@ -16,6 +16,7 @@ logger = get_logger(__name__, level=LOGGER_LEVEL)
 class WileyClient(metaclass=Singleton):
     def __init__(self, config: dict, sleep_time_in_seconds: int = 1) -> None:
         logger.info('Initializing the Wiley API client')
+        self.api_client_id = 'wiley'
         self.config = config
         self.sleep_time_in_seconds = sleep_time_in_seconds
         self.session = self._init_session()
