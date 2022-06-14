@@ -58,7 +58,7 @@ class Swift(object):
 
     def upload_files_to_swift(self, container, file_path_dest_path_tuples: List):
         """
-        Bulk upload of a list of files to current SWIFT object storage container under the same destination path
+        Bulk upload of a list of files to current SWIFT object storage container
         """
         # Slightly modified to be able to upload to more than one dest_path
         objs = [SwiftUploadObject(file_path, object_name=str(dest_path)) for file_path, dest_path in

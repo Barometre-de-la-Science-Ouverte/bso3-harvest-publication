@@ -4,8 +4,11 @@ import unittest
 from unittest import TestCase, mock
 
 from harvester.OAHarvester import (Continue, _apply_selection, _check_entry,
-                                   _count_entries, _sample_selection, compress, uuid, generateStoragePath, update_dict,
-                                   OvhPath, METADATA_PREFIX, PUBLICATION_PREFIX, get_latest_publication)
+                                   _count_entries, _sample_selection,
+                                   uuid, generateStoragePath,
+                                   update_dict, OvhPath, METADATA_PREFIX,
+                                   PUBLICATION_PREFIX, get_latest_publication)
+from utils.file import compress, decompress
 from tests.unit_tests.fixtures.harvester import *
 
 
@@ -79,7 +82,7 @@ class HarvestUnpaywall(TestCase):
     @mock.patch.object(OAHarvester, "processBatch")
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test_when_2_publications_and_sample_is_1_then_processBatch_is_called_with_1_element(
-            self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4, mock_sample_selection
+        self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4, mock_sample_selection
     ):
         # Given a file path
         filepath = os.path.join(FIXTURES_PATH, "dump_2_publications.jsonl.gz.test")
@@ -102,7 +105,7 @@ class HarvestUnpaywall(TestCase):
     @mock.patch.object(OAHarvester, "processBatch")
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test_when_2_publications_then_processBatch_is_called(
-            self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4
+        self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4
     ):
         # Given a file path
         filepath = os.path.join(FIXTURES_PATH, "dump_2_publications.jsonl.gz.test")
@@ -134,16 +137,17 @@ class HarvestUnpaywall(TestCase):
         mock_getUUIDByIdentifier.return_value = None
         mock_uuid4.side_effect = sample_uuids
         # When
-        batch_gen = harvester_2_publications._get_batch_generator(filepath, count,
-                                                                  reprocess, batch_size)
+        batch_gen = harvester_2_publications._get_batch_generator(
+            filepath, count, reprocess, batch_size
+        )
         # Then
         for i, batch in enumerate(batch_gen):
             urls = [e[0] for e in batch]
             entries = [e[1] for e in batch]
             filenames = [e[2] for e in batch]
-            self.assertEqual(urls, expected_urls[i * batch_size: (i + 1) * batch_size])
-            self.assertEqual(entries, expected_entries[i * batch_size: (i + 1) * batch_size])
-            self.assertEqual(filenames, expected_filenames[i * batch_size: (i + 1) * batch_size])
+            self.assertEqual(urls, expected_urls[i * batch_size : (i + 1) * batch_size])
+            self.assertEqual(entries, expected_entries[i * batch_size : (i + 1) * batch_size])
+            self.assertEqual(filenames, expected_filenames[i * batch_size : (i + 1) * batch_size])
 
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test__process_entry_when_entry_already_processed(self, mock_getUUIDByIdentifier):
@@ -240,9 +244,14 @@ class HarvestUnpaywall(TestCase):
         mock_getUUIDByIdentifier.return_value = None
         mock_uuid4.return_value = expected_id
         # When
-        _check_entry(entry, entry["doi"], harvester_2_publications.getUUIDByIdentifier,
-                     reprocess=False, env=harvester_2_publications.env,
-                     env_doi=harvester_2_publications.env_doi)
+        _check_entry(
+            entry,
+            entry["doi"],
+            harvester_2_publications.getUUIDByIdentifier,
+            reprocess=False,
+            env=harvester_2_publications.env,
+            env_doi=harvester_2_publications.env_doi,
+        )
         # Then
         self.assertEqual(entry["id"], expected_id)
 
@@ -347,8 +356,14 @@ class ManageFiles(TestCase):
     @mock.patch("harvester.OAHarvester.OAHarvester._upload_files")
     @mock.patch("harvester.OAHarvester.OAHarvester._compress_files")
     @mock.patch("harvester.OAHarvester.OAHarvester._write_metadata_file")
-    def test_manageFiles(self, mock_write_metadata_file, mock_compress_files, mock_upload_files,
-                         mock_save_files_locally, mock_clean_up_files):
+    def test_manageFiles(
+        self,
+        mock_write_metadata_file,
+        mock_compress_files,
+        mock_upload_files,
+        mock_save_files_locally,
+        mock_clean_up_files,
+    ):
         # Given
         # When
         harvester_2_publications.manageFiles(self.entry)
@@ -378,6 +393,20 @@ class Compress(TestCase):
         self.assertEqual(expected_file_content, actual_file_content)
         os.remove(expected_pdf_file_compressed)
 
+    def test_decompress(self):
+        # Given
+        expected_pdf_file = os.path.splitext(pdf_gz_file)[0]
+        with gzip.open(pdf_gz_file, "rb") as f:
+            expected_file_content = f.read()
+        # When
+        decompress(pdf_gz_file)
+        # Then
+        self.assertTrue(os.path.exists(expected_pdf_file))
+        with open(expected_pdf_file, "rb") as f:
+            actual_file_content = f.read()
+        self.assertEqual(expected_file_content, actual_file_content)
+        os.remove(expected_pdf_file)
+
 
 class UpdateDict(TestCase):
     def test_update_dict(self):
@@ -395,15 +424,15 @@ class GetLatestPublication(TestCase):
     def test_get_latest_publication(self):
         # Given
         publication_metadata = {
-            'oa_details': {
-                '2019': {'b'},
-                '2020': {'c'},
-                '2021': {'d'},
-                '2021Q1': {'e'},
-                '2021Q4': {'f'}
+            "oa_details": {
+                "2019": {"b"},
+                "2020": {"c"},
+                "2021": {"d"},
+                "2021Q1": {"e"},
+                "2021Q4": {"f"},
             }
         }
-        expected_publication = {'f'}
+        expected_publication = {"f"}
 
         # When
         latest_publication = get_latest_publication(publication_metadata)
@@ -419,7 +448,7 @@ class HarvesterInit(TestCase):
         config_with_swift = config_harvester.copy()
         config_with_swift["swift"] = "yes"
         # When
-        harvester = OAHarvester(config_with_swift)
+        harvester = OAHarvester(config_with_swift, wiley_client_mock)
         # Then
         mock_Swift.assert_called_with(config_with_swift)
 

@@ -3,7 +3,9 @@ from flask import Blueprint, current_app, jsonify, render_template, request
 from rq import Connection, Queue
 
 from application.server.main.tasks import create_task_process, create_task_harvest_partition
+from config import WILEY_KEY
 from config.harvester_config import config_harvester
+from harvester.wiley_client import WileyClient
 from infrastructure.storage.swift import Swift
 from ovh_handler import get_partitions
 
@@ -26,6 +28,7 @@ def run_task_harvest_partitions():
     total_partition_number = args.get("total_partition_number")
     doi_list = args.get("doi_list", [])
     response_objects = []
+    wiley_client = WileyClient(config_harvester[WILEY_KEY])
     with Connection(redis.from_url(current_app.config["REDIS_URL"])):
         q = Queue(name="pdf-harvester", default_timeout=default_timeout)
         for partition_index in range(total_partition_number + 1):
@@ -35,6 +38,7 @@ def run_task_harvest_partitions():
                 "total_partition_number": total_partition_number,
                 "doi_list": doi_list,
                 "job_timeout": 3 * HOURS,
+                "wiley_client": wiley_client
             }
             task = q.enqueue(create_task_harvest_partition, **task_kwargs)
             response_objects.append({"status": "success", "data": {"task_id": task.get_id()}})

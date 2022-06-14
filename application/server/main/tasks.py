@@ -1,14 +1,15 @@
-from asyncio import futures
-from concurrent.futures import ThreadPoolExecutor
 import gzip
 import json
 import os
-from glob import glob
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
+from glob import glob
 from time import time
 from typing import List
-from config.swift_cli_config import init_cmd
+
 import requests
+from grobid_client.grobid_client import GrobidClient
+from software_mentions_client.client import software_mentions_client as smc
 
 from application.server.main.logger import get_logger
 from config.db_config import engine
@@ -16,11 +17,7 @@ from config.harvester_config import config_harvester
 from config.logger_config import LOGGER_LEVEL
 from config.path_config import (CONFIG_PATH_GROBID, CONFIG_PATH_SOFTCITE,
                                 DESTINATION_DIR_METADATA,
-                                PUBLICATIONS_DOWNLOAD_DIR, PROJECT_DIRNAME)
-
-from grobid_client.grobid_client import GrobidClient
-from software_mentions_client.client import software_mentions_client as smc
-
+                                PUBLICATIONS_DOWNLOAD_DIR)
 from harvester.OAHarvester import OAHarvester
 from infrastructure.database.db_handler import DBHandler
 from infrastructure.storage.swift import Swift
@@ -33,7 +30,7 @@ METADATA_DUMP = config_harvester['metadata_dump']
 logger_console = get_logger(__name__, level=LOGGER_LEVEL)
 
 
-def create_task_harvest_partition(source_metadata_file, partition_index, total_partition_number, doi_list):
+def create_task_harvest_partition(source_metadata_file, partition_index, total_partition_number, doi_list, wiley_client):
     swift_handler = Swift(config_harvester)
     db_handler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
 
@@ -46,7 +43,7 @@ def create_task_harvest_partition(source_metadata_file, partition_index, total_p
     write_partitioned_metadata_file(source_metadata_file, filtered_metadata_filename, partition_size, partition_index)
     write_partitioned_filtered_metadata_file(db_handler, filtered_metadata_filename, filtered_metadata_filename,
                                              doi_list)
-    harvester = OAHarvester(config_harvester)
+    harvester = OAHarvester(config_harvester, wiley_client)
     harvester.harvestUnpaywall(filtered_metadata_filename)
     harvester.diagnostic()
     logger_console.debug(f'{db_handler.count()} rows in database before harvesting')
@@ -152,18 +149,23 @@ def create_task_process(files, spec_grobid_version, spec_softcite_version):
     logger_console.debug(f"Call with args: {files, spec_grobid_version, spec_softcite_version}")
     _swift = Swift(config_harvester)
     db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=_swift)
-    entries_publications_softcite, entries_publications_grobid = filter_publications(db_handler, spec_softcite_version, spec_grobid_version)
-    publications_grobid = [file for file in files if db_handler._get_uuid_from_path(file) in [e[1] for e in entries_publications_grobid]]
-    publications_softcite = [file for file in files if db_handler._get_uuid_from_path(file) in [e[1] for e in entries_publications_softcite]]
+    entries_publications_softcite, entries_publications_grobid = filter_publications(db_handler, spec_softcite_version,
+                                                                                     spec_grobid_version)
+    publications_grobid = [file for file in files if
+                           db_handler._get_uuid_from_path(file) in [e[1] for e in entries_publications_grobid]]
+    publications_softcite = [file for file in files if
+                             db_handler._get_uuid_from_path(file) in [e[1] for e in entries_publications_softcite]]
     files_to_process = list(set(publications_softcite + publications_grobid))
     download_files(_swift, PUBLICATIONS_DOWNLOAD_DIR, files_to_process)
     start_time = time()
     processing_futures = []
     with ThreadPoolExecutor(max_workers=2) as executor:
         if publications_grobid:
-            processing_futures.append(executor.submit(run_grobid, CONFIG_PATH_GROBID, PUBLICATIONS_DOWNLOAD_DIR, GrobidClient))
+            processing_futures.append(
+                executor.submit(run_grobid, CONFIG_PATH_GROBID, PUBLICATIONS_DOWNLOAD_DIR, GrobidClient))
         if publications_softcite:
-            processing_futures.append(executor.submit(run_softcite, CONFIG_PATH_SOFTCITE, PUBLICATIONS_DOWNLOAD_DIR, smc))
+            processing_futures.append(
+                executor.submit(run_softcite, CONFIG_PATH_SOFTCITE, PUBLICATIONS_DOWNLOAD_DIR, smc))
     for future in processing_futures:
         future.result()
     total_time = time()
@@ -179,7 +181,8 @@ def create_task_process(files, spec_grobid_version, spec_softcite_version):
     grobid_version = get_grobid_version(local_files)
     upload_and_clean_up(_swift, PUBLICATIONS_DOWNLOAD_DIR)
     try:
-        db_handler.update_database_processing(list(set(entries_publications_softcite + entries_publications_grobid)), grobid_version, softcite_version)  # update database
+        db_handler.update_database_processing(list(set(entries_publications_softcite + entries_publications_grobid)),
+                                              grobid_version, softcite_version)  # update database
     except Exception:
         logger_console.exception(exc_info=True)
 
@@ -218,7 +221,7 @@ def write_partitioned_metadata_file(source_metadata_file: str, filtered_metadata
             filtered_file_content = ''.join(
                 content[(partition_index * partition_size):((partition_index + 1) * partition_size)])
             logger_console.debug('Number of publications in the partition file: '
-                                + f'{len(content[(partition_index * partition_size):((partition_index + 1) * partition_size)])}')
+                                 + f'{len(content[(partition_index * partition_size):((partition_index + 1) * partition_size)])}')
             f_out.write(filtered_file_content)
 
 
@@ -240,7 +243,8 @@ def write_partitioned_filtered_metadata_file(db_handler: DBHandler,
         entry for entry in filtered_publications_metadata_json_list \
         if entry['doi'] not in doi_already_harvested_list
     ]
-    logger_console.debug(f'Number of publications in the file after filtering: {len(filtered_publications_metadata_json_list)}')
+    logger_console.debug(
+        f'Number of publications in the file after filtering: {len(filtered_publications_metadata_json_list)}')
     with gzip.open(os.path.join(DESTINATION_DIR_METADATA, filtered_metadata_filename), 'wt') as f_out:
         f_out.write(os.linesep.join([json.dumps(entry) for entry in filtered_publications_metadata_json_list]))
 

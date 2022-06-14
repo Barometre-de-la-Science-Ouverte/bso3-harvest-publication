@@ -5,9 +5,15 @@ from unittest import TestCase, mock
 
 import cloudscraper
 
+from config import WILEY_KEY
+from config.harvester_config import config_harvester
 from harvester.download_publication_utils import _process_request, _download_publication, url_to_path
-from harvester.file_utils import is_file_not_empty
+from harvester.wiley_client import WileyClient
+from tests.unit_tests.fixtures.api_clients import wiley_client_mock
 from tests.unit_tests.fixtures.harvester import timeout_url, wiley_parsed_entry, arXiv_parsed_entry
+from utils.file import _is_valid_file
+
+TESTED_MODULE = 'harvester.download_publication_utils'
 
 
 class Download(TestCase):
@@ -15,12 +21,13 @@ class Download(TestCase):
     def test_wiley_download(self):
         # Given
         urls, local_entry, filename = wiley_parsed_entry
+        wiley_client = WileyClient(config_harvester[WILEY_KEY])
         # When
-        result, local_entry = _download_publication(urls, filename, local_entry)
+        result, local_entry = _download_publication(urls, filename, local_entry, wiley_client)
         # Then
         self.assertEqual(result, "success")
         self.assertEqual(local_entry["harvester_used"], "wiley")
-        self.assertTrue(is_file_not_empty(filename))
+        self.assertTrue(_is_valid_file(filename))
         os.remove(filename)
 
     def test_arXiv_url_to_path(self):
@@ -38,24 +45,26 @@ class Download(TestCase):
         self.assertEqual(pre_07_arXiv_path, expected_pre_07_arXiv_path)
 
     @mock.patch("os.path.getsize")
-    @mock.patch("harvester.download_publication_utils._process_request")
-    @mock.patch("harvester.download_publication_utils.arxiv_download")
+    @mock.patch(f'{TESTED_MODULE}._process_request')
+    @mock.patch(f'{TESTED_MODULE}.arxiv_download')
+    @mock.patch(f'{TESTED_MODULE}.wiley_download')
     def test_fallback_download_when_arXiv_download_does_not_work(
-            self, mock_arxiv_download, mock_process_request, mock_getsize
+            self, mock_wiley_download, mock_arxiv_download, mock_process_request, mock_getsize
     ):
         # Given
         mock_arxiv_download.return_value = ('fail', 'arxiv')
         mock_getsize.return_value = 0
         urls, local_entry, filename = arXiv_parsed_entry
+
         # When
-        result, _ = _download_publication(urls, filename, local_entry)
+        result, _ = _download_publication(urls, filename, local_entry, wiley_client_mock)
         # Then
         mock_process_request.assert_called()
         os.remove(filename)
 
-    @mock.patch("os.path.getsize")
-    @mock.patch("harvester.download_publication_utils._process_request")
-    @mock.patch("harvester.download_publication_utils.wiley_curl")
+    @mock.patch('os.path.getsize')
+    @mock.patch(f'{TESTED_MODULE}._process_request')
+    @mock.patch(f'{TESTED_MODULE}.wiley_download')
     def test_fallback_download_when_wiley_download_does_not_work(
             self, mock_wiley_curl, mock_process_request, mock_getsize
     ):
@@ -64,23 +73,33 @@ class Download(TestCase):
         mock_getsize.return_value = 0
         urls, local_entry, filename = wiley_parsed_entry
         # When
-        result, _ = _download_publication(urls, filename, local_entry)
+        result, _ = _download_publication(urls, filename, local_entry, wiley_client_mock)
         # Then
         mock_process_request.assert_called()
         os.remove(filename)
 
     @unittest.skip("No config on github")
-    def test_arXiv_download(self):
+    def test_arXiv_download_a_gz_file_and_decompress_it(self):
         # Given
         urls, local_entry, filename = arXiv_parsed_entry
         # When
-        result, local_entry = _download_publication(urls, filename, local_entry)
+        # TODO: need to instantiate a correct wiley client and make sure it is instantiated one time
+        with mock.patch('harvester.download_publication_utils.decompress') as  mock_decompress:
+            _download_publication(urls, filename, local_entry, wiley_client_mock)
+            # Then
+            mock_decompress.assert_called_with(filename + ".gz")
+
+    @unittest.skip("No config on github")
+    def test_arXiv_download_output_is_pdf(self):
+        # Given
+        urls, local_entry, filename = arXiv_parsed_entry
+        # When
+        result, local_entry = _download_publication(urls, filename, local_entry, wiley_client_mock)
         # Then
         self.assertEqual(result, "success")
         self.assertEqual(local_entry["harvester_used"], "arxiv")
-        self.assertTrue(is_file_not_empty(filename))
+        self.assertTrue(_is_valid_file(filename, "pdf"))
         os.remove(filename)
-
 
 
 class ProcessRequest(TestCase):

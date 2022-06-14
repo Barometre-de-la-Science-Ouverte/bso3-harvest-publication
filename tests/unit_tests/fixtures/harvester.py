@@ -1,14 +1,18 @@
 import json
 import os
+from unittest.mock import MagicMock
 
-from harvester.OAHarvester import OAHarvester
 from config.path_config import CONFIG_PATH_TEST, DATA_PATH
+from config.harvester_config import get_harvester_config
+from harvester.OAHarvester import OAHarvester
+from tests.unit_tests.fixtures.api_clients import wiley_client_mock
 
 FIXTURES_PATH = os.path.dirname(__file__)
 
-config_harvester = json.load(open(CONFIG_PATH_TEST, "r"))
-harvester_2_publications = OAHarvester(config_harvester)
-harvester_2_publications_sample = OAHarvester(config_harvester, sample=1)
+
+config_harvester = get_harvester_config(CONFIG_PATH_TEST)
+harvester_2_publications = OAHarvester(config_harvester, wiley_client_mock)
+harvester_2_publications_sample = OAHarvester(config_harvester, wiley_client_mock, sample=1)
 
 sample_entries = [
     {
@@ -89,6 +93,7 @@ for entry in sample_entries:
 sample_filenames = [os.path.join(DATA_PATH, uuid + ".pdf") for uuid in sample_uuids]
 
 pdf_file = os.path.join(FIXTURES_PATH, "original.pdf")
+pdf_gz_file = os.path.join(FIXTURES_PATH, "original_gz.pdf.gz")
 
 parsed_entry_filepath = os.path.join(FIXTURES_PATH, "oa_parsed_entry.json")
 with open(parsed_entry_filepath, "rt") as fp:
