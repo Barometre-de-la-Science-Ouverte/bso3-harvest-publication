@@ -56,7 +56,6 @@ def post_request(context, metadata_file, total_partition_number, url):
     context.total_partition_number = total_partition_number
 
 
-
 @when('we wait "{number}" seconds')
 def wait_by_time(context, number):
     sleep(int(number))

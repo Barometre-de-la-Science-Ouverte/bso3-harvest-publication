@@ -16,3 +16,8 @@ class DBConnection(metaclass=Singleton):
             self.engine: Engine = create_engine(connection_string)
         except Exception as e:
             print(e)
+<<<<<<< HEAD
+=======
+
+        
+>>>>>>> 23b7b20 (e2eTests impl with behave for harvesting, makefile command)
