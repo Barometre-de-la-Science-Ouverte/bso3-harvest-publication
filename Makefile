@@ -33,15 +33,12 @@ docker-push:
 	docker push $(DOCKER_IMAGE_NAME):latest
 	@echo Docker image pushed
 
-integration-test: set-env-variables docker-build
+integration-test:
 	@echo Start end-to-end testing
 	docker-compose up -d
-	sleep 15
-	curl -d $(PAYLOAD) -H "Content-Type: application/json" -X POST $(LOCAL_ENDPOINT)
-	sleep 200
-	records_counts_table=$(docker exec -e PGPASSWORD=password-dataESR-bso3 -i $(docker ps --filter "NAME=postgres" -q) psql -d postgres_db -U postgres -c 'SELECT count(*) FROM harvested_status_table LIMIT 1;' | awk 'FNR == 3 {print $1}')
-	if [[ "$records_counts_table" -eq "0" ]]; then echo "Test failure no records in postgres..."; else echo "Test success : record in postgres..."; fi
-	make unset-env-variables
+	sleep 30
+	behave ./tests/e2e_tests/features
+	docker-compose down
 
 install: requirements
 	@echo Installing dependencies...
