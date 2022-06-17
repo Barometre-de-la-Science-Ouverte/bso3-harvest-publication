@@ -35,7 +35,6 @@ def set_db_handler(context, table):
         'db_name': config_harvester["db"]["db_name"],
         'db_password': config_harvester["db"]["db_password"],
         }
-
     connection: DBConnection = DBConnection(config)
     db_handler: DBHandler = DBHandler(engine=connection.engine, table_name=table, swift_handler=swift_handler)
 
