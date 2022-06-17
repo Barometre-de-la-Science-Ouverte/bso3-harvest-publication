@@ -1,0 +1,119 @@
+from distutils import extension
+from unittest import result
+from xmlrpc.client import boolean
+from behave import given, when, then
+from time import sleep
+from requests import post
+from json import dumps
+from harvester.OAHarvester import OAHarvester
+from ovh_handler import generateStoragePath
+from infrastructure.database.db_handler import DBHandler
+from config.harvester_config import config_harvester
+from infrastructure.storage.swift import Swift
+from tests.e2e_tests.db_connection import DBConnection
+from config.path_config import PUBLICATION_PREFIX, METADATA_PREFIX
+
+def construct_storage_path(uuid: str, prefix_file: str, extension_file: str) -> str:
+    return '{}/{}/{}.{}'.format(prefix_file, generateStoragePath(uuid), uuid, extension_file)
+
+def construct_storage_path_from_requestResult(result_request: list, prefix_file: str, extension_file: str) -> list:
+    return list(map(lambda x : construct_storage_path(x[1], prefix_file, extension_file), result_request))
+
+@given('a clean database with 0 rows')
+def clean_database(context):
+    context.db_handler.engine.execute(f'DELETE FROM {context.db_handler.table_name};')
+
+    harvester = OAHarvester(config_harvester, None)
+    harvester.reset_lmdb()
+    harvester._clean_up_files()
+
+    assert context.db_handler.count() == 0
+
+@given('a set of specific doi')
+def set_specific_doi(context):
+    context.doi_list = []
+    for row in context.table:
+        context.doi_list.append(row['doi'])
+
+@given('a db_handler to postgres database for "{table}" table')
+def set_db_handler(context, table):
+    swift_handler: Swift = Swift(config_harvester)
+    config: dict = {
+        'db_host': 'localhost',
+        'db_user': config_harvester["db"]["db_user"],
+        'db_port': config_harvester["db"]["db_port"],
+        'db_name': config_harvester["db"]["db_name"],
+        'db_password': config_harvester["db"]["db_password"],
+        }
+    
+    connection: DBConnection = DBConnection(config)
+    db_handler: DBHandler = DBHandler(engine=connection.engine, table_name=table, swift_handler=swift_handler)
+
+    context.db_handler = db_handler
+
+# bso
+@when('we send a post request with metadata_file="{metadata_file}" to "{url}" endpoint')
+def post_request(context, metadata_file, url):
+    headers: str = "Content-Type: application/json"
+    total_partition_number: str = 2
+    doi_list: str = dumps(context.doi_list)
+    obj: dict = {
+        "metadata_file": metadata_file, 
+        "total_partition_number": total_partition_number, 
+        "doi_list": doi_list
+        }
+    obj: str = dumps(obj)
+    context.res = post(url, obj, headers)
+
+@when('we wait "{number}" seconds')
+def wait_by_time(context, number):
+    sleep(int(number))
+
+@then('we check that the doi are present in postgres database')
+def check_doi_in_postgres(context):
+    
+    postgres_result: list = context.db_handler.fetch_all()
+
+    size_doi = len(context.doi_list)
+
+    counter = 0
+
+    for row in postgres_result:
+        for doi in context.doi_list:
+            if row[0] == doi:
+                counter+=1
+
+    assert counter == size_doi
+
+@then('we check that all uid of doi downloaded from postgres database on the table are present in their metadata + publication form on swift')
+def check_uuid_from_postgres_to_swift(context):
+    swift_list: list = context.db_handler.swift_handler.get_swift_list(container=config_harvester['publications_dump'])
+    
+    extension_metadata: str = 'json.gz'
+    extension_publication: str = 'pdf.gz'
+
+    postgres_result: list = context.db_handler.fetch_all()
+    postgres_metadata_list: list = construct_storage_path_from_requestResult(postgres_result, METADATA_PREFIX, extension_metadata)
+    postgres_publications_list: list = construct_storage_path_from_requestResult(postgres_result, PUBLICATION_PREFIX, extension_publication)
+
+    size_result_expected: int = len(postgres_result)
+
+    n_metadata: int = 0
+    n_publications: int = 0
+    can_pass: bool = False
+
+    for name in swift_list:
+        for name_metadata in postgres_metadata_list:
+            if name == name_metadata:
+                n_metadata+=1
+                can_pass = True
+                break
+        if not can_pass:
+            for name_publications in postgres_publications_list:
+                if name == name_publications:
+                    n_publications+=1
+                    break
+        can_pass = False
+    
+    assert n_metadata == size_result_expected
+    assert n_publications == size_result_expected
