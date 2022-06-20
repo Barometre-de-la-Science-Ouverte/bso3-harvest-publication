@@ -1,7 +1,8 @@
 from sqlalchemy.engine import Engine
 from sqlalchemy import create_engine
+from utils.singleton import Singleton
 
-class DBConnection():
+class DBConnection(metaclass=Singleton):
     def __init__(self, config: dict) -> None:
         DB_USER = config['db_user']
         DB_PASSWORD = config["db_password"]

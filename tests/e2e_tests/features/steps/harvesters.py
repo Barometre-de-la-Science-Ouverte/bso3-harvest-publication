@@ -19,13 +19,9 @@ def construct_storage_path(uuid: str, prefix_file: str, extension_file: str) -> 
 def construct_storage_path_from_requestResult(result_request: list, prefix_file: str, extension_file: str) -> list:
     return list(map(lambda x : construct_storage_path(x[1], prefix_file, extension_file), result_request))
 
-@given('a clean database with 0 rows')
+@given('a clean database without rows')
 def clean_database(context):
     context.db_handler.engine.execute(f'DELETE FROM {context.db_handler.table_name};')
-
-    harvester = OAHarvester(config_harvester, None)
-    harvester.reset_lmdb()
-    harvester._clean_up_files()
 
     assert context.db_handler.count() == 0
 
@@ -51,7 +47,6 @@ def set_db_handler(context, table):
 
     context.db_handler = db_handler
 
-# bso
 @when('we send a post request with metadata_file="{metadata_file}" to "{url}" endpoint')
 def post_request(context, metadata_file, url):
     headers: str = "Content-Type: application/json"
@@ -68,6 +63,26 @@ def post_request(context, metadata_file, url):
 @when('we wait "{number}" seconds')
 def wait_by_time(context, number):
     sleep(int(number))
+
+@then('we check that the response status is "{status_code_expected}"')
+def check_response_status_code(context, status_code_expected):
+    status_code: int = context.res.status_code
+
+    assert status_code == int(status_code_expected)
+
+@then('we check that the response content length is equals to the inputs length')
+def check_response_json_length(context):
+    length_response: int = len(context.res.json())
+    length_expected: int = len(context.doi_list)
+
+    assert length_response == length_expected
+
+@then('we check that the number of rows in database is equals to the number of inputs')
+def check_number_rows_request_count_postgres(context):
+    number_rows_request: int = context.db_handler.count()
+    number_rows_expected: int = len(context.doi_list)
+
+    assert number_rows_request == number_rows_expected
 
 @then('we check that the doi are present in postgres database')
 def check_doi_in_postgres(context):
