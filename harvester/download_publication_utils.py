@@ -90,14 +90,14 @@ def _process_request(scraper, url, n=0, timeout_in_seconds=60):
     try:
         if "cairn" in url:
             headers = {'User-Agent': 'MESRI-Barometre-de-la-Science-Ouverte'}
-            file_data = scraper.get(url, headers=headers, timeout=timeout_in_seconds)
+            response = scraper.get(url, headers=headers, timeout=timeout_in_seconds)
         else:
-            file_data = scraper.get(url, timeout=timeout_in_seconds)
-        if file_data.status_code == 200:
-            if file_data.text[:5] == '%PDF-':
-                return file_data.content
+            response = scraper.get(url, timeout=timeout_in_seconds)
+        if response.status_code == 200:
+            if response.text[:5] == '%PDF-':
+                return response.content
             elif n < 5:
-                soup = BeautifulSoup(file_data.text, 'html.parser')
+                soup = BeautifulSoup(response.text, 'html.parser')
                 if soup.select_one('a#redirect'):
                     redirect_url = soup.select_one('a#redirect')['href']
                     logger.debug('Waiting 5 seconds before following redirect url')
@@ -105,7 +105,8 @@ def _process_request(scraper, url, n=0, timeout_in_seconds=60):
                     logger.debug(f'Retry number {n + 1}')
                     return _process_request(scraper, redirect_url, n + 1)
         else:
-            logger.debug(f"Response code is not successful: {file_data.status_code}")
+            logger.debug(
+                f"Response code is not successful: {response.status_code}. Response content = {response.content}")
     except ConnectTimeout:
         logger.exception("Connection Timeout", exc_info=True)
         return

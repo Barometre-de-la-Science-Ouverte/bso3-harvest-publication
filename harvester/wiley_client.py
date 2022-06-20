@@ -92,8 +92,8 @@ class WileyClient(metaclass=Singleton):
     def _validate_downloaded_content_and_write_it(self, response, doi: str, filepath: str) -> None:
         if not response.ok:
             raise FailedRequest(
-                f"The publication with doi = {doi} download failed via Wiley request. Request status code = {response.status_code}\n\
-                {response.content}"
+                f"The publication with doi = {doi} download failed via Wiley request. Request status code = {response.status_code}" \
+                + f"Response content = {response.content}"
             )
         logger.debug(
             f"The publication with doi = {doi} was successfully downloaded via Wiley request"
