@@ -15,11 +15,6 @@ def start_environment(cmd: str) -> None:
     print('Starting containers...')
     subprocess.Popen(['docker-compose', 'up', '-d'], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
-    # check that the output can be a digit
-    #output = subprocess.getoutput(cmd)
-    #while not output.isdigit():
-    #    output = subprocess.getoutput(cmd)
-
     nb_containers_up = int(subprocess.getoutput(cmd))
 
     while(nb_containers_up < 5):
