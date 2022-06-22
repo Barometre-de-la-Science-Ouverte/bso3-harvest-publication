@@ -49,7 +49,7 @@ def create_task_harvest_partition(source_metadata_file, partition_index, total_p
     logger_console.debug(f'{db_handler.count()} rows in database before harvesting')
     db_handler.update_database()
     logger_console.debug(f'{db_handler.count()} rows in database after harvesting')
-
+    harvester.reset_lmdb()
 
 def create_task_unpaywall(args):
     logger_console.debug(f'launching task with args {args}')
