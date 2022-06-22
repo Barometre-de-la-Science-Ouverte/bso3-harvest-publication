@@ -104,12 +104,12 @@ class Swift(object):
         """
         result = []
         try:
-            list_parts_gen = self.swift.list(container=container)
+            options = {'prefix': dir_name} if dir_name is not None else None
+            list_parts_gen = self.swift.list(container=container, options=options)
             for page in list_parts_gen:
                 if page["success"]:
                     for item in page["listing"]:
-                        if dir_name is None or item["name"].startswith(dir_name):
-                            result.append(item["name"])
+                        result.append(item["name"])
                 else:
                     logger.error(page["error"])
         except SwiftError as e:
