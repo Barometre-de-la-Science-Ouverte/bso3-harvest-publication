@@ -1,14 +1,10 @@
 from unittest import TestCase, mock
-from mock import patch
+from unittest.mock import patch
 from application.server.main.tasks import create_task_harvest_partition
-
-import load_metadata
 
 from harvester.OAHarvester import OAHarvester
 from infrastructure.database.db_handler import DBHandler
 from infrastructure.storage.swift import Swift
-from tests.unit_tests.fixtures import harvester
-
 
 
 TESTED_MODULE = 'application.server.main.tasks'
