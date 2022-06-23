@@ -30,7 +30,7 @@ def _download_publication(urls, filename, local_entry, wiley_client):
     for url in urls:
         try:
             logger.debug(f"Doi = {doi}, Publication URL to download = {url}")
-            if 'arxiv' in url:
+            if url.startswith('http://arxiv.org') or url.startswith('https://arxiv.org'):
                 result, harvester_used = arxiv_download(url, filename, doi)
                 if result == SUCCESS_DOWNLOAD:
                     break
@@ -53,17 +53,19 @@ def _download_publication(urls, filename, local_entry, wiley_client):
 def arxiv_download(url: str, filepath: str, doi: str) -> (str, str):
     from config.swift_cli_config import init_cmd
     ovh_arxiv_file_pdf_gz = url_to_path(url)
-    filepath_gz = filepath + ".gz"
-    subprocess.check_call(f'{init_cmd} download arxiv_harvesting {ovh_arxiv_file_pdf_gz} -o {filepath_gz}', shell=True)
     result, harvester_used = FAIL_DOWNLOAD, ARXIV_HARVESTER
-    if is_file_not_empty(filepath_gz):
-        result = SUCCESS_DOWNLOAD
-        decompress(filepath_gz)
-        os.remove(filepath_gz)
-        logger.debug(f'The publication with doi = {doi} was successfully downloaded via arXiv_harvesting. url = {url}')
-    else:
-        logger.warning(f'The publication with doi = {doi} download failed via arXiv_harvesting. url = {url}')
+    if ovh_arxiv_file_pdf_gz:
+        filepath_gz = filepath + ".gz"
+        subprocess.check_call(f'{init_cmd} download arxiv_harvesting {ovh_arxiv_file_pdf_gz} -o {filepath_gz}', shell=True)
+        if is_file_not_empty(filepath_gz):
+            result = SUCCESS_DOWNLOAD
+            decompress(filepath_gz)
+            os.remove(filepath_gz)
+            logger.debug(f'The publication with doi = {doi} was successfully downloaded via arXiv_harvesting. url = {url}')
+        else:
+            logger.warning(f'The publication with doi = {doi} download failed via arXiv_harvesting. url = {url}')
     return result, harvester_used
+
 
 
 def wiley_download(doi: str, filepath: str, wiley_client) -> (str, str):
