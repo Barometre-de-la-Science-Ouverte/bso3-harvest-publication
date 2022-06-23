@@ -67,5 +67,3 @@ class CreateTaskHarvestPartition(TestCase):
         assert mock_db_count.call_count == 2
         mock_db_update_database.assert_called_once()
         mock_reset_lmdb.assert_called_once()
-
-

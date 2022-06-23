@@ -30,7 +30,7 @@ def _download_publication(urls, filename, local_entry, wiley_client):
     for url in urls:
         try:
             logger.debug(f"Doi = {doi}, Publication URL to download = {url}")
-            if 'arxiv' in url:
+            if 'arxiv.org' in url:
                 result, harvester_used = arxiv_download(url, filename, doi)
                 if result == SUCCESS_DOWNLOAD:
                     break

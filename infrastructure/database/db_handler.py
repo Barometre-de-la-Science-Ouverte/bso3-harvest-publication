@@ -1,9 +1,12 @@
 import pickle
+from harvester.OAHarvester import generateStoragePath
 
 import lmdb
 from sqlalchemy.engine import Engine
 from sqlalchemy import text
 from typing import List
+
+from domain.ovh_path import OvhPath
 
 from config.path_config import PUBLICATION_PREFIX, GROBID_PREFIX, SOFTCITE_PREFIX, DEFAULT_GROBID_TAG, \
     DEFAULT_SOFTCITE_TAG
@@ -93,24 +96,21 @@ class DBHandler:
     def update_database(self):
         container = self.config['publications_dump']
         lmdb_size = self.config['lmdb_size_Go'] * 1024 * 1024 * 1024
+        extension_publication: str = '.pdf.gz'
 
         # get uuid entry content (harvester_used and domain are in it)
         dict_local_uuid_entries = self._get_lmdb_content_pickle('data/entries', lmdb_size)
 
-        publications_harvested = self.swift_handler.get_swift_list(container, dir_name=PUBLICATION_PREFIX)
-        files_uuid_remote = [self._get_uuid_from_path(path) for path in publications_harvested]
+        ## Important : lmdb_reset must be reset
         local_doi_uuid = self._get_lmdb_content_str('data/doi', lmdb_size)
-        doi_uuid_uploaded = [content_tuple for content_tuple in local_doi_uuid if
-                             content_tuple[1] in files_uuid_remote]  #
+        doi_uuid_uploaded: list = []
 
-        # results_softcite = self.swift_handler.get_swift_list(container, dir_name=SOFTCITE_PREFIX)
-        # uuids_softcite = [self._get_uuid_from_path(path) for path in results_softcite]
+        for content_tuple in local_doi_uuid:
+            full_path_expected_in_remote: str = str(OvhPath(PUBLICATION_PREFIX, generateStoragePath(content_tuple[1]), content_tuple[1] + extension_publication))
+            publications_harvested_by_path: list = self.swift_handler.get_swift_list(container, dir_name=full_path_expected_in_remote)
+            if len(publications_harvested_by_path) > 0:
+                doi_uuid_uploaded.append(content_tuple)
 
-        # results_grobid = self.swift_handler.get_swift_list(container, dir_name=GROBID_PREFIX)
-        # uuids_grobid = [self._get_uuid_from_path(path) for path in results_grobid]
-
-        # [(doi:str, uuid:str, is_harvested:bool, is_processed_softcite:bool, is_processed_grobid:bool),
-        # harvester_used:str, domain:str, url_used:str]
         records = [ProcessedEntry(*entry,
                                   "1",
                                   "0",

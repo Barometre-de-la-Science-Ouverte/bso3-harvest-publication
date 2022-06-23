@@ -100,16 +100,15 @@ class Swift(object):
         """
         Return all contents of a given dir in SWIFT object storage.
         Goes through the pagination to obtain all file names.
-        afaik, this is terribly inefficient, as we have to go through all the objects of the storage.
         """
         result = []
         try:
-            list_parts_gen = self.swift.list(container=container)
+            options = {'prefix': dir_name} if dir_name is not None else None
+            list_parts_gen = self.swift.list(container=container, options=options)
             for page in list_parts_gen:
                 if page["success"]:
                     for item in page["listing"]:
-                        if dir_name is None or item["name"].startswith(dir_name):
-                            result.append(item["name"])
+                        result.append(item["name"])
                 else:
                     logger.error(page["error"])
         except SwiftError as e:
