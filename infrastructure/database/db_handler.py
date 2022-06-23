@@ -103,6 +103,7 @@ class DBHandler:
         # get uuid entry content (harvester_used and domain are in it)
         dict_local_uuid_entries = self._get_lmdb_content_pickle('data/entries', lmdb_size)
 
+        ## Important : lmdb_reset must be reset
         local_doi_uuid = self._get_lmdb_content_str('data/doi', lmdb_size)
         doi_uuid_uploaded: list = []
 
