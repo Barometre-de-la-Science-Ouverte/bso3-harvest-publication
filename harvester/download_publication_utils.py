@@ -90,9 +90,9 @@ def _process_request(scraper, url, n=0, timeout_in_seconds=60):
     try:
         if "cairn" in url:
             headers = {'User-Agent': 'MESRI-Barometre-de-la-Science-Ouverte'}
-            file_data = scraper.get(url, headers=headers, timeout=timeout_in_seconds)
+            file_data = scraper.get(url, headers=headers, timeout=timeout_in_seconds, verify=False)
         else:
-            file_data = scraper.get(url, timeout=timeout_in_seconds)
+            file_data = scraper.get(url, timeout=timeout_in_seconds, verify=False)
         if file_data.status_code == 200:
             if file_data.text[:5] == '%PDF-':
                 return file_data.content
