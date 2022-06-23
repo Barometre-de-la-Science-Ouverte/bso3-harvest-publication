@@ -6,7 +6,7 @@ name: Python tests and linter for BSO3
 on: [ push, pull_request ]
 
 jobs:
-  build:
+  quality-and-test:
 
     runs-on: ubuntu-latest
 
@@ -21,19 +21,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install imagemagick
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install flake8
+          make install
 
       - name: Check Python syntax errors
         run: |
           # stop the build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          make lint-syntax
 
       - name: Check style conventions
         continue-on-error: true
         run: |
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          make lint-style
 
       - name: Test with pytest
         run: |

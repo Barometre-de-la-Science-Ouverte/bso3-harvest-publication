@@ -4,6 +4,29 @@ LOCAL_ENDPOINT="http://127.0.0.1:5004/harvest_partitions"
 PAYLOAD='{"metadata_file": "bso-publications-5k.jsonl.gz", "total_partition_number": 2, "doi_list": ["10.1111/jdv.15719", "10.1016/s1773-035x(19)30258-8", "10.1016/s2055-6640(20)30035-2"]}'
 ENV_VARIABLE_FILENAME=.env
 
+unit-tests:
+	pytest --disable-warnings tests
+
+integration-test: set-env-variables docker-build
+	@echo Start end-to-end testing
+	docker-compose up -d
+	sleep 15
+	curl -d $(PAYLOAD) -H "Content-Type: application/json" -X POST $(LOCAL_ENDPOINT)
+	sleep 200
+	records_counts_table=$(docker exec -e PGPASSWORD=password-dataESR-bso3 -i $(docker ps --filter "NAME=postgres" -q) psql -d postgres_db -U postgres -c 'SELECT count(*) FROM harvested_status_table LIMIT 1;' | awk 'FNR == 3 {print $1}')
+	if [[ "$records_counts_table" -eq "0" ]]; then echo "Test failure no records in postgres..."; else echo "Test success : record in postgres..."; fi
+	make unset-env-variables
+
+lint: lint-syntax lint-style
+
+lint-style:
+	@echo Checking style errors - PEP 8
+	flake8 . --count --exit-zero --max-complexity=10 --max-line-length=200 --statistics
+
+lint-syntax:
+	@echo Checking syntax errors
+	flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
 clean_up_files:
 	rm -rf logs/*
 	rm -rf downloaded_publications
@@ -33,19 +56,16 @@ docker-push:
 	docker push $(DOCKER_IMAGE_NAME):latest
 	@echo Docker image pushed
 
-integration-test: set-env-variables docker-build
-	@echo Start end-to-end testing
-	docker-compose up -d
-	sleep 15
-	curl -d $(PAYLOAD) -H "Content-Type: application/json" -X POST $(LOCAL_ENDPOINT)
-	sleep 200
-	records_counts_table=$(docker exec -e PGPASSWORD=password-dataESR-bso3 -i $(docker ps --filter "NAME=postgres" -q) psql -d postgres_db -U postgres -c 'SELECT count(*) FROM harvested_status_table LIMIT 1;' | awk 'FNR == 3 {print $1}')
-	if [[ "$records_counts_table" -eq "0" ]]; then echo "Test failure no records in postgres..."; else echo "Test success : record in postgres..."; fi
-	make unset-env-variables
+set-env-variables:
+	export $(grep -v '^#' $(ENV_VARIABLE_FILENAME) | xargs)
 
-install: requirements
+unset-env-variables:
+	unset $(grep -v '^#' .env | sed -E 's/(.*)=.*/\1/' | xargs)
+
+install:
 	@echo Installing dependencies...
 	pip install -r requirements.txt
+	pip install -r requirements-dev.txt
 	@echo End of dependencies installation
 
 requirements:
@@ -61,17 +81,3 @@ requirements:
 	# echo "git+https://github.com/Barometre-de-la-Science-Ouverte/grobid_client_python.git#egg=grobid_client_python" >> requirements.txt
 	# echo "# Softcite client package" >> requirements.txt
 	# echo "git+https://github.com/Barometre-de-la-Science-Ouverte/software_mentions_client#egg=software_mentions_client" >> requirements.txt
-
-unit-tests:
-	python -m unittest discover
-	python -m unittest
-
-set-env-variables:
-	export $(grep -v '^#' $(ENV_VARIABLE_FILENAME) | xargs)
-
-unset-env-variables:
-	unset $(grep -v '^#' .env | sed -E 's/(.*)=.*/\1/' | xargs)
-
-
-kube-count-nb-publications-in-db:
-	kubectl exec $(kubectl get pods -n default --no-headers=true | awk '/postgres/{print $1}') -- psql -d postgres_db -U postgres -c 'SELECT count(*) FROM harvested_status_table LIMIT 1;'
