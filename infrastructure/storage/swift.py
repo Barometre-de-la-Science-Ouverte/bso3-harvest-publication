@@ -100,7 +100,6 @@ class Swift(object):
         """
         Return all contents of a given dir in SWIFT object storage.
         Goes through the pagination to obtain all file names.
-        afaik, this is terribly inefficient, as we have to go through all the objects of the storage.
         """
         result = []
         try:

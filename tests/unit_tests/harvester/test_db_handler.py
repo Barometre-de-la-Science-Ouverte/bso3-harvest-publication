@@ -10,12 +10,12 @@ TESTED_MODULE = 'infrastructure.database.db_handler'
 class UpdateDatabase(TestCase):
 
 
-    @patch(TESTED_MODULE+'.DBHandler._get_lmdb_content_pickle')
-    @patch(TESTED_MODULE+'.DBHandler._get_lmdb_content_str')
-    @patch(TESTED_MODULE+'.generateStoragePath')
-    @patch(TESTED_MODULE+'.OvhPath')
-    @patch(TESTED_MODULE+'.ProcessedEntry')
-    @patch(TESTED_MODULE+'.DBHandler.write_entity_batch')
+    @patch(f'{TESTED_MODULE}.DBHandler._get_lmdb_content_pickle')
+    @patch(f'{TESTED_MODULE}.DBHandler._get_lmdb_content_str')
+    @patch(f'{TESTED_MODULE}.generateStoragePath')
+    @patch(f'{TESTED_MODULE}.OvhPath')
+    @patch(f'{TESTED_MODULE}.ProcessedEntry')
+    @patch(f'{TESTED_MODULE}.DBHandler.write_entity_batch')
     def test_given_no_local_doi_uuid_when_call_update_database_then_no_calls_of_some_functions(
         self, mock_write_entity_batch, mock_processed_entry, mock_ovh_path,
         mock_generate_storage_path, mock_get_lmdb_content_str,
@@ -59,12 +59,12 @@ class UpdateDatabase(TestCase):
 
     
 
-    @patch(TESTED_MODULE+'.DBHandler._get_lmdb_content_pickle')
-    @patch(TESTED_MODULE+'.DBHandler._get_lmdb_content_str')
-    @patch(TESTED_MODULE+'.generateStoragePath')
-    @patch(TESTED_MODULE+'.OvhPath')
-    @patch(TESTED_MODULE+'.ProcessedEntry')
-    @patch(TESTED_MODULE+'.DBHandler.write_entity_batch')
+    @patch(f'{TESTED_MODULE}.DBHandler._get_lmdb_content_pickle')
+    @patch(f'{TESTED_MODULE}.DBHandler._get_lmdb_content_str')
+    @patch(f'{TESTED_MODULE}.generateStoragePath')
+    @patch(f'{TESTED_MODULE}.OvhPath')
+    @patch(f'{TESTED_MODULE}.ProcessedEntry')
+    @patch(f'{TESTED_MODULE}.DBHandler.write_entity_batch')
     def test_given_3_local_doi_uuid_when_call_update_database_and_all_in_swift_storage_then_calls_of_every_functions_with_expected_nb_calls(
         self, mock_write_entity_batch, mock_processed_entry, mock_ovh_path,
         mock_generate_storage_path, mock_get_lmdb_content_str,
@@ -117,12 +117,12 @@ class UpdateDatabase(TestCase):
 
 
     
-    @patch(TESTED_MODULE+'.DBHandler._get_lmdb_content_pickle')
-    @patch(TESTED_MODULE+'.DBHandler._get_lmdb_content_str')
-    @patch(TESTED_MODULE+'.generateStoragePath')
-    @patch(TESTED_MODULE+'.OvhPath')
-    @patch(TESTED_MODULE+'.ProcessedEntry')
-    @patch(TESTED_MODULE+'.DBHandler.write_entity_batch')
+    @patch(f'{TESTED_MODULE}.DBHandler._get_lmdb_content_pickle')
+    @patch(f'{TESTED_MODULE}.DBHandler._get_lmdb_content_str')
+    @patch(f'{TESTED_MODULE}.generateStoragePath')
+    @patch(f'{TESTED_MODULE}.OvhPath')
+    @patch(f'{TESTED_MODULE}.ProcessedEntry')
+    @patch(f'{TESTED_MODULE}.DBHandler.write_entity_batch')
     def test_given_3_local_doi_uuid_when_call_update_database_and_only_2_in_swift_storage_then_calls_of_every_functions_with_expected_nb_calls(
         self, mock_write_entity_batch, mock_processed_entry, mock_ovh_path,
         mock_generate_storage_path, mock_get_lmdb_content_str,
@@ -175,12 +175,12 @@ class UpdateDatabase(TestCase):
 
     
      
-    @patch(TESTED_MODULE+'.DBHandler._get_lmdb_content_pickle')
-    @patch(TESTED_MODULE+'.DBHandler._get_lmdb_content_str')
-    @patch(TESTED_MODULE+'.generateStoragePath')
-    @patch(TESTED_MODULE+'.OvhPath')
-    @patch(TESTED_MODULE+'.ProcessedEntry')
-    @patch(TESTED_MODULE+'.DBHandler.write_entity_batch')
+    @patch(f'{TESTED_MODULE}.DBHandler._get_lmdb_content_pickle')
+    @patch(f'{TESTED_MODULE}.DBHandler._get_lmdb_content_str')
+    @patch(f'{TESTED_MODULE}.generateStoragePath')
+    @patch(f'{TESTED_MODULE}.OvhPath')
+    @patch(f'{TESTED_MODULE}.ProcessedEntry')
+    @patch(f'{TESTED_MODULE}.DBHandler.write_entity_batch')
     def test_given_3_local_doi_uuid_when_call_update_database_and_none_in_swift_storage_then_no_calls_of_some_functions_and_calls_of_others_with_expected_nb_calls(
         self, mock_write_entity_batch, mock_processed_entry, mock_ovh_path,
         mock_generate_storage_path, mock_get_lmdb_content_str,
