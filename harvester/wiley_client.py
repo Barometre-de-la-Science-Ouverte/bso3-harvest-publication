@@ -46,7 +46,7 @@ class WileyClient(metaclass=Singleton):
                     Make sure the publication {doi_publication_sure_to_succeed} can be downloaded using the Wiley API.\
                     Request status code = {response.status_code}"
             )
-        logger.debug(f"First request to initialize the session succeeded")
+        logger.debug("First request to initialize the session succeeded")
         return session
 
     def _get_publication_base_url(self, config: dict) -> str:

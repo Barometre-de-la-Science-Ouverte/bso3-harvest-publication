@@ -19,8 +19,8 @@ from config.logger_config import LOGGER_LEVEL
 from config.path_config import DATA_PATH, METADATA_PREFIX, PUBLICATION_PREFIX
 from domain.ovh_path import OvhPath
 from harvester.download_publication_utils import _download_publication, SUCCESS_DOWNLOAD
-from utils.file import _is_valid_file, compress
 from infrastructure.storage import swift
+from utils.file import _is_valid_file, compress
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
 
@@ -35,13 +35,13 @@ NB_THREADS = 2 * cpu_count()
 
 """
 Harvester for PDF available in open access. a LMDB index is used to keep track of the harvesting process and
-possible failures.  
+possible failures.
 
-This version uses the standard ThreadPoolExecutor for parallelizing the download/processing/upload processes. 
+This version uses the standard ThreadPoolExecutor for parallelizing the download/processing/upload processes.
 Given the limits of ThreadPoolExecutor (input stored in memory, blocking Executor.map until the whole input
-is processed and output stored in memory until all input is consumed), it works with batches of PDF of a size 
-indicated in the config.json file (default is 100 entries). We are moving from first batch to the second one 
-only when the first is entirely processed. The harvesting process is not CPU bounded so using threads is okay. 
+is processed and output stored in memory until all input is consumed), it works with batches of PDF of a size
+indicated in the config.json file (default is 100 entries). We are moving from first batch to the second one
+only when the first is entirely processed. The harvesting process is not CPU bounded so using threads is okay.
 """
 
 
@@ -257,12 +257,12 @@ class OAHarvester:
             return txn.get(identifier.encode(encoding="UTF-8"))
 
     def _compress_files(
-        self,
-        local_filename,
-        local_filename_json,
-        local_entry_id,
-        compression_suffix=".gz",
-        **kwargs,
+            self,
+            local_filename,
+            local_filename_json,
+            local_entry_id,
+            compression_suffix=".gz",
+            **kwargs,
     ):
         try:
             if os.path.isfile(local_filename):
@@ -301,17 +301,17 @@ class OAHarvester:
                 )
             if len(files_to_upload) > 0:
                 self.swift.upload_files_to_swift(self.storage_publications, files_to_upload)
-        except Exception as e:
+        except Exception:
             logger.exception("Error when uploading", exc_info=True)
 
     def _save_files_locally(
-        self,
-        dest_path: OvhPath,
-        local_filename,
-        local_entry_id,
-        local_filename_json,
-        compression_suffix,
-        **kwargs,
+            self,
+            dest_path: OvhPath,
+            local_filename,
+            local_entry_id,
+            local_filename_json,
+            compression_suffix,
+            **kwargs,
     ):
         try:
             local_dest_path = os.path.join(DATA_PATH, dest_path.to_local())

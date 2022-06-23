@@ -1,13 +1,13 @@
-from unittest import TestCase, mock
+from unittest import TestCase
 from unittest.mock import patch
-from application.server.main.tasks import create_task_harvest_partition
 
+from application.server.main.tasks import create_task_harvest_partition
 from harvester.OAHarvester import OAHarvester
 from infrastructure.database.db_handler import DBHandler
 from infrastructure.storage.swift import Swift
 
-
 TESTED_MODULE = 'application.server.main.tasks'
+
 
 class CreateTaskHarvestPartition(TestCase):
     @patch.object(Swift, '__init__')
@@ -25,11 +25,11 @@ class CreateTaskHarvestPartition(TestCase):
     @patch.object(DBHandler, 'update_database')
     @patch.object(OAHarvester, 'reset_lmdb')
     def test_all_called_the_number_of_times_expected_when_executed(
-        self, mock_reset_lmdb, mock_db_update_database, mock_db_count, 
-        mock_log_debug, mock_diagnostic, mock_harvestUnpaywall, mock_oa_init, 
-        mock_write_partitioned_filtered_metadata_file, 
-        mock_write_partitioned_metadata_file, mock_join, mock_get_partition_size,
-        mock_load_metadata, mock_db_handler_init, mock_swift_init
+            self, mock_reset_lmdb, mock_db_update_database, mock_db_count,
+            mock_log_debug, mock_diagnostic, mock_harvestUnpaywall, mock_oa_init,
+            mock_write_partitioned_filtered_metadata_file,
+            mock_write_partitioned_metadata_file, mock_join, mock_get_partition_size,
+            mock_load_metadata, mock_db_handler_init, mock_swift_init
     ):
         # Given
         mock_swift_init.return_value = None
@@ -47,12 +47,10 @@ class CreateTaskHarvestPartition(TestCase):
         mock_db_update_database.return_value = None
         mock_reset_lmdb.return_value = None
 
-
-        # When create_task_harvest_partition is executed
-
+        # When
         create_task_harvest_partition('', '', '', '', '')
 
-        # Then 
+        # Then
         mock_swift_init.assert_called_once()
         mock_db_handler_init.assert_called_once()
         mock_load_metadata.assert_called_once()

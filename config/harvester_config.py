@@ -60,8 +60,8 @@ def get_harvester_config(config_file_path: str) -> dict:
 def load_environment_variables() -> None:
     try:
         load_dotenv()
-    except:
-        print('File .env not found')
+    except Exception as e:
+        print(f'File .env not found: {str(e)}')
 
 
 config_harvester = get_harvester_config(CONFIG_PATH)

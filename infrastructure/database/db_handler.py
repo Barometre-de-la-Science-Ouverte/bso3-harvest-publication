@@ -1,20 +1,18 @@
 import pickle
-from harvester.OAHarvester import generateStoragePath
-
-import lmdb
-from sqlalchemy.engine import Engine
-from sqlalchemy import text
 from typing import List
 
-from domain.ovh_path import OvhPath
+import lmdb
+from sqlalchemy import text
+from sqlalchemy.engine import Engine
 
-from config.path_config import PUBLICATION_PREFIX, GROBID_PREFIX, SOFTCITE_PREFIX, DEFAULT_GROBID_TAG, \
-    DEFAULT_SOFTCITE_TAG
-from domain.processed_entry import ProcessedEntry
 from application.server.main.logger import get_logger
 from config.logger_config import LOGGER_LEVEL
-logger = get_logger(__name__, level=LOGGER_LEVEL)
+from config.path_config import PUBLICATION_PREFIX
+from domain.ovh_path import OvhPath
+from domain.processed_entry import ProcessedEntry
+from harvester.OAHarvester import generateStoragePath
 
+logger = get_logger(__name__, level=LOGGER_LEVEL)
 
 
 class DBHandler:
@@ -101,13 +99,15 @@ class DBHandler:
         # get uuid entry content (harvester_used and domain are in it)
         dict_local_uuid_entries = self._get_lmdb_content_pickle('data/entries', lmdb_size)
 
-        ## Important : lmdb_reset must be reset
+        # Important : lmdb_reset must be reset
         local_doi_uuid = self._get_lmdb_content_str('data/doi', lmdb_size)
         doi_uuid_uploaded: list = []
 
         for content_tuple in local_doi_uuid:
-            full_path_expected_in_remote: str = str(OvhPath(PUBLICATION_PREFIX, generateStoragePath(content_tuple[1]), content_tuple[1] + extension_publication))
-            publications_harvested_by_path: list = self.swift_handler.get_swift_list(container, dir_name=full_path_expected_in_remote)
+            full_path_expected_in_remote: str = str(OvhPath(PUBLICATION_PREFIX, generateStoragePath(content_tuple[1]),
+                                                            content_tuple[1] + extension_publication))
+            publications_harvested_by_path: list = self.swift_handler.get_swift_list(container,
+                                                                                     dir_name=full_path_expected_in_remote)
             if len(publications_harvested_by_path) > 0:
                 doi_uuid_uploaded.append(content_tuple)
 

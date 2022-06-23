@@ -1,15 +1,21 @@
+import json
+import os
 import abc
 import gzip
 import unittest
 from unittest import TestCase, mock
 
+from config.path_config import DATA_PATH
 from harvester.OAHarvester import (Continue, _apply_selection, _check_entry,
                                    _count_entries, _sample_selection,
                                    uuid, generateStoragePath,
                                    update_dict, OvhPath, METADATA_PREFIX,
-                                   PUBLICATION_PREFIX, get_latest_publication)
+                                   PUBLICATION_PREFIX, get_latest_publication, OAHarvester)
+from tests.unit_tests.fixtures.api_clients import wiley_client_mock
+from tests.unit_tests.fixtures.harvester import FIXTURES_PATH, harvester_2_publications, sample_urls_lists, \
+    sample_filenames, sample_entries, sample_uuids, harvester_2_publications_sample, parsed_ca_entry, \
+    parsed_oa_entry_output, pdf_file, pdf_gz_file, config_harvester
 from utils.file import compress, decompress
-from tests.unit_tests.fixtures.harvester import *
 
 
 class CountEntries(TestCase):
@@ -38,13 +44,12 @@ class SampleSelection(TestCase):
         sample = 0
         count = 4
         with self.assertRaises(IndexError):
-            samples = _sample_selection(sample, count, sample_seed=1)
+            _ = _sample_selection(sample, count, sample_seed=1)
 
 
 class ApplySelection(TestCase):
     def test_when_given_a_list_returns_elements_corresponding_to_selection(self):
         # Given
-        nb_sample = 4
         batches = []
         batch = []
         for i in range(22):
@@ -82,7 +87,7 @@ class HarvestUnpaywall(TestCase):
     @mock.patch.object(OAHarvester, "processBatch")
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test_when_2_publications_and_sample_is_1_then_processBatch_is_called_with_1_element(
-        self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4, mock_sample_selection
+            self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4, mock_sample_selection
     ):
         # Given a file path
         filepath = os.path.join(FIXTURES_PATH, "dump_2_publications.jsonl.gz.test")
@@ -105,7 +110,7 @@ class HarvestUnpaywall(TestCase):
     @mock.patch.object(OAHarvester, "processBatch")
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test_when_2_publications_then_processBatch_is_called(
-        self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4
+            self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4
     ):
         # Given a file path
         filepath = os.path.join(FIXTURES_PATH, "dump_2_publications.jsonl.gz.test")
@@ -145,9 +150,9 @@ class HarvestUnpaywall(TestCase):
             urls = [e[0] for e in batch]
             entries = [e[1] for e in batch]
             filenames = [e[2] for e in batch]
-            self.assertEqual(urls, expected_urls[i * batch_size : (i + 1) * batch_size])
-            self.assertEqual(entries, expected_entries[i * batch_size : (i + 1) * batch_size])
-            self.assertEqual(filenames, expected_filenames[i * batch_size : (i + 1) * batch_size])
+            self.assertEqual(urls, expected_urls[i * batch_size: (i + 1) * batch_size])
+            self.assertEqual(entries, expected_entries[i * batch_size: (i + 1) * batch_size])
+            self.assertEqual(filenames, expected_filenames[i * batch_size: (i + 1) * batch_size])
 
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test__process_entry_when_entry_already_processed(self, mock_getUUIDByIdentifier):
@@ -156,7 +161,6 @@ class HarvestUnpaywall(TestCase):
         with gzip.open(filepath, "rt") as fp:
             file_content = [json.loads(line) for line in fp]
         entry = file_content[0]
-        expected_entries = sample_entries
         mock_getUUIDByIdentifier.return_value = "abc".encode("UTF-8")
         # Then
         with self.assertRaises(Continue):
@@ -218,7 +222,6 @@ class HarvestUnpaywall(TestCase):
         with gzip.open(filepath, "rt") as fp:
             file_content = [json.loads(line) for line in fp]
         entry = file_content[0]
-        expected_entries = sample_entries
         mock_getUUIDByIdentifier.return_value = "abc".encode("UTF-8")
         # Then
         with self.assertRaises(Continue):
@@ -230,7 +233,6 @@ class HarvestUnpaywall(TestCase):
                 env=harvester_2_publications.env,
                 env_doi=harvester_2_publications.env_doi,
             )
-        # self.assertIsNotNone(entry['id'])
 
     @mock.patch.object(uuid, "uuid4")
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
@@ -357,12 +359,12 @@ class ManageFiles(TestCase):
     @mock.patch("harvester.OAHarvester.OAHarvester._compress_files")
     @mock.patch("harvester.OAHarvester.OAHarvester._write_metadata_file")
     def test_manageFiles(
-        self,
-        mock_write_metadata_file,
-        mock_compress_files,
-        mock_upload_files,
-        mock_save_files_locally,
-        mock_clean_up_files,
+            self,
+            mock_write_metadata_file,
+            mock_compress_files,
+            mock_upload_files,
+            mock_save_files_locally,
+            mock_clean_up_files,
     ):
         # Given
         # When
@@ -448,7 +450,7 @@ class HarvesterInit(TestCase):
         config_with_swift = config_harvester.copy()
         config_with_swift["swift"] = "yes"
         # When
-        harvester = OAHarvester(config_with_swift, wiley_client_mock)
+        _ = OAHarvester(config_with_swift, wiley_client_mock)
         # Then
         mock_Swift.assert_called_with(config_with_swift)
 

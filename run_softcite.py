@@ -1,5 +1,3 @@
-import os
-import sys
 from config.path_config import PUBLICATIONS_DOWNLOAD_DIR, CONFIG_PATH_SOFTCITE
 
 
@@ -11,7 +9,7 @@ def run_softcite(config_path, data_path, smc):
 
 if __name__ == "__main__":
     from software_mentions_client.client import software_mentions_client as smc
+
     # from tests.unit_tests.fixtures.software_mention_client import software_mentions_client as smc
 
     run_softcite(CONFIG_PATH_SOFTCITE, PUBLICATIONS_DOWNLOAD_DIR, smc)
-
