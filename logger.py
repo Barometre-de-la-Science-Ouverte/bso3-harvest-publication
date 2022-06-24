@@ -1,6 +1,7 @@
 import logging.handlers
-from config.path_config import LOG_PATH
+
 from config.logger_config import LOGGER_LEVEL
+from config.path_config import LOG_PATH
 
 time_handler = logging.handlers.TimedRotatingFileHandler(LOG_PATH, when='D', interval=1, backupCount=0)
 time_handler.suffix = '%Y-%m-%d.log'

@@ -84,7 +84,7 @@ class Download(TestCase):
         urls, local_entry, filename = arXiv_parsed_entry
         # When
         # TODO: need to instantiate a correct wiley client and make sure it is instantiated one time
-        with mock.patch('harvester.download_publication_utils.decompress') as  mock_decompress:
+        with mock.patch('harvester.download_publication_utils.decompress') as mock_decompress:
             _download_publication(urls, filename, local_entry, wiley_client_mock)
             # Then
             mock_decompress.assert_called_with(filename + ".gz")

@@ -9,7 +9,7 @@ from requests import ConnectTimeout
 
 from application.server.main.logger import get_logger
 from config.logger_config import LOGGER_LEVEL
-from harvester.exception import EmptyFileContentException, PublicationDownloadFileException
+from harvester.exception import EmptyFileContentException, PublicationDownloadFileException, IncorrectArxivUrl
 from utils.file import is_file_not_empty, decompress
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
@@ -118,5 +118,5 @@ def url_to_path(url, ext='.pdf.gz'):
         filename = url.split('/')[-1]
         yymm = filename[:4]
         return '/'.join([prefix, yymm, filename, filename + ext])
-    except:
+    except IncorrectArxivUrl:
         logger.exception("Incorrect arXiv url format, could not extract path")

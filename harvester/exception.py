@@ -1,4 +1,8 @@
-class PublicationDownloadFileException(Exception):
+class HarvesterException(Exception):
+    pass
+
+
+class PublicationDownloadFileException(HarvesterException):
     pass
 
 
@@ -7,4 +11,8 @@ class EmptyFileContentException(PublicationDownloadFileException):
 
 
 class FailedRequest(PublicationDownloadFileException):
+    pass
+
+
+class IncorrectArxivUrl(HarvesterException):
     pass

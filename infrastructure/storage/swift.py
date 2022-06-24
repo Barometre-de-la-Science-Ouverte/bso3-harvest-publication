@@ -1,12 +1,13 @@
 import shutil
-
-from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
 from typing import List
 
-from config.harvester_config import config_harvester
-from domain.ovh_path import OvhPath
+from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
+
 from application.server.main.logger import get_logger
+from config.harvester_config import config_harvester
 from config.logger_config import LOGGER_LEVEL
+from domain.ovh_path import OvhPath
+
 logger = get_logger(__name__, level=LOGGER_LEVEL)
 
 METADATA_DUMP = config_harvester['metadata_dump']
@@ -37,7 +38,7 @@ class Swift(object):
                     logger.error("error listing SWIFT object storage containers")
 
         except SwiftError as e:
-            logger.exception("error listing containers")
+            logger.exception(f"error listing containers: {str(e)}")
 
         if PUBLICATIONS_DUMP not in container_names:
             # create the container
@@ -74,7 +75,8 @@ class Swift(object):
                         logger.exception("%s" % error, exc_info=True)
                 else:
                     if result['action'] == "upload_object":
-                        logger.debug(f'Result upload : {result["object"]} succesfully uploaded on {result["container"]} (from {result["path"]})')
+                        logger.debug(
+                            f'Result upload : {result["object"]} succesfully uploaded on {result["container"]} (from {result["path"]})')
         except SwiftError:
             logger.exception("error uploading file to SWIFT container", exc_info=True)
 
