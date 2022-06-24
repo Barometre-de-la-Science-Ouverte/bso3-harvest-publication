@@ -13,6 +13,3 @@ class EmptyFileContentException(PublicationDownloadFileException):
 class FailedRequest(PublicationDownloadFileException):
     pass
 
-
-class IncorrectArxivUrl(HarvesterException):
-    pass

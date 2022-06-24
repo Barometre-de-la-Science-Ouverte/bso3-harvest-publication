@@ -9,7 +9,7 @@ from requests import ConnectTimeout
 
 from application.server.main.logger import get_logger
 from config.logger_config import LOGGER_LEVEL
-from harvester.exception import EmptyFileContentException, PublicationDownloadFileException, FailedRequest, IncorrectArxivUrl
+from harvester.exception import EmptyFileContentException, PublicationDownloadFileException, FailedRequest
 from utils.file import is_file_not_empty, decompress
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
@@ -56,16 +56,17 @@ def arxiv_download(url: str, filepath: str, doi: str) -> (str, str):
     result, harvester_used = FAIL_DOWNLOAD, ARXIV_HARVESTER
     if ovh_arxiv_file_pdf_gz:
         filepath_gz = filepath + ".gz"
-        subprocess.check_call(f'{init_cmd} download arxiv_harvesting {ovh_arxiv_file_pdf_gz} -o {filepath_gz}', shell=True)
+        subprocess.check_call(f'{init_cmd} download arxiv_harvesting {ovh_arxiv_file_pdf_gz} -o {filepath_gz}',
+                              shell=True)
         if is_file_not_empty(filepath_gz):
             result = SUCCESS_DOWNLOAD
             decompress(filepath_gz)
             os.remove(filepath_gz)
-            logger.debug(f'The publication with doi = {doi} was successfully downloaded via arXiv_harvesting. url = {url}')
+            logger.debug(
+                f'The publication with doi = {doi} was successfully downloaded via arXiv_harvesting. url = {url}')
         else:
             logger.warning(f'The publication with doi = {doi} download failed via arXiv_harvesting. url = {url}')
     return result, harvester_used
-
 
 
 def wiley_download(doi: str, filepath: str, wiley_client) -> (str, str):
@@ -74,8 +75,8 @@ def wiley_download(doi: str, filepath: str, wiley_client) -> (str, str):
     except FailedRequest:
         result, harvester_used = FAIL_DOWNLOAD, WILEY_HARVESTER
         logger.error(
-            f"An error occurred during downloading the publication using wiley_client. Standard download will be used."
-            f" Request exception = ", exc_info=True)
+            "An error occurred during downloading the publication using wiley_client. Standard download will be used."
+            " Request exception = ", exc_info=True)
     return result, harvester_used
 
 
@@ -98,12 +99,12 @@ def _process_request(scraper, url, n=0, timeout_in_seconds=60):
     try:
         if "cairn" in url:
             headers = {'User-Agent': 'MESRI-Barometre-de-la-Science-Ouverte'}
-            file_data = scraper.get(url, headers=headers, timeout=timeout_in_seconds, verify=False)
+            response = scraper.get(url, headers=headers, timeout=timeout_in_seconds, verify=False)
         else:
-            file_data = scraper.get(url, timeout=timeout_in_seconds, verify=False)
-        if file_data.status_code == 200:
-            if file_data.text[:5] == '%PDF-':
-                return file_data.content
+            response = scraper.get(url, timeout=timeout_in_seconds, verify=False)
+        if response.status_code == 200:
+            if response.text[:5] == '%PDF-':
+                return response.content
             elif n < 5:
                 soup = BeautifulSoup(response.text, 'html.parser')
                 if soup.select_one('a#redirect'):
@@ -127,5 +128,5 @@ def url_to_path(url, ext='.pdf.gz'):
         filename = url.split('/')[-1]
         yymm = filename[:4]
         return '/'.join([prefix, yymm, filename, filename + ext])
-    except IncorrectArxivUrl:
-        logger.exception("Incorrect arXiv url format, could not extract path")
+    except Exception:
+        logger.exception("Incorrect arXiv url format, could not extract path", exc_info=True)

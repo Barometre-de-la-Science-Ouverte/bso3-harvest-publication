@@ -36,9 +36,9 @@ def run_task_harvest_partitions():
         wiley_client = WileyClient(config_harvester[WILEY_KEY])
     except FailedRequest:
         wiley_client = None
-        logger.error(f"Did not manage to initialize the wiley_client. The wiley_client instance will be set to None"
-                     f" and standard download will be used in the case of a wiley URL."
-                     f" Request exception = ", exc_info=True)
+        logger.error("Did not manage to initialize the wiley_client. The wiley_client instance will be set to None"
+                     " and standard download will be used in the case of a wiley URL."
+                     " Request exception = ", exc_info=True)
     with Connection(redis.from_url(current_app.config["REDIS_URL"])):
         q = Queue(name="pdf-harvester", default_timeout=default_timeout)
         for partition_index in range(total_partition_number + 1):
