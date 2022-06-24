@@ -1,11 +1,11 @@
 import json
 import os
-from unittest.mock import MagicMock
 
-from config.path_config import CONFIG_PATH_TEST, DATA_PATH
 from config.harvester_config import get_harvester_config
+from config.path_config import CONFIG_PATH_TEST, DATA_PATH
 from harvester.OAHarvester import OAHarvester
 from tests.unit_tests.fixtures.api_clients import wiley_client_mock
+from tests.unit_tests.fixtures.harvester_constants import wiley_url
 
 FIXTURES_PATH = os.path.dirname(__file__)
 
@@ -105,7 +105,7 @@ urls_entry = [
     "https://hal.archives-ouvertes.fr/hal-02298557/file/islandora_79998.pdf",
     "https://hal.archives-ouvertes.fr/hal-02298557/document",
     "https://univoak.eu/islandora/object/islandora%3A79998/datastream/PDF/view",
-    "https://onlinelibrary.wiley.com/doi/pdfdirect/10.1111/jdv.15719",
+    wiley_url,
     "https://epigeneticsandchromatin.biomedcentral.com/track/pdf/10.1186/s13072-019-0285-6",
 ]
 

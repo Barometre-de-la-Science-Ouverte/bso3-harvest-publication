@@ -17,4 +17,4 @@ wiley_fake_config = {
 
 wiley_sleep_time_in_seconds_default = 1
 wiley_doi = '10.1111/tpj.12099'
-wiley_url = 'https://onlinelibrary.wiley.com/doi/pdfdirect/10.1111/tpj.12099'
+wiley_url = 'https://onlinelibrary.wiley.com/doi/pdfdirect/10.1111/jdv.15719'

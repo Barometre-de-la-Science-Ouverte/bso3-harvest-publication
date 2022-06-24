@@ -61,13 +61,7 @@ $ pip uninstall python-magic
 $ pip install python-magic-bin==0.4.14
 ```
 
-5. Install grobid and software mentions clients
-```shell
-$ pip install git+https://github.com/Barometre-de-la-Science-Ouverte/grobid_client_python.git#egg=grobid_client_python
-$ pip install git+https://github.com/Barometre-de-la-Science-Ouverte/software_mentions_client#egg=software_mentions_client
-```
-
-6. Add the configuration files for *arxiv* (arxiv_config.py) and *wiley* (wiley_config.py) to the config folder (ask a developer for them).
+5. Add the configuration files for *arxiv* (arxiv_config.py) and *wiley* (wiley_config.py) to the config folder (ask a developer for them).
 
 
 

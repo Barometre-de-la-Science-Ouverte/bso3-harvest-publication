@@ -1,15 +1,12 @@
-import argparse
 import os
 from glob import glob
-
 from typing import List
 
-from config.harvester_config import config_harvester
+from config.db_config import engine
 from config.path_config import PUBLICATION_PREFIX
-from infrastructure.storage.swift import Swift
 from domain.ovh_path import OvhPath
 from infrastructure.database.db_handler import DBHandler
-from config.db_config import engine
+from infrastructure.storage.swift import Swift
 
 
 def generateStoragePath(identifier):
@@ -21,8 +18,10 @@ def generateStoragePath(identifier):
 def get_partitions(_swift: Swift, prefix, partition_size: int) -> List:
     """Return a list of partitions of gzipped pdf files"""
     db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=_swift)
-    files = sorted([str(OvhPath(PUBLICATION_PREFIX, generateStoragePath(record[1]), record[1] + '.pdf.gz')) for record in db_handler.fetch_all()])
-    partitions = [files[i : i + partition_size] for i in range(0, len(files), partition_size)]
+    files = sorted(
+        [str(OvhPath(PUBLICATION_PREFIX, generateStoragePath(record[1]), record[1] + '.pdf.gz')) for record in
+         db_handler.fetch_all()])
+    partitions = [files[i: i + partition_size] for i in range(0, len(files), partition_size)]
     return partitions
 
 
@@ -37,11 +36,11 @@ def download_files(_swift, dest_dir, files):
 def upload_and_clean_up(_swift, local_dir):
     files = glob(local_dir + "*")
     grobid_files = [
-        (file, OvhPath( "grobid", generateStoragePath(os.path.basename(file).split(".")[0]), os.path.basename(file)))
+        (file, OvhPath("grobid", generateStoragePath(os.path.basename(file).split(".")[0]), os.path.basename(file)))
         for file in files if file.endswith(".tei.xml")
     ]
     softcite_files = [
-        (file, OvhPath( "softcite", generateStoragePath(os.path.basename(file).split(".")[0]), os.path.basename(file)))
+        (file, OvhPath("softcite", generateStoragePath(os.path.basename(file).split(".")[0]), os.path.basename(file)))
         for file in files if file.endswith(".software.json")
     ]
     _swift.upload_files_to_swift(_swift.config["publications_dump"], grobid_files + softcite_files)

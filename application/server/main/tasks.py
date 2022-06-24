@@ -30,7 +30,8 @@ METADATA_DUMP = config_harvester['metadata_dump']
 logger_console = get_logger(__name__, level=LOGGER_LEVEL)
 
 
-def create_task_harvest_partition(source_metadata_file, partition_index, total_partition_number, doi_list, wiley_client):
+def create_task_harvest_partition(source_metadata_file, partition_index, total_partition_number, doi_list,
+                                  wiley_client):
     swift_handler = Swift(config_harvester)
     db_handler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
 
@@ -49,6 +50,7 @@ def create_task_harvest_partition(source_metadata_file, partition_index, total_p
     logger_console.debug(f'{db_handler.count()} rows in database before harvesting')
     db_handler.update_database()
     logger_console.debug(f'{db_handler.count()} rows in database after harvesting')
+    harvester.reset_lmdb()
 
 
 def create_task_unpaywall(args):
@@ -63,7 +65,7 @@ def create_task_unpaywall(args):
     logger_console.debug('Database before harvesting')
     logger_console.debug(db_handler.fetch_all())
     if ((metadata_file == '') and (metadata_folder == '')) or ((metadata_file != '') and (metadata_folder != '')):
-        logger_console.debug(f'Only one of the two arguments metadata_file of metadata_folder should be provided!')
+        logger_console.debug('Only one of the two arguments metadata_file of metadata_folder should be provided!')
     else:
         if metadata_folder:
             logger_console.debug(f'Metadata folder provided : {metadata_folder}')
@@ -236,12 +238,10 @@ def write_partitioned_filtered_metadata_file(db_handler: DBHandler,
     filtered_publications_metadata_json_list = metadata_input_file_content_list
     if len(doi_list) > 0:
         filtered_publications_metadata_json_list = [
-            entry for entry in filtered_publications_metadata_json_list \
-            if entry['doi'] in doi_list
+            entry for entry in filtered_publications_metadata_json_list if entry['doi'] in doi_list
         ]
     filtered_publications_metadata_json_list = [
-        entry for entry in filtered_publications_metadata_json_list \
-        if entry['doi'] not in doi_already_harvested_list
+        entry for entry in filtered_publications_metadata_json_list if entry['doi'] not in doi_already_harvested_list
     ]
     logger_console.debug(
         f'Number of publications in the file after filtering: {len(filtered_publications_metadata_json_list)}')

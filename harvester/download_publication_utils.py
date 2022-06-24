@@ -9,7 +9,7 @@ from requests import ConnectTimeout
 
 from application.server.main.logger import get_logger
 from config.logger_config import LOGGER_LEVEL
-from harvester.exception import EmptyFileContentException, PublicationDownloadFileException
+from harvester.exception import EmptyFileContentException, PublicationDownloadFileException, FailedRequest, IncorrectArxivUrl
 from utils.file import is_file_not_empty, decompress
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
@@ -34,7 +34,7 @@ def _download_publication(urls, filename, local_entry, wiley_client):
                 result, harvester_used = arxiv_download(url, filename, doi)
                 if result == SUCCESS_DOWNLOAD:
                     break
-            elif 'wiley' in url:
+            elif wiley_client and 'wiley' in url:  # Wiley client can be None in case of an initialization problem
                 result, harvester_used = wiley_download(doi, filename, wiley_client)
                 if result == SUCCESS_DOWNLOAD:
                     break
@@ -69,7 +69,13 @@ def arxiv_download(url: str, filepath: str, doi: str) -> (str, str):
 
 
 def wiley_download(doi: str, filepath: str, wiley_client) -> (str, str):
-    result, harvester_used = wiley_client.download_publication(doi, filepath)
+    try:
+        result, harvester_used = wiley_client.download_publication(doi, filepath)
+    except FailedRequest:
+        result, harvester_used = FAIL_DOWNLOAD, WILEY_HARVESTER
+        logger.error(
+            f"An error occurred during downloading the publication using wiley_client. Standard download will be used."
+            f" Request exception = ", exc_info=True)
     return result, harvester_used
 
 
@@ -99,7 +105,7 @@ def _process_request(scraper, url, n=0, timeout_in_seconds=60):
             if file_data.text[:5] == '%PDF-':
                 return file_data.content
             elif n < 5:
-                soup = BeautifulSoup(file_data.text, 'html.parser')
+                soup = BeautifulSoup(response.text, 'html.parser')
                 if soup.select_one('a#redirect'):
                     redirect_url = soup.select_one('a#redirect')['href']
                     logger.debug('Waiting 5 seconds before following redirect url')
@@ -107,7 +113,8 @@ def _process_request(scraper, url, n=0, timeout_in_seconds=60):
                     logger.debug(f'Retry number {n + 1}')
                     return _process_request(scraper, redirect_url, n + 1)
         else:
-            logger.debug(f"Response code is not successful: {file_data.status_code}")
+            logger.debug(
+                f"Response code is not successful: {response.status_code}. Response content = {response.content}")
     except ConnectTimeout:
         logger.exception("Connection Timeout", exc_info=True)
         return
@@ -120,5 +127,5 @@ def url_to_path(url, ext='.pdf.gz'):
         filename = url.split('/')[-1]
         yymm = filename[:4]
         return '/'.join([prefix, yymm, filename, filename + ext])
-    except:
+    except IncorrectArxivUrl:
         logger.exception("Incorrect arXiv url format, could not extract path")

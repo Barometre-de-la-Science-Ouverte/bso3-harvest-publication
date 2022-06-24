@@ -14,6 +14,7 @@ def get_console_handler() -> logging.StreamHandler:
     console_handler.setFormatter(get_formatter())
     return console_handler
 
+
 def get_file_handler() -> logging.FileHandler:
     file_handler = logging.FileHandler("logger.log")
     file_handler.setFormatter(get_formatter())

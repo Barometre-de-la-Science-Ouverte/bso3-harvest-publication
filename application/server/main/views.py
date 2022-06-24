@@ -2,9 +2,12 @@ import redis
 from flask import Blueprint, current_app, jsonify, render_template, request
 from rq import Connection, Queue
 
+from application.server.main.logger import get_logger
 from application.server.main.tasks import create_task_process, create_task_harvest_partition
 from config import WILEY_KEY
 from config.harvester_config import config_harvester
+from config.logger_config import LOGGER_LEVEL
+from harvester.exception import FailedRequest
 from harvester.wiley_client import WileyClient
 from infrastructure.storage.swift import Swift
 from ovh_handler import get_partitions
@@ -14,6 +17,7 @@ HOURS = 3600
 default_timeout = 6 * HOURS
 
 main_blueprint = Blueprint("main", __name__)
+logger = get_logger(__name__, level=LOGGER_LEVEL)
 
 
 @main_blueprint.route("/", methods=["GET"])
@@ -28,7 +32,13 @@ def run_task_harvest_partitions():
     total_partition_number = args.get("total_partition_number")
     doi_list = args.get("doi_list", [])
     response_objects = []
-    wiley_client = WileyClient(config_harvester[WILEY_KEY])
+    try:
+        wiley_client = WileyClient(config_harvester[WILEY_KEY])
+    except FailedRequest:
+        wiley_client = None
+        logger.error(f"Did not manage to initialize the wiley_client. The wiley_client instance will be set to None"
+                     f" and standard download will be used in the case of a wiley URL."
+                     f" Request exception = ", exc_info=True)
     with Connection(redis.from_url(current_app.config["REDIS_URL"])):
         q = Queue(name="pdf-harvester", default_timeout=default_timeout)
         for partition_index in range(total_partition_number + 1):
