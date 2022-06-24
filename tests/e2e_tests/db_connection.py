@@ -2,6 +2,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy import create_engine
 from utils.singleton import Singleton
 
+
 class DBConnection(metaclass=Singleton):
     def __init__(self, config: dict) -> None:
         DB_USER = config['db_user']
@@ -15,5 +16,3 @@ class DBConnection(metaclass=Singleton):
             self.engine: Engine = create_engine(connection_string)
         except Exception as e:
             print(e)
-
-        
