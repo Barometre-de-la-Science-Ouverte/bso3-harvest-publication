@@ -44,7 +44,7 @@ class WileyClient(metaclass=Singleton):
             raise FailedRequest(
                 f"First request to initialize the session failed.\
                     Make sure the publication {doi_publication_sure_to_succeed} can be downloaded using the Wiley API.\
-                    Request status code = {response.status_code}"
+                    Request status code = {response.status_code}, Response content = {response.content}"
             )
         logger.debug("First request to initialize the session succeeded")
         return session
@@ -92,8 +92,8 @@ class WileyClient(metaclass=Singleton):
     def _validate_downloaded_content_and_write_it(self, response, doi: str, filepath: str) -> None:
         if not response.ok:
             raise FailedRequest(
-                f"The publication with doi = {doi} download failed via Wiley request. Request status code = {response.status_code}\n\
-                {response.content}"
+                f"The publication with doi = {doi} download failed via Wiley request. Request status code = {response.status_code}" \
+                + f"Response content = {response.content}"
             )
         logger.debug(
             f"The publication with doi = {doi} was successfully downloaded via Wiley request"

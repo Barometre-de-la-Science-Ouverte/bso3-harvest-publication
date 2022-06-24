@@ -1,22 +1,48 @@
 import abc
 import os
 import unittest
-from unittest import TestCase, mock
+from unittest import TestCase
+from unittest.mock import patch, MagicMock, Mock
 
 import cloudscraper
 
 from config import WILEY_KEY
 from config.harvester_config import config_harvester
-from harvester.download_publication_utils import _process_request, _download_publication, url_to_path
+from harvester.download_publication_utils import _process_request, _download_publication, url_to_path, wiley_download
+from harvester.exception import FailedRequest
 from harvester.wiley_client import WileyClient
 from tests.unit_tests.fixtures.api_clients import wiley_client_mock
 from tests.unit_tests.fixtures.harvester import timeout_url, wiley_parsed_entry, arXiv_parsed_entry
+from tests.unit_tests.fixtures.harvester_constants import wiley_url
 from utils.file import _is_valid_file
 
 TESTED_MODULE = 'harvester.download_publication_utils'
 
 
 class Download(TestCase):
+
+    @patch(f"{TESTED_MODULE}.arxiv_download")
+    @patch(f"{TESTED_MODULE}.wiley_download")
+    @patch(f"{TESTED_MODULE}.standard_download")
+    def test_download_publication_standard_download_should_be_used_when_wiley_client_is_none(
+            self, mock_standard_download, mock_wiley_download, mock_arxiv_download):
+        # Given
+        fake_doi = 'fake_doi'
+        fake_local_entry = {'doi': fake_doi}
+        fake_filename = 'fake_filename'
+        fake_url = wiley_url
+        fake_urls = [fake_url]
+
+        wiley_client = None
+
+        # When
+        _ = _download_publication(fake_urls, fake_filename, fake_local_entry, wiley_client)
+
+        # Then
+        mock_arxiv_download.assert_not_called()
+        mock_wiley_download.assert_not_called()
+        mock_standard_download.assert_called_once_with(fake_url, fake_filename, fake_doi)
+
     @unittest.skip("No config on github")
     def test_wiley_download(self):
         # Given
@@ -29,6 +55,21 @@ class Download(TestCase):
         self.assertEqual(local_entry["harvester_used"], "wiley")
         self.assertTrue(_is_valid_file(filename))
         os.remove(filename)
+
+    def test_wiley_download_should_catch_the_exception_raised_by_wiley_client_and_set_result_to_fail(self):
+        def my_side_effect(arg1, arg2):
+            raise FailedRequest('FailedRequest')
+
+        mock = Mock()
+        mock.side_effect = my_side_effect
+        wiley_client_mock.download_publication = mock
+
+        # When
+        result, harvester_used = wiley_download('fake_doi', 'fake_filepath', wiley_client_mock)
+
+        # Then
+        assert result == 'fail'
+        assert harvester_used == 'wiley'
 
     def test_arXiv_url_to_path(self):
         # Given
@@ -44,10 +85,10 @@ class Download(TestCase):
         self.assertEqual(post_07_arXiv_path, expected_post_07_arXiv_path)
         self.assertEqual(pre_07_arXiv_path, expected_pre_07_arXiv_path)
 
-    @mock.patch("os.path.getsize")
-    @mock.patch(f'{TESTED_MODULE}._process_request')
-    @mock.patch(f'{TESTED_MODULE}.arxiv_download')
-    @mock.patch(f'{TESTED_MODULE}.wiley_download')
+    @patch("os.path.getsize")
+    @patch(f'{TESTED_MODULE}._process_request')
+    @patch(f'{TESTED_MODULE}.arxiv_download')
+    @patch(f'{TESTED_MODULE}.wiley_download')
     def test_fallback_download_when_arXiv_download_does_not_work(
             self, mock_wiley_download, mock_arxiv_download, mock_process_request, mock_getsize
     ):
@@ -62,9 +103,9 @@ class Download(TestCase):
         mock_process_request.assert_called()
         os.remove(filename)
 
-    @mock.patch('os.path.getsize')
-    @mock.patch(f'{TESTED_MODULE}._process_request')
-    @mock.patch(f'{TESTED_MODULE}.wiley_download')
+    @patch('os.path.getsize')
+    @patch(f'{TESTED_MODULE}._process_request')
+    @patch(f'{TESTED_MODULE}.wiley_download')
     def test_fallback_download_when_wiley_download_does_not_work(
             self, mock_wiley_curl, mock_process_request, mock_getsize
     ):
@@ -84,7 +125,7 @@ class Download(TestCase):
         urls, local_entry, filename = arXiv_parsed_entry
         # When
         # TODO: need to instantiate a correct wiley client and make sure it is instantiated one time
-        with mock.patch('harvester.download_publication_utils.decompress') as mock_decompress:
+        with patch('harvester.download_publication_utils.decompress') as mock_decompress:
             _download_publication(urls, filename, local_entry, wiley_client_mock)
             # Then
             mock_decompress.assert_called_with(filename + ".gz")
@@ -108,7 +149,7 @@ class ProcessRequest(TestCase):
         url = "a_cairn_url"
         expected_headers = {"User-Agent": "MESRI-Barometre-de-la-Science-Ouverte"}
         scraper = abc
-        scraper.get = mock.MagicMock()
+        scraper.get = MagicMock()
         # When
         _process_request(scraper, url)
         # Then
@@ -118,7 +159,7 @@ class ProcessRequest(TestCase):
         # Given
         url = ""
         scraper = abc
-        scraper.get = mock.MagicMock()
+        scraper.get = MagicMock()
         # When
         _process_request(scraper, url)
         # Then
@@ -128,9 +169,9 @@ class ProcessRequest(TestCase):
         # Given
         url = ""
         scraper = abc
-        scraper.get = mock.MagicMock()
+        scraper.get = MagicMock()
 
-        expected_response = mock.MagicMock()
+        expected_response = MagicMock()
         expected_response.status_code = 400
 
         scraper.get.return_value = expected_response
@@ -143,9 +184,9 @@ class ProcessRequest(TestCase):
         # Given
         url = ""
         scraper = abc
-        scraper.get = mock.MagicMock()
+        scraper.get = MagicMock()
 
-        expected_response = mock.MagicMock()
+        expected_response = MagicMock()
         expected_response.status_code = 200
         expected_response.text = "%PDF-"
         expected_content = "expected_content"
@@ -157,25 +198,25 @@ class ProcessRequest(TestCase):
         # Then
         self.assertEqual(content, expected_content)
 
-    @mock.patch("harvester.download_publication_utils.BeautifulSoup")
+    @patch("harvester.download_publication_utils.BeautifulSoup")
     def test_process_request_200_not_pdf(self, mock_BeautifulSoup):
         # Given
         url = ""
         scraper = abc
-        scraper.get = mock.MagicMock()
+        scraper.get = MagicMock()
 
-        expected_response = mock.MagicMock()
+        expected_response = MagicMock()
         expected_response.status_code = 200
         expected_response.text = "html_content"
 
         scraper.get.return_value = expected_response
-        soup_mock = mock.MagicMock()
+        soup_mock = MagicMock()
         redirect_url = "redirect_url"
-        soup_mock.select_one = mock.MagicMock(return_value={"href": redirect_url})
+        soup_mock.select_one = MagicMock(return_value={"href": redirect_url})
         mock_BeautifulSoup.return_value = soup_mock
         # Copy the function that is called recursively to be able to both use it and mock it
         original_function = _process_request
-        with mock.patch("harvester.download_publication_utils._process_request") as mock_process_request:
+        with patch("harvester.download_publication_utils._process_request") as mock_process_request:
             # When
             original_function(scraper, url)
             # Then
