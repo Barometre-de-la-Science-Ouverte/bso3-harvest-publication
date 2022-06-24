@@ -45,17 +45,3 @@ Feature: Harvesting
         and we check that the number of rows in database is equals to the number of inputs
         and we check that the doi are present in postgres database
         and we check that all uid of doi downloaded from postgres database on the table are present in their metadata + publication form on swift
-
-    Scenario: harvesting for Wiley close access
-        Given a set of specific doi
-            | doi               |
-            | 10.1111/ppl.13009 |
-            | 10.1111/vsu.13272 |
-            | 10.1002/path.5321 |
-        When we send a post request with metadata_file="bso-publications-5k.jsonl.gz" to "http://127.0.0.1:5004/harvest_partitions" endpoint
-        and we wait "90" seconds
-        Then we check that the response status is "200"
-        and we check that the response content length is equals to the inputs length
-        and we check that the number of rows in database is equals to the number of inputs
-        and we check that the doi are present in postgres database
-        and we check that all uid of doi downloaded from postgres database on the table are present in their metadata + publication form on swift
