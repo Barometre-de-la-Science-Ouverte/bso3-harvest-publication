@@ -103,7 +103,6 @@ class Swift(object):
         Return all contents of a given dir in SWIFT object storage.
         Goes through the pagination to obtain all file names.
         """
-        logger.debug('Get the content of the SWIFT object storage')
         result = []
         try:
             options = {'prefix': dir_name} if dir_name is not None else None
