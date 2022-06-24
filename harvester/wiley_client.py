@@ -44,7 +44,7 @@ class WileyClient(metaclass=Singleton):
             raise FailedRequest(
                 f"First request to initialize the session failed.\
                     Make sure the publication {doi_publication_sure_to_succeed} can be downloaded using the Wiley API.\
-                    Request status code = {response.status_code}"
+                    Request status code = {response.status_code}, Response content = {response.content}"
             )
         logger.debug("First request to initialize the session succeeded")
         return session

@@ -9,7 +9,7 @@ from requests import ConnectTimeout
 
 from application.server.main.logger import get_logger
 from config.logger_config import LOGGER_LEVEL
-from harvester.exception import EmptyFileContentException, PublicationDownloadFileException, IncorrectArxivUrl
+from harvester.exception import EmptyFileContentException, PublicationDownloadFileException, FailedRequest, IncorrectArxivUrl
 from utils.file import is_file_not_empty, decompress
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
@@ -34,7 +34,7 @@ def _download_publication(urls, filename, local_entry, wiley_client):
                 result, harvester_used = arxiv_download(url, filename, doi)
                 if result == SUCCESS_DOWNLOAD:
                     break
-            elif 'wiley' in url:
+            elif wiley_client and 'wiley' in url:  # Wiley client can be None in case of an initialization problem
                 result, harvester_used = wiley_download(doi, filename, wiley_client)
                 if result == SUCCESS_DOWNLOAD:
                     break
@@ -67,7 +67,13 @@ def arxiv_download(url: str, filepath: str, doi: str) -> (str, str):
 
 
 def wiley_download(doi: str, filepath: str, wiley_client) -> (str, str):
-    result, harvester_used = wiley_client.download_publication(doi, filepath)
+    try:
+        result, harvester_used = wiley_client.download_publication(doi, filepath)
+    except FailedRequest:
+        result, harvester_used = FAIL_DOWNLOAD, WILEY_HARVESTER
+        logger.error(
+            f"An error occurred during downloading the publication using wiley_client. Standard download will be used."
+            f" Request exception = ", exc_info=True)
     return result, harvester_used
 
 
