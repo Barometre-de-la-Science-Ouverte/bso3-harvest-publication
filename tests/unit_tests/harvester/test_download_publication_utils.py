@@ -153,7 +153,7 @@ class ProcessRequest(TestCase):
         # When
         _process_request(scraper, url)
         # Then
-        scraper.get.assert_called_with(url, headers=expected_headers, timeout=60, verify=False)
+        scraper.get.assert_called_with(url, headers=expected_headers, timeout=60)
 
     def test_process_request_standard_url_no_specific_header(self):
         # Given
@@ -163,7 +163,7 @@ class ProcessRequest(TestCase):
         # When
         _process_request(scraper, url)
         # Then
-        scraper.get.assert_called_with(url, timeout=60, verify=False)
+        scraper.get.assert_called_with(url, timeout=60)
 
     def test_process_request_not_200(self):
         # Given
