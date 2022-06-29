@@ -7,7 +7,7 @@ ENV_VARIABLE_FILENAME=.env
 unit-tests:
 	pytest --disable-warnings tests
 
-integration-test: set-env-variables docker-build
+integration-test: set-env-variables docker-build-local-image
 	@echo Start end-to-end testing
 	docker-compose up -d
 	sleep 30
