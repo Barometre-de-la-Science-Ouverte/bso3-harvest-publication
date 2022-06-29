@@ -17,7 +17,7 @@ from config.harvester_config import config_harvester
 from config.logger_config import LOGGER_LEVEL
 from config.path_config import (CONFIG_PATH_GROBID, CONFIG_PATH_SOFTCITE,
                                 DESTINATION_DIR_METADATA, PUBLICATIONS_DOWNLOAD_DIR,
-                                GROBID_SUFFIX, SOFTCITE_SUFFIX, DATASEER_SUFFIX)
+                                GROBID_SUFFIX, SOFTCITE_SUFFIX)
 from harvester.OAHarvester import OAHarvester
 from infrastructure.database.db_handler import DBHandler
 from infrastructure.storage.swift import Swift
