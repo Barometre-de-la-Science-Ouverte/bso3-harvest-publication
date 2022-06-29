@@ -90,7 +90,7 @@ class FilterPublications(TestCase):
 
         expected_entries_publications_softcite: list = []
         expected_entries_publications_grobid: list = []
-        
+
         # When
         result_entries_publications_softcite, result_entries_publications_grobid = filter_publications(fake_db_handler, fake_softcite_version, fake_grobid_version)
 
@@ -98,7 +98,6 @@ class FilterPublications(TestCase):
 
         assert result_entries_publications_softcite == expected_entries_publications_softcite
         assert result_entries_publications_grobid == expected_entries_publications_grobid
-
 
     def test_with_lesser_version_in_db_for_softcite_and_upper_softcite_given_and_same_grobid_for_db_and_given_should_return_empty_list_for_grobid_and_not_empty_for_softcite(self):
         # Given
@@ -122,16 +121,15 @@ class FilterPublications(TestCase):
         fake_db_handler: DBHandler = MagicMock()
         fake_db_handler.fetch_all.return_value = fake_rows_db
 
-        expected_entries_publications_softcite: list = [ (row[0], row[1]) for row in fake_rows_db ]
+        expected_entries_publications_softcite: list = [(row[0], row[1]) for row in fake_rows_db]
         expected_entries_publications_grobid: list = []
-        
+
         # When
         result_entries_publications_softcite, result_entries_publications_grobid = filter_publications(fake_db_handler, fake_softcite_version, fake_grobid_version)
 
         # Then
         assert result_entries_publications_softcite == expected_entries_publications_softcite
         assert result_entries_publications_grobid == expected_entries_publications_grobid
-
 
     def test_with_lesser_version_in_db_for_grobid_and_upper_grobid_given_and_same_softcite_for_db_and_given_should_return_empty_list_for_softcite_and_not_empty_for_grobid(self):
         # Given
@@ -156,15 +154,14 @@ class FilterPublications(TestCase):
         fake_db_handler.fetch_all.return_value = fake_rows_db
 
         expected_entries_publications_softcite: list = []
-        expected_entries_publications_grobid: list = [ (row[0], row[1]) for row in fake_rows_db ]
-        
+        expected_entries_publications_grobid: list = [(row[0], row[1]) for row in fake_rows_db]
+
         # When
         result_entries_publications_softcite, result_entries_publications_grobid = filter_publications(fake_db_handler, fake_softcite_version, fake_grobid_version)
 
         # Then
         assert result_entries_publications_softcite == expected_entries_publications_softcite
         assert result_entries_publications_grobid == expected_entries_publications_grobid
-
 
     def test_with_upper_version_in_db_for_all_and_lesser_version_for_all_given_should_return_empty_list(self):
         # Given
@@ -190,15 +187,13 @@ class FilterPublications(TestCase):
 
         expected_entries_publications_softcite: list = []
         expected_entries_publications_grobid: list = []
-        
+
         # When
         result_entries_publications_softcite, result_entries_publications_grobid = filter_publications(fake_db_handler, fake_softcite_version, fake_grobid_version)
 
         # Then
         assert result_entries_publications_softcite == expected_entries_publications_softcite
         assert result_entries_publications_grobid == expected_entries_publications_grobid
-
-
 
     def test_with_lesser_version_in_db_for_all_and_upper_version_for_all_given_should_return_not_empty_lists(self):
         # Given
@@ -222,9 +217,9 @@ class FilterPublications(TestCase):
         fake_db_handler: DBHandler = MagicMock()
         fake_db_handler.fetch_all.return_value = fake_rows_db
 
-        expected_entries_publications_softcite: list = [ (row[0], row[1]) for row in fake_rows_db ]
-        expected_entries_publications_grobid: list = [ (row[0], row[1]) for row in fake_rows_db ]
-        
+        expected_entries_publications_softcite: list = [(row[0], row[1]) for row in fake_rows_db]
+        expected_entries_publications_grobid: list = [(row[0], row[1]) for row in fake_rows_db]
+
         # When
         result_entries_publications_softcite, result_entries_publications_grobid = filter_publications(fake_db_handler, fake_softcite_version, fake_grobid_version)
 
