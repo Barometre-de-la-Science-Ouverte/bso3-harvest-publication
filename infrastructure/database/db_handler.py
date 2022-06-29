@@ -1,16 +1,15 @@
 import pickle
-from typing import List
+from typing import List, Tuple
 
 import lmdb
-from sqlalchemy import text
-from sqlalchemy.engine import Engine
-
 from application.server.main.logger import get_logger
 from config.logger_config import LOGGER_LEVEL
 from config.path_config import PUBLICATION_PREFIX
 from domain.ovh_path import OvhPath
 from domain.processed_entry import ProcessedEntry
 from harvester.OAHarvester import generateStoragePath
+from sqlalchemy import text
+from sqlalchemy.engine import Engine
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
 
@@ -32,6 +31,12 @@ class DBHandler:
         # (X,) rows
         return self.engine.execute(f'SELECT count(*) FROM {self.table_name}').fetchone()[0]
 
+    def select_all_where_uuids(self, uuids: List[str]):
+        """Return the table content where uuids match"""
+        result = self.engine.execute(f"SELECT * FROM {self.table_name} WHERE uuid IN (" + ", ".join([f"'{uuid}'" for uuid in uuids]) + ")")
+        return [ProcessedEntry(*entry) for entry in result.fetchall()]
+
+
     def write_entity_batch(self, records: List):
         cur = self.engine.raw_connection().cursor()
         args_str = ','.join(cur.mogrify("(%s,%s,%s,%s,%s,%s,%s,%s)", x).decode("utf-8") for x in records)
@@ -50,7 +55,7 @@ class DBHandler:
 
     def _get_uuid_from_path(self, path):
         end_path = path.split('/')[-1]
-        uuid = end_path.split('.')[-3]
+        uuid = end_path.split('.')[0]
         return uuid
 
     def _get_lmdb_content_str(self, lmdb_path, map_size):
@@ -78,16 +83,22 @@ class DBHandler:
     def _get_harvester_used(self, uuid):
         pass
 
-    def update_database_processing(self, entries, grobid_version, softcite_version):
+    def update_database_processing(self, entries: List[Tuple[str, str, str, str]]):
+        """Update database with the version of the service (grobid, softcite, dataseer) used to process the publication
+        entries = [(publication_doi, publication_uuid, service_used, version_used), ...]
+        """
+        publications_processed = {}
         DUMMY_DATA = ""
-        records = [ProcessedEntry(*entry,
-                                  "1",
-                                  grobid_version if grobid_version else "0",
-                                  softcite_version if softcite_version else "0",
-                                  DUMMY_DATA,
-                                  DUMMY_DATA,
-                                  DUMMY_DATA) for entry in entries]
-
+        db_entries = self.select_all_where_uuids(list(map(lambda x: x[1], entries)))
+        for entry in entries:
+            publication_doi, publication_uuid, service_used, version_used = entry
+            if publication_uuid not in publications_processed:
+                publications_processed[publication_uuid] = [db_entry for db_entry in db_entries if db_entry.uuid == publication_uuid][0]
+            if service_used == 'grobid':
+                publications_processed[publication_uuid].grobid_version = version_used
+            elif service_used == 'softcite':
+                publications_processed[publication_uuid].softcite_version = version_used
+        records = list(publications_processed.values())
         if records:
             self.write_entity_batch(records)
 
