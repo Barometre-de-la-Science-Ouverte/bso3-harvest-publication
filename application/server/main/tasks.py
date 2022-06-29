@@ -16,8 +16,8 @@ from config.db_config import engine
 from config.harvester_config import config_harvester
 from config.logger_config import LOGGER_LEVEL
 from config.path_config import (CONFIG_PATH_GROBID, CONFIG_PATH_SOFTCITE,
-                                DESTINATION_DIR_METADATA,
-                                PUBLICATIONS_DOWNLOAD_DIR)
+                                DESTINATION_DIR_METADATA, PUBLICATIONS_DOWNLOAD_DIR,
+                                GROBID_SUFFIX, SOFTCITE_SUFFIX, DATASEER_SUFFIX)
 from harvester.OAHarvester import OAHarvester
 from infrastructure.database.db_handler import DBHandler
 from infrastructure.storage.swift import Swift
@@ -140,9 +140,9 @@ def filter_publications(db_handler, spec_softcite_version, spec_grobid_version):
     for record in db_handler.fetch_all():
         uuid, doi = record[1], record[0]
         softcite_version, grobid_version = record[3], record[4]
-        if softcite_version != spec_softcite_version:
+        if softcite_version < spec_softcite_version:
             entries_publications_softcite.append((doi, uuid))
-        if grobid_version != spec_grobid_version:
+        if grobid_version < spec_grobid_version:
             entries_publications_grobid.append((doi, uuid))
     return entries_publications_softcite, entries_publications_grobid
 
@@ -151,8 +151,7 @@ def create_task_process(files, spec_grobid_version, spec_softcite_version):
     logger_console.debug(f"Call with args: {files, spec_grobid_version, spec_softcite_version}")
     _swift = Swift(config_harvester)
     db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=_swift)
-    entries_publications_softcite, entries_publications_grobid = filter_publications(db_handler, spec_softcite_version,
-                                                                                     spec_grobid_version)
+    entries_publications_softcite, entries_publications_grobid = filter_publications(db_handler, spec_softcite_version, spec_grobid_version)
     publications_grobid = [file for file in files if
                            db_handler._get_uuid_from_path(file) in [e[1] for e in entries_publications_grobid]]
     publications_softcite = [file for file in files if
@@ -174,17 +173,16 @@ def create_task_process(files, spec_grobid_version, spec_softcite_version):
     logger_console.info(f"Total runtime: {round(total_time - start_time, 3)}s for {len(files)} files")
 
     local_files = glob(PUBLICATIONS_DOWNLOAD_DIR + '*')
-    grobid_uuids = [db_handler._get_uuid_from_path(file) for file in local_files if file.endswith('.tei.xml')]
-    softcite_uuids = [db_handler._get_uuid_from_path(file) for file in local_files if file.endswith('.software.json')]
-    entries_publications_softcite = [entry for entry in entries_publications_softcite if entry[1] in softcite_uuids]
-    entries_publications_grobid = [entry for entry in entries_publications_grobid if entry[1] in grobid_uuids]
-
+    grobid_uuids = [db_handler._get_uuid_from_path(file) for file in local_files if file.endswith(GROBID_SUFFIX)]
+    softcite_uuids = [db_handler._get_uuid_from_path(file) for file in local_files if file.endswith(SOFTCITE_SUFFIX)]
     softcite_version = get_softcite_version(local_files)
     grobid_version = get_grobid_version(local_files)
+    entries_publications_softcite = [(*entry, 'softcite', softcite_version) for entry in entries_publications_softcite if entry[1] in softcite_uuids]
+    entries_publications_grobid = [(*entry, 'grobid', grobid_version) for entry in entries_publications_grobid if entry[1] in grobid_uuids]
+
     upload_and_clean_up(_swift, PUBLICATIONS_DOWNLOAD_DIR)
     try:
-        db_handler.update_database_processing(list(set(entries_publications_softcite + entries_publications_grobid)),
-                                              grobid_version, softcite_version)  # update database
+        db_handler.update_database_processing(list(set(entries_publications_softcite + entries_publications_grobid)))
     except Exception:
         logger_console.exception(exc_info=True)
 

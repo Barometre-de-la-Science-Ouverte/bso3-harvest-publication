@@ -105,7 +105,7 @@ class Swift(object):
         """
         result = []
         try:
-            options = {'prefix': dir_name} if dir_name is not None else None
+            options = {"prefix": dir_name} if dir_name else None
             list_parts_gen = self.swift.list(container=container, options=options)
             for page in list_parts_gen:
                 if page["success"]:

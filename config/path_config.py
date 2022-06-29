@@ -27,6 +27,13 @@ PUBLICATION_PREFIX = 'publication'
 SOFTCITE_PREFIX = 'softcite'
 GROBID_PREFIX = 'grobid'
 
+# Output file suffixes
+COMPRESSION_SUFFIX = '.gz'
+METADATA_SUFFIX = '.json'
+PUBLICATION_SUFFIX = '.pdf'
+SOFTCITE_SUFFIX = '.software.json'
+GROBID_SUFFIX = '.tei.xml'
+
 # TAG
 DEFAULT_GROBID_TAG = "0.7.1-SNAPSHOT"
 DEFAULT_SOFTCITE_TAG = "0.7.1-SNAPSHOT"
