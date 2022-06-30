@@ -1,10 +1,15 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
-from application.server.main.tasks import create_task_harvest_partition, filter_publications
-from harvester.OAHarvester import OAHarvester
+from application.server.main.tasks import create_task_harvest_partition, create_task_process, filter_publications
+from config.path_config import GROBID_SUFFIX, PUBLICATIONS_DOWNLOAD_DIR, SOFTCITE_SUFFIX
+from harvester.OAHarvester import OAHarvester, generateStoragePath
 from infrastructure.database.db_handler import DBHandler
 from infrastructure.storage.swift import Swift
+
+from grobid_client.grobid_client import GrobidClient
+from software_mentions_client.client import software_mentions_client as smc
+
 
 TESTED_MODULE = 'application.server.main.tasks'
 
@@ -226,3 +231,97 @@ class FilterPublications(TestCase):
         # Then
         assert result_entries_publications_softcite == expected_entries_publications_softcite
         assert result_entries_publications_grobid == expected_entries_publications_grobid
+
+class CreateTaskProcess(TestCase):
+    @patch(f'{TESTED_MODULE}.logger_console.debug')
+    @patch.object(Swift, '__init__')
+    @patch.object(DBHandler, '__init__')
+    @patch(f'{TESTED_MODULE}.filter_publications')
+    @patch(f'{TESTED_MODULE}.download_files')
+    @patch.object(GrobidClient, '__init__')
+    @patch(f'{TESTED_MODULE}.run_grobid')
+    @patch.object(smc, '__init__')
+    @patch(f'{TESTED_MODULE}.run_softcite')
+    @patch(f'{TESTED_MODULE}.logger_console.info')
+    @patch(f'{TESTED_MODULE}.glob')
+    @patch(f'{TESTED_MODULE}.get_softcite_version')
+    @patch(f'{TESTED_MODULE}.get_grobid_version')
+    @patch(f'{TESTED_MODULE}.upload_and_clean_up')
+    @patch(f'{TESTED_MODULE}.DBHandler.update_database_processing')
+    @patch(f'{TESTED_MODULE}.logger_console.exception')
+    def test_given_3_doi_analyzed_with_too_old_versions_for_all_then_should_get_these_6_in_arguments_for_update_database_processing(
+        self, mock_logger_exception, mock_update_database_processing, mock_upload_and_clean_up,
+        mock_get_grobid_version, mock_get_softcite_version, mock_glob, mock_logger_info, 
+        mock_run_softcite, mock_smc, mock_run_grobid, mock_grobid_client, mock_download_files,
+        mock_filter_publications, mock_db_handler, mock_swift, mock_logger_debug
+    ):
+        # Given
+        nb_row: int = 3
+        fake_doi: str = 'doi_'
+        fake_uuid: str = 'a01b067e-d384-4387-8706-27b9b67927f'
+        
+        fake_entries_publications_softcite: list = []
+        fake_entries_publications_grobid: list = []
+        fake_files_arg: list = []
+        fake_files_glob: list = []
+
+        expected_arg_update_database_processing_grobid: list = []
+        expected_arg_update_database_processing_softcite: list = []
+
+        for i in range(nb_row):
+            fdoi: str = f"{fake_doi}{i}"
+            fuuid: str = f"{fake_uuid}{i}"
+            entry: str = (fdoi, fuuid)
+            fake_file_path: str = f"{generateStoragePath(fuuid)}"
+
+            fake_entries_publications_softcite.append(entry)
+            fake_entries_publications_grobid.append(entry)
+            fake_files_arg.append(f"{fake_file_path}.fake_extension")
+            fake_files_glob.append(f"{PUBLICATIONS_DOWNLOAD_DIR}{fake_file_path}.{GROBID_SUFFIX}")
+            fake_files_glob.append(f"{PUBLICATIONS_DOWNLOAD_DIR}{fake_file_path}.{SOFTCITE_SUFFIX}")
+            
+            expected_arg_update_database_processing_grobid.append((*entry, 'grobid', '0.19'))
+            expected_arg_update_database_processing_softcite.append((*entry, 'softcite', '0.11'))
+
+        expected_arg_update_database_processing: set = set(expected_arg_update_database_processing_softcite + expected_arg_update_database_processing_grobid)
+
+        fake_spec_grobid_version: str = '0.12'
+        fake_spec_softcite_version: str = '0.2'
+
+        mock_logger_debug.return_value = None
+        mock_swift.return_value = None
+        mock_db_handler.return_value = None
+        mock_filter_publications.return_value = (fake_entries_publications_softcite, fake_entries_publications_grobid)
+        mock_download_files.return_value = None
+        mock_grobid_client.return_value = None
+        mock_run_grobid.return_value = None
+        mock_smc.return_value = None
+        mock_run_softcite.return_value = None
+        mock_logger_info.return_value = None
+        mock_glob.return_value = fake_files_glob
+        mock_get_softcite_version.return_value = '0.11'
+        mock_get_grobid_version.return_value = '0.19'
+        mock_upload_and_clean_up.return_value = None
+        mock_update_database_processing.return_value = None
+        mock_logger_exception.return_value = None
+
+        # When
+        create_task_process(fake_files_arg, fake_spec_grobid_version, fake_spec_softcite_version)
+
+        # Then
+        assert set(mock_update_database_processing.call_args.args[0]) == expected_arg_update_database_processing
+
+        mock_logger_debug.assert_called_once()
+        mock_swift.assert_called_once()
+        mock_db_handler.assert_called_once()
+        mock_filter_publications.assert_called_once()
+        mock_download_files.assert_called_once()
+        mock_run_grobid.assert_called_once()
+        mock_run_softcite.assert_called_once()
+        mock_logger_info.assert_called_once()
+        mock_glob.assert_called_once()
+        mock_get_softcite_version.assert_called_once()
+        mock_get_grobid_version.assert_called_once()
+        mock_upload_and_clean_up.assert_called_once()
+        mock_update_database_processing.assert_called_once()
+        assert mock_logger_exception.call_count == 0
