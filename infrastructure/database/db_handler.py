@@ -89,7 +89,7 @@ class DBHandler:
         """
         publications_processed = {}
         DUMMY_DATA = ""
-        db_entries = self.select_all_where_uuids(list(map(lambda x: x[1], entries)))
+        db_entries = self.select_all_where_uuids([x[1] for x in entries])
         for entry in entries:
             publication_doi, publication_uuid, service_used, version_used = entry
             if publication_uuid not in publications_processed:

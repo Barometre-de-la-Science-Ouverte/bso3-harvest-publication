@@ -4,8 +4,8 @@ from unittest import TestCase, mock
 from domain.ovh_path import OvhPath
 from infrastructure.storage.swift import Swift
 from ovh_handler import generateStoragePath, download_files, upload_and_clean_up
-from tests.unit_tests.fixtures.swift_object import _swift, local_dir, grobid_files_to_upload, softcite_files_to_upload
-
+from tests.unit_tests.fixtures.swift_object import _swift, local_grobid_dir, local_softcite_dir, grobid_files_to_upload, softcite_files_to_upload
+from config.processing_service_namespaces import grobid_ns, softcite_ns
 
 class OvhHandler(TestCase):
 
@@ -50,29 +50,15 @@ class OvhHandler(TestCase):
     @mock.patch.object(Swift, "upload_files_to_swift")
     def test_upload(self, mock_upload_files_to_swift, mock_glob, mock_remove):
         # Given
-        mock_glob.return_value = local_dir
-        local_dir_path = '.'
-        upload_files = grobid_files_to_upload + softcite_files_to_upload
-        last_file = local_dir[-1]
+        mock_glob.return_value = local_softcite_dir
+        last_file = local_softcite_dir[-1]
         # When
-        upload_and_clean_up(_swift, local_dir_path)
+        for service_ns in [grobid_ns, softcite_ns]:
+            upload_and_clean_up(_swift, service_ns)
         # Then
-        mock_glob.assert_called_once()
-        mock_upload_files_to_swift.assert_called_with(_swift.config['publications_dump'], upload_files)
+        mock_glob.assert_called()
+        mock_upload_files_to_swift.assert_called_with(_swift.config['publications_dump'], softcite_files_to_upload)
         mock_remove.assert_called_with(last_file)
-
-
-# TODO test clients directely
-# class SoftciteStep(TestCase):
-
-#     def test_(self):
-#         self.assertEqual(1, 2)
-
-
-# class GrobidStep(TestCase):
-
-#     def test_(self):
-#         self.assertEqual(1, 2)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 {
-    "software_mention_host": "softcite", 
+    "software_mention_host": "host.docker.internal",
     "software_mention_port": "8060",
     "data_path": "./data",
     "aws_access_key_id": "",
