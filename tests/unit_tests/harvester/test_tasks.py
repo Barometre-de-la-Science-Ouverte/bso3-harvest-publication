@@ -77,7 +77,7 @@ class CreateTaskHarvestPartition(TestCase):
         mock_reset_lmdb.assert_called_once()
 
 
-class FilterPublications(TestCase):
+class getPublicationsIdsToProcess(TestCase):
     def test_with_identical_service_version_in_db_and_spec_should_return_empty_list(self):
         # Given
         expected_entries_publications_grobid: list = []

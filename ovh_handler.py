@@ -41,7 +41,7 @@ def download_files(_swift, dest_dir, files):
     try:
         _swift.download_files(_swift.config["publications_dump"], files, dest_dir)
     except shutil.Error:
-        logger_console.exception(exc_info=True)
+        logger_console.exception("File already exists", exc_info=True)
 
 
 
