@@ -23,9 +23,11 @@ def get_harvester_config(config_file_path: str) -> dict:
     config_harvester['swift']['os_project_id'] = os.getenv('OS_PROJECT_ID')
     config_harvester['swift']['os_region_name'] = os.getenv('OS_REGION_NAME')
     config_harvester['swift']['os_auth_url'] = os.getenv('OS_AUTH_URL')
+
+    config_harvester['publications_dump'] = os.getenv('PUBLICATIONS_DUMP_BUCKET')
     config_harvester['swift_container'] = config_harvester['publications_dump']
 
-    # Add env var secrets & pwd for database - postgre
+    # Add env var secrets & pwd for database - postgres
     config_harvester['db'] = {}
     config_harvester['db']['db_user'] = os.getenv('DB_USER')
     config_harvester['db']['db_password'] = os.getenv('DB_PASSWORD')
@@ -39,12 +41,6 @@ def get_harvester_config(config_file_path: str) -> dict:
     config_harvester['app']['flask_env'] = os.getenv('FLASK_ENV')
     config_harvester['app']['flask_ip'] = os.getenv('FLASK_IP')
     config_harvester['app']['flask_port'] = os.getenv('FLASK_PORT')
-
-    # Add env var token for harvest request
-    config_harvester['token'] = {}
-    config_harvester['token']['wiley'] = os.getenv('TOKEN_WILEY')
-    config_harvester['token']['elsevier'] = os.getenv('TOKEN_ELSEVIER')
-    config_harvester['token']['springer'] = os.getenv('TOKEN_SPRINGER')
 
     # Wiley config
     config_harvester[WILEY_KEY] = {

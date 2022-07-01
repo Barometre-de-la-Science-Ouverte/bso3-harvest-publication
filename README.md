@@ -95,7 +95,6 @@ A configuration file must be completed, by default the file `config.json` will b
     "region": "",
     "swift": {},
     "metadata_dump": "",
-    "publications_dump": ""
 }
 ```
 
@@ -115,8 +114,6 @@ The `"swift"` key will contain the account and authentication information, typic
 ```json
 {
     "swift": {
-        "auth_version": "3",
-        "auth_url": "https://auth......./v3",
         "os_username": "user-007",
         "os_password": "1234",
         "os_user_domain_name": "Default",

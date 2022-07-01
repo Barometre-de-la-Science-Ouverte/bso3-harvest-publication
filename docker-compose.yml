@@ -27,8 +27,34 @@ services:
     image: dataesr/bso3-harvest-publication:latest_local
     privileged: true
     command: bash -c "sleep 10 && python3 manage.py run_worker"
-    env_file:
-      - .env
+    environment:
+      - PUBLICATIONS_DUMP_BUCKET=${PUBLICATIONS_DUMP_BUCKET}
+
+      # swift
+      - OS_USERNAME=${OS_USERNAME}
+      - OS_PASSWORD=${OS_PASSWORD}
+      - OS_USER_DOMAIN_NAME=${OS_USER_DOMAIN_NAME}
+      - OS_PROJECT_DOMAIN_NAME=${OS_PROJECT_DOMAIN_NAME}
+      - OS_PROJECT_NAME=${OS_PROJECT_NAME}
+      - OS_PROJECT_ID=${OS_PROJECT_ID}
+      - OS_REGION_NAME=${OS_REGION_NAME}
+      - OS_AUTH_URL=${OS_AUTH_URL}
+      - OS_TENANT_NAME=${OS_TENANT_NAME}
+      - OS_TENANT_ID=${OS_TENANT_ID}
+
+      # Postgres database
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+
+      # Wiley
+      - WILEY_TOKEN=${WILEY_TOKEN}
+      - WILEY_EZPROXY_USER=${WILEY_EZPROXY_USER}
+      - WILEY_EZPROXY_PASS=${WILEY_EZPROXY_PASS}
+      - WILEY_PUBLICATION_URL=${WILEY_PUBLICATION_URL}
+      - WILEY_BASE_URL=${WILEY_BASE_URL}
     depends_on:
       - redis
       - postgres
@@ -42,7 +68,9 @@ services:
       - "5004:5000"
     command: bash -c "sleep 10 && python3 manage.py run -h 0.0.0.0"
     environment:
-      - AUTH_VERSION=${AUTH_VERSION}
+      - PUBLICATIONS_DUMP_BUCKET=${PUBLICATIONS_DUMP_BUCKET}
+
+      # swift
       - OS_USERNAME=${OS_USERNAME}
       - OS_PASSWORD=${OS_PASSWORD}
       - OS_USER_DOMAIN_NAME=${OS_USER_DOMAIN_NAME}
@@ -53,22 +81,15 @@ services:
       - OS_AUTH_URL=${OS_AUTH_URL}
       - OS_TENANT_NAME=${OS_TENANT_NAME}
       - OS_TENANT_ID=${OS_TENANT_ID}
+
+      # Postgres database
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - FLASK_ENV=${FLASK_ENV}
-      - FLASK_IP=${FLASK_IP}
-      - FLASK_PORT=${FLASK_PORT}
-      - FLASK_DEBUG=${FLASK_DEBUG}
-      - APP_SETTINGS=${APP_SETTINGS}
-      - TOKEN_WILEY=${TOKEN_WILEY}
-      - TOKEN_ELSEVIER=${TOKEN_ELSEVIER}
-      - TOKEN_SPRINGER=${TOKEN_SPRINGER}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+
+      # Wiley
       - WILEY_TOKEN=${WILEY_TOKEN}
       - WILEY_EZPROXY_USER=${WILEY_EZPROXY_USER}
       - WILEY_EZPROXY_PASS=${WILEY_EZPROXY_PASS}
