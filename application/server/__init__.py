@@ -15,7 +15,7 @@ def create_app():
         static_folder='../client/static',
     )
     # set config
-    app_settings = os.getenv('APP_SETTINGS')
+    app_settings = 'application.server.config.DevelopmentConfig'
     app.config.from_object(app_settings)
     # set up extensions
     bootstrap.init_app(app)
