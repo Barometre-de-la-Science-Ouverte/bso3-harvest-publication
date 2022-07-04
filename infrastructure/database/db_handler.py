@@ -10,6 +10,7 @@ from domain.processed_entry import ProcessedEntry
 from harvester.OAHarvester import generateStoragePath
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
+from config.processing_service_namespaces import grobid_ns, softcite_ns
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
 
@@ -83,20 +84,20 @@ class DBHandler:
     def _get_harvester_used(self, uuid):
         pass
 
-    def update_database_processing(self, entries: List[Tuple[str, str, str, str]]):
+    def update_database_processing(self, entries: List[Tuple[str, str, str]]):
         """Update database with the version of the service (grobid, softcite, dataseer) used to process the publication
-        entries = [(publication_doi, publication_uuid, service_used, version_used), ...]
+        entries = [(publication_uuid, service_used, version_used), ...]
         """
         publications_processed = {}
-        DUMMY_DATA = ""
-        db_entries = self.select_all_where_uuids([x[1] for x in entries])
+        get_uuid = lambda x: x[0]
+        db_entries = self.select_all_where_uuids([get_uuid(x) for x in entries])
         for entry in entries:
-            publication_doi, publication_uuid, service_used, version_used = entry
+            publication_uuid, service_used, version_used = entry
             if publication_uuid not in publications_processed:
-                publications_processed[publication_uuid] = [db_entry for db_entry in db_entries if db_entry.uuid == publication_uuid][0]
-            if service_used == 'grobid':
+                publications_processed[publication_uuid] = next(db_entry for db_entry in db_entries if db_entry.uuid == publication_uuid)
+            if service_used == grobid_ns.service_name:
                 publications_processed[publication_uuid].grobid_version = version_used
-            elif service_used == 'softcite':
+            elif service_used == softcite_ns.service_name:
                 publications_processed[publication_uuid].softcite_version = version_used
         records = list(publications_processed.values())
         if records:

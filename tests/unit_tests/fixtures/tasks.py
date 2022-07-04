@@ -1,5 +1,6 @@
 import os
 from domain.processed_entry import ProcessedEntry
+from domain.ovh_path import OvhPath
 from harvester.OAHarvester import generateStoragePath
 from config.processing_service_namespaces import grobid_ns, softcite_ns
 
@@ -32,8 +33,8 @@ low_spec_grobid_version: str = '0.7.0'
 
 
 uuid: str = 'a01b067e-d384-4387-8706-27b9b67927f'
-entries_publications_softcite: list = []
-entries_publications_grobid: list = []
+publications_entries_softcite: list = []
+publications_entries_grobid: list = []
 publication_files: list = []
 grobid_files_glob: list = []
 softcite_files_glob: list = []
@@ -43,11 +44,11 @@ expected_arg_update_database_processing_softcite: list = []
 
 for i in range(3):
     fuuid: str = f"uuid_{i}"
-    entry: str = (f"doi_{i}", fuuid)
-    file_path: str = f"{generateStoragePath(fuuid)}"
+    entry: ProcessedEntry = ProcessedEntry(f"doi_{i}", fuuid, "1", softcite_version_db, grobid_version_db, harvester_used, domain, url_used)
+    file_path: OvhPath = f"{generateStoragePath(fuuid)}"
 
-    entries_publications_softcite.append(entry)
-    entries_publications_grobid.append(entry)
+    publications_entries_softcite.append(entry)
+    publications_entries_grobid.append(entry)
     publication_files.append(f"{file_path}.extension")
     grobid_files_glob.append(f"{grobid_ns.dir}{file_path}.{grobid_ns.suffix}")
     softcite_files_glob.append(f"{softcite_ns.dir}{file_path}.{softcite_ns.suffix}")

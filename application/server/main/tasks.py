@@ -113,9 +113,9 @@ def create_task_unpaywall(args):
         logger_console.debug(db_handler.fetch_all())
 
 
-def get_softcite_version(softcite_file: str) -> str:
+def get_softcite_version(softcite_file_path: str) -> str:
     """Get the version of softcite used by reading from an output file"""
-    with open(softcite_file, 'r') as f:
+    with open(softcite_file_path, 'r') as f:
         softcite_version = json.load(f)['version']
     return softcite_version
 
@@ -129,18 +129,18 @@ def get_grobid_version() -> str:
     return grobid_version
 
 
-def get_publications_ids_to_process(db_records: List[ProcessedEntry], service_name: str, min_spec_version: str) -> List[Tuple[str]]:
+def get_publications_entries_to_process(db_records: List[ProcessedEntry], service_name: str, min_spec_version: str) -> List[ProcessedEntry]:
     """Return all the publications in the database that needs to be processed by a service (i.e. not just for the partition)"""
-    publications_ids_to_process = []
-    if service_name == "softcite":
-        version_key = 3
-    elif service_name == "grobid":
-        version_key = 4
+    publications_entries_to_process = []
+
     for record in db_records:
-        doi, uuid, current_version = record[0], record[1], record[version_key]
+        if service_name == softcite_ns.service_name:
+            current_version = record.softcite_version
+        elif service_name == grobid_ns.service_name:
+            current_version = record.grobid_version
         if current_version < min_spec_version:
-            publications_ids_to_process.append((doi, uuid))
-    return publications_ids_to_process
+            publications_entries_to_process.append(record)
+    return publications_entries_to_process
 
 
 def get_service_version(file_suffix: str, local_files: List[str]) -> str:
@@ -155,13 +155,16 @@ def get_service_version(file_suffix: str, local_files: List[str]) -> str:
         return "0"
 
 
-def compile_records_for_db(entries_to_process: List[Tuple[str]], service_ns: SimpleNamespace, db_handler: DBHandler) -> List[Tuple[str]]:
+def compile_records_for_db(entries_to_process: List[ProcessedEntry], service_ns: SimpleNamespace, db_handler: DBHandler) -> List[Tuple[str]]:
     """List the output files of a service to determine what to update in db.
-    Returns [(doi, uuid, service, version), ...]"""
+    Returns [(uuid, service, version), ...]"""
     local_files = glob(service_ns.dir + '*')
     processed_uuids = [db_handler._get_uuid_from_path(file) for file in local_files if file.endswith(service_ns.suffix)]
     service_version = get_service_version(service_ns.suffix, local_files)
-    processed_publications = [(*entry, service_ns.service_name, service_version) for entry in entries_to_process if entry[1] in processed_uuids]
+    processed_publications = [
+        (entry.uuid, service_ns.service_name, service_version)
+        for entry in entries_to_process if entry.uuid in processed_uuids
+    ]
     return processed_publications
 
 
@@ -179,31 +182,31 @@ def run_processing_services():
         future.result()
 
 
-def create_task_process(files, spec_grobid_version, spec_softcite_version):
-    logger_console.debug(f"Call with args: {files, spec_grobid_version, spec_softcite_version}")
+def create_task_process(partition_files, spec_grobid_version, spec_softcite_version):
+    logger_console.debug(f"Call with args: {partition_files, spec_grobid_version, spec_softcite_version}")
     _swift = Swift(config_harvester)
     db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=_swift)
     db_records = db_handler.fetch_all()
 
     for service_ns, spec_version_service in [(grobid_ns, spec_grobid_version), (softcite_ns, spec_softcite_version)]:
-        entries_publications = get_publications_ids_to_process(db_records, service_ns.service_name, spec_version_service)
+        publications_entries = get_publications_entries_to_process(db_records, service_ns.service_name, spec_version_service)
         if service_ns.service_name == grobid_ns.service_name:
-            entries_publications_grobid = entries_publications
+            publications_entries_grobid = publications_entries
         elif service_ns.service_name == softcite_ns.service_name:
-            entries_publications_softcite = entries_publications
-        uuids_publications_to_process = [e[1] for e in entries_publications]
-        publication_files = [file for file in files if db_handler._get_uuid_from_path(file) in uuids_publications_to_process]
+            publications_entries_softcite = publications_entries
+        uuids_publications_to_process = [e.uuid for e in publications_entries]
+        publication_files = [file for file in partition_files if db_handler._get_uuid_from_path(file) in uuids_publications_to_process]
         if publication_files:
             download_files(_swift, service_ns.dir, publication_files)
 
     start_time = time()
     run_processing_services()
     total_time = time()
-    logger_console.info(f"Total runtime: {round(total_time - start_time, 3)}s for {len(files)} files")
+    logger_console.info(f"Total runtime: {round(total_time - start_time, 3)}s for {len(partition_files)} files")
 
 
-    for service_ns, entries_publications in [(grobid_ns, entries_publications_grobid), (softcite_ns, entries_publications_softcite)]:
-        entries_to_update = compile_records_for_db(entries_publications, service_ns, db_handler)
+    for service_ns, publications_entries in [(grobid_ns, publications_entries_grobid), (softcite_ns, publications_entries_softcite)]:
+        entries_to_update = compile_records_for_db(publications_entries, service_ns, db_handler)
         upload_and_clean_up(_swift, service_ns)
         db_handler.update_database_processing(entries_to_update)
 

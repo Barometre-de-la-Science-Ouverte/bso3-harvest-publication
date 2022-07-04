@@ -93,7 +93,7 @@ def run_task_process():
             task = q.enqueue(
                 create_task_process,
                 kwargs={
-                    "files": partition,
+                    "partition_files": partition,
                     "spec_grobid_version": spec_grobid_version,
                     "spec_softcite_version": spec_softcite_version,
                 },
