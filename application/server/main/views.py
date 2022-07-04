@@ -83,10 +83,9 @@ def run_task_process():
     partition_size = args.get("partition_size", 1_000)
     spec_grobid_version = args.get("spec_grobid_version", "0")
     spec_softcite_version = args.get("spec_softcite_version", "0")
-    prefix = args.get("prefix", "publication")
     break_after_one = args.get("break_after_one", False)
     storage_handler = Swift(config_harvester)
-    partitions = get_partitions(storage_handler, prefix, partition_size)
+    partitions = get_partitions(storage_handler, partition_size)
     response_objects = []
     with Connection(redis.from_url(current_app.config["REDIS_URL"])):
         q = Queue(name="pdf-processor", default_timeout=default_timeout)
@@ -94,7 +93,7 @@ def run_task_process():
             task = q.enqueue(
                 create_task_process,
                 kwargs={
-                    "files": partition,
+                    "partition_files": partition,
                     "spec_grobid_version": spec_grobid_version,
                     "spec_softcite_version": spec_softcite_version,
                 },

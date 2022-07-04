@@ -10,6 +10,8 @@ CONFIG_PATH_TEST = os.path.join(PROJECT_DIRNAME, 'tests', 'unit_tests', 'config_
 # Data path
 DATA_PATH = os.path.join(PROJECT_DIRNAME, 'data')
 PUBLICATIONS_DOWNLOAD_DIR = os.path.join(PROJECT_DIRNAME, 'downloaded_publications/')
+GROBID_DIR = os.path.join(PROJECT_DIRNAME, 'grobid/')
+SOFTCITE_DIR = os.path.join(PROJECT_DIRNAME, 'softcite/')
 CONFIG_PATH_GROBID = os.path.join(PROJECT_DIRNAME, 'config/config_grobid.json')
 CONFIG_PATH_SOFTCITE = os.path.join(PROJECT_DIRNAME, 'config/config_softcite.json')
 CONFIG_PATH_OVH = os.path.join(PROJECT_DIRNAME, 'config.json')
@@ -27,6 +29,9 @@ PUBLICATION_PREFIX = 'publication'
 SOFTCITE_PREFIX = 'softcite'
 GROBID_PREFIX = 'grobid'
 
-# TAG
-DEFAULT_GROBID_TAG = "0.7.1-SNAPSHOT"
-DEFAULT_SOFTCITE_TAG = "0.7.1-SNAPSHOT"
+# Output file suffixes
+COMPRESSION_SUFFIX = '.gz'
+METADATA_SUFFIX = '.json'
+PUBLICATION_SUFFIX = '.pdf'
+SOFTCITE_SUFFIX = '.software.json'
+GROBID_SUFFIX = '.tei.xml'
