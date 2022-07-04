@@ -1,5 +1,5 @@
 {
-    "grobid_server": "host.docker.internal",
+    "grobid_server": "grobid",
     "grobid_port": "8070",
     "batch_size": 10,
     "sleep_time": 1,
