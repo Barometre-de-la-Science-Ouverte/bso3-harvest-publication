@@ -7,13 +7,12 @@ ENV_VARIABLE_FILENAME=.env
 unit-tests:
 	pytest --disable-warnings tests
 
-e2e-tests: set-env-variables docker-build-local-image
+e2e-tests: docker-build-local-image
 	@echo Start end-to-end testing
 	docker-compose up -d
 	sleep 30
 	behave ./tests/e2e_tests/features
 	docker-compose down
-	make unset-env-variables
 
 lint: lint-syntax lint-style
 
