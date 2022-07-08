@@ -1,0 +1,69 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python tests and linter for BSO3
+
+on: [ push, pull_request ]
+
+jobs:
+  quality-and-test:
+
+    runs-on: ubuntu-latest
+    environment: dataesr-docker-env
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.9"
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install imagemagick
+          python -m pip install --upgrade pip
+          make install
+
+      - name: Check Python syntax errors
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          make lint-syntax
+
+      - name: Check style conventions
+        continue-on-error: true
+        run: |
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          make lint-style
+
+      - name: Test with pytest
+        run: |
+          make unit-tests
+
+      - name: Run end to end tests
+        env:
+          PUBLICATIONS_DUMP_BUCKET: ${{ secrets.PUBLICATIONS_DUMP_BUCKET }}
+          OS_USERNAME: ${{ secrets.OS_USERNAME }}
+          OS_PASSWORD: ${{ secrets.OS_PASSWORD }}
+          OS_PROJECT_NAME: ${{ secrets.OS_PROJECT_NAME }}
+          OS_PROJECT_ID: ${{ secrets.OS_PROJECT_ID }}
+          OS_TENANT_ID: ${{ secrets.OS_TENANT_ID }}
+          OS_TENANT_NAME: ${{ secrets.OS_TENANT_NAME }}
+          OS_USER_DOMAIN_NAME: ${{ secrets.OS_USER_DOMAIN_NAME }}
+          OS_PROJECT_DOMAIN_NAME: ${{ secrets.OS_PROJECT_DOMAIN_NAME }}
+          OS_REGION_NAME: ${{ secrets.OS_REGION_NAME }}
+          OS_AUTH_URL: ${{ secrets.OS_AUTH_URL }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          WILEY_TOKEN: ${{ secrets.WILEY_TOKEN }}
+          WILEY_EZPROXY_USER: ${{ secrets.WILEY_EZPROXY_USER }}
+          WILEY_EZPROXY_PASS: ${{ secrets.WILEY_EZPROXY_PASS }}
+          WILEY_PUBLICATION_URL: ${{ secrets.WILEY_PUBLICATION_URL }}
+          WILEY_BASE_URL: ${{ secrets.WILEY_BASE_URL }}
+        run: |
+          make e2e-tests
