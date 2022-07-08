@@ -3,7 +3,7 @@ services:
     container_name: postgres
     image: postgres:12.0-alpine
     ports:
-      - 5432:5432
+      - 5432:${DB_PORT}
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -24,7 +24,11 @@ services:
       - redis
 
   worker:
-    image: dataesr/bso3-harvest-publication:latest_local
+    build: 
+      context: .
+      dockerfile: ./Dockerfiles/dev/.
+    volumes:
+      - .:/src
     privileged: true
     command: bash -c "sleep 10 && python3 manage.py run_worker"
     environment:
@@ -62,7 +66,11 @@ services:
 
 
   web:
-    image: dataesr/bso3-harvest-publication:latest_local
+    build:
+      context: .
+      dockerfile: ./Dockerfiles/dev/.
+    volumes:
+      - .:/src
     privileged: true
     ports:
       - "5004:5000"

@@ -7,9 +7,9 @@ ENV_VARIABLE_FILENAME=.env
 unit-tests:
 	pytest --disable-warnings tests
 
-e2e-tests: docker-build-local-image
+e2e-tests:
 	@echo Start end-to-end testing
-	docker-compose up -d
+	docker-compose up -d --build
 	sleep 30
 	behave ./tests/e2e_tests/features
 	docker-compose down
@@ -39,12 +39,12 @@ docker-build: clean_up_files
 
 docker-build-local-image:
 	@echo Building a local image
-	docker build -t $(DOCKER_IMAGE_NAME):$(CURRENT_VERSION)_local -t $(DOCKER_IMAGE_NAME):latest_local .
+	docker build -t $(DOCKER_IMAGE_NAME):$(CURRENT_VERSION)_local -t $(DOCKER_IMAGE_NAME):latest_local -f ./Dockerfiles/dev/. .
 	@echo Docker image built
 
 docker-build-prod-image:
 	@echo Building a prod image
-	docker build -t $(DOCKER_IMAGE_NAME):$(CURRENT_VERSION) -t $(DOCKER_IMAGE_NAME):latest .
+	docker build -t $(DOCKER_IMAGE_NAME):$(CURRENT_VERSION) -t $(DOCKER_IMAGE_NAME):latest -f ./Dockerfiles/prod/. .
 	@echo Docker image built
 
 docker-push:
