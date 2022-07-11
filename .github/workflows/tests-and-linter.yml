@@ -57,6 +57,12 @@ jobs:
     environment: dataesr-docker-env
 
     steps:
+    
+      - name: Install dependencies
+        run: |
+          ls
+          cat Makefile
+        
       - name: Run end to end tests
         env:
           PUBLICATIONS_DUMP_BUCKET: ${{ secrets.PUBLICATIONS_DUMP_BUCKET }}
