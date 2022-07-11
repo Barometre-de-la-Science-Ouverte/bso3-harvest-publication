@@ -85,4 +85,4 @@ class WileyClientTest(TestCase):
         exception_message = cm.exception.args[0]
         assert 'status code = 500' in exception_message
         assert f'doi = {fake_doi}' in exception_message
-        mock_write_to_file.assert_not_called()
+        mock_write_to_file.assert_called()
