@@ -176,6 +176,8 @@ wrapt==1.14.1
 zipp==3.8.0
     # via importlib-metadata
 
+alembic==1.8.0
+
 # Grobid client package
 git+https://github.com/Barometre-de-la-Science-Ouverte/grobid_client_python.git#egg=grobid_client_python
 # Softcite & Datastet client package

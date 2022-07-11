@@ -54,6 +54,7 @@ docker-push:
 	@echo Docker image pushed
 
 set-env-variables:
+	@echo Setting up environment variables
 	export $(grep -v '^#' $(ENV_VARIABLE_FILENAME) | xargs)
 
 unset-env-variables:
