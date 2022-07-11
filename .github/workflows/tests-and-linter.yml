@@ -6,9 +6,11 @@ name: Python tests and linter for BSO3
 on: [ push ]
 
 jobs:
-  quality:
+  quality-and-test:
+
     runs-on: ubuntu-latest
-  
+    environment: dataesr-docker-env
+
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.9
@@ -32,43 +34,11 @@ jobs:
         run: |
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
           make lint-style
-          
-  unit-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.9"
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install imagemagick
-          python -m pip install --upgrade pip
-          make install
 
       - name: Test with pytest
         run: |
           make unit-tests
-          
-  end-to-end-tests:
-    runs-on: ubuntu-latest
-    environment: dataesr-docker-env
 
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.9"
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install imagemagick
-          python -m pip install --upgrade pip
-          make install
-        
       - name: Run end to end tests
         env:
           PUBLICATIONS_DUMP_BUCKET: ${{ secrets.PUBLICATIONS_DUMP_BUCKET }}
