@@ -32,6 +32,7 @@ harvested_status_table = Table(
     Column("doi", String),
     Column("uuid", String, primary_key=True),
     Column("is_harvested", String),
+    Column("datastet_version", String),
     Column("softcite_version", String),
     Column("grobid_version", String),
     Column("harvester_used", String),

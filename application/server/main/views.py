@@ -83,6 +83,7 @@ def run_task_process():
     partition_size = args.get("partition_size", 1_000)
     spec_grobid_version = args.get("spec_grobid_version", "0")
     spec_softcite_version = args.get("spec_softcite_version", "0")
+    spec_datastet_version = args.get("spec_datastet_version", "0")
     break_after_one = args.get("break_after_one", False)
     storage_handler = Swift(config_harvester)
     partitions = get_partitions(storage_handler, partition_size)
@@ -96,6 +97,7 @@ def run_task_process():
                     "partition_files": partition,
                     "spec_grobid_version": spec_grobid_version,
                     "spec_softcite_version": spec_softcite_version,
+                    "spec_datastet_version": spec_datastet_version,
                 },
             )
             response_objects.append({"status": "success", "data": {"task_id": task.get_id()}})

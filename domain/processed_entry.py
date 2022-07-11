@@ -6,6 +6,7 @@ class ProcessedEntry(Sequence):
                  doi: str,
                  uuid: str,
                  is_harvested: str,
+                 datastet_version: str,
                  softcite_version: str,
                  grobid_version: str,
                  harvester_used: str,
@@ -16,13 +17,14 @@ class ProcessedEntry(Sequence):
         self.is_harvested: str = is_harvested
         self.grobid_version: str = grobid_version
         self.softcite_version: str = softcite_version
+        self.datastet_version: str = datastet_version
         self.harvester_used: str = harvester_used
         self.domain: str = domain
         self.url_used: str = url_used
-        self._tup = (self.doi, self.uuid, self.is_harvested, self.softcite_version, self.grobid_version,
+        self._tup = (self.doi, self.uuid, self.is_harvested, self.datastet_version, self.softcite_version, self.grobid_version,
                      self.harvester_used, self.domain, self.url_used)
     def actualize(self):
-        self._tup = (self.doi, self.uuid, self.is_harvested, self.softcite_version, self.grobid_version,
+        self._tup = (self.doi, self.uuid, self.is_harvested, self.datastet_version, self.softcite_version, self.grobid_version,
                      self.harvester_used, self.domain, self.url_used)
 
     def __repr__(self) -> str:

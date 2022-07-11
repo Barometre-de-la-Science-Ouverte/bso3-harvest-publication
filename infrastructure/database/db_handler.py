@@ -10,7 +10,7 @@ from domain.processed_entry import ProcessedEntry
 from harvester.OAHarvester import generateStoragePath
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
-from config.processing_service_namespaces import grobid_ns, softcite_ns
+from config.processing_service_namespaces import grobid_ns, softcite_ns, datastet_ns
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
 
@@ -40,14 +40,15 @@ class DBHandler:
 
     def write_entity_batch(self, records: List):
         cur = self.engine.raw_connection().cursor()
-        args_str = ','.join(cur.mogrify("(%s,%s,%s,%s,%s,%s,%s,%s)", x).decode("utf-8") for x in records)
+        args_str = ','.join(cur.mogrify("(%s,%s,%s,%s,%s,%s,%s,%s,%s)", x).decode("utf-8") for x in records)
         with self.engine.connect() as connection:
             try:
                 statement = f"""
-                    INSERT INTO {self.table_name} (doi, uuid, is_harvested, softcite_version, grobid_version, harvester_used, domain, url_used)
+                    INSERT INTO {self.table_name} (doi, uuid, is_harvested, datastet_version, softcite_version, grobid_version, harvester_used, domain, url_used)
                     VALUES {args_str}
                     ON CONFLICT (uuid) DO UPDATE
-                        SET softcite_version = excluded.softcite_version,
+                        SET datastet_version = excluded.datastet_version,
+                            softcite_version = excluded.softcite_version,
                             grobid_version = excluded.grobid_version;
                 """
                 connection.execute(text(statement))
@@ -99,6 +100,8 @@ class DBHandler:
                 publications_processed[publication_uuid].grobid_version = version_used
             elif service_used == softcite_ns.service_name:
                 publications_processed[publication_uuid].softcite_version = version_used
+            elif service_used == datastet_ns.service_name:
+                publications_processed[publication_uuid].datastet_version = version_used
         records = list(publications_processed.values())
         if records:
             self.write_entity_batch(records)
