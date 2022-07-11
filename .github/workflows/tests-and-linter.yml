@@ -62,11 +62,12 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: "3.9"
-    
       - name: Install dependencies
         run: |
-          ls
-          cat Makefile
+          sudo apt-get update
+          sudo apt-get install imagemagick
+          python -m pip install --upgrade pip
+          make install
         
       - name: Run end to end tests
         env:
