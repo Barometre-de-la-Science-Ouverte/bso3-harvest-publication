@@ -3,7 +3,7 @@
 
 name: Python tests and linter for BSO3
 
-on: [ push, pull_request ]
+on: [ push ]
 
 jobs:
   quality-and-test:
