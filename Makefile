@@ -73,10 +73,11 @@ requirements:
 	grep -v "grobid_client" requirements.in > requirements_tmp; mv requirements_tmp requirements.in
 	grep -v "testing" requirements.in > requirements_tmp; mv requirements_tmp requirements.in
 	echo "python-keystoneclient==4.0.0" >> requirements.in
+	echo "testing.postgresql==1.3.0" >> requirements.in
 	pip-compile requirements.in
 	rm requirements.in
 	echo "" >> requirements.txt
 	echo "# Grobid client package" >> requirements.txt
 	echo "git+https://github.com/Barometre-de-la-Science-Ouverte/grobid_client_python.git#egg=grobid_client_python" >> requirements.txt
 	echo "# Softcite & Datastet client package" >> requirements.txt
-	echo "git+https://github.com/kermitt2/softdata_mentions_client.git#egg=softdata_mentions_client" >> requirements.txt
+	echo "git+https://github.com/Barometre-de-la-Science-Ouverte/softdata_mentions_client.git#egg=softdata_mentions_client" >> requirements.txt

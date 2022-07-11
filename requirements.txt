@@ -4,6 +4,8 @@
 #
 #    pip-compile requirements.in
 #
+asn1crypto==1.5.1
+    # via scramp
 beautifulsoup4==4.11.1
     # via -r requirements.in
 certifi==2022.6.15
@@ -40,6 +42,7 @@ importlib-metadata==4.12.0
     #   click
     #   debtcollector
     #   oslo-config
+    #   pg8000
     #   redis
     #   sqlalchemy
     #   stevedore
@@ -87,11 +90,14 @@ packaging==21.3
 pbr==5.9.0
     # via
     #   keystoneauth1
+    #   os-service-types
     #   oslo-i18n
     #   oslo-serialization
     #   oslo-utils
     #   python-keystoneclient
     #   stevedore
+pg8000==1.29.1
+    # via testing-postgresql
 psycopg2==2.9.3
     # via -r requirements.in
 psycopg2-binary==2.9.3
@@ -134,6 +140,8 @@ rfc3986==2.0.0
     # via oslo-config
 rq==1.10.1
     # via -r requirements.in
+scramp==1.4.1
+    # via pg8000
 six==1.16.0
     # via
     #   keystoneauth1
@@ -147,6 +155,10 @@ stevedore==3.5.0
     #   keystoneauth1
     #   oslo-config
     #   python-keystoneclient
+testing-common-database==2.0.3
+    # via testing-postgresql
+testing-postgresql==1.3.0
+    # via -r requirements.in
 typing-extensions==4.3.0
     # via importlib-metadata
 urllib3==1.26.7
