@@ -4,6 +4,8 @@
 #
 #    pip-compile requirements.in
 #
+alembic==1.8.0
+    # via -r requirements.in
 asn1crypto==1.5.1
     # via scramp
 beautifulsoup4==4.11.1
@@ -39,13 +41,17 @@ idna==3.3
     # via requests
 importlib-metadata==4.12.0
     # via
+    #   alembic
     #   click
     #   debtcollector
+    #   mako
     #   oslo-config
     #   pg8000
     #   redis
     #   sqlalchemy
     #   stevedore
+importlib-resources==5.8.0
+    # via alembic
 iso8601==1.0.2
     # via
     #   keystoneauth1
@@ -58,8 +64,12 @@ keystoneauth1==4.6.0
     # via python-keystoneclient
 lmdb==1.2.1
     # via -r requirements.in
+mako==1.2.1
+    # via alembic
 markupsafe==2.1.1
-    # via jinja2
+    # via
+    #   jinja2
+    #   mako
 msgpack==1.0.4
     # via oslo-serialization
 netaddr==0.8.0
@@ -149,7 +159,9 @@ six==1.16.0
 soupsieve==2.3.2.post1
     # via beautifulsoup4
 sqlalchemy==1.4.31
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   alembic
 stevedore==3.5.0
     # via
     #   keystoneauth1
@@ -174,9 +186,9 @@ wrapt==1.14.1
     #   debtcollector
     #   deprecated
 zipp==3.8.0
-    # via importlib-metadata
-
-alembic==1.8.0
+    # via
+    #   importlib-metadata
+    #   importlib-resources
 
 # Grobid client package
 git+https://github.com/Barometre-de-la-Science-Ouverte/grobid_client_python.git#egg=grobid_client_python
