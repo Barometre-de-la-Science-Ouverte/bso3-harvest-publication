@@ -6,7 +6,6 @@ from config import DB_HARVESTING_DATE_COLUMN_NAME, DB_DATASTET_VERSION_COLUMN_NA
 from config.harvester_config import config_harvester
 
 # postgre config
-IS_DB_LOCAL = str(config_harvester["is_db_local"])
 DB_USER = config_harvester["db"]["db_user"]
 DB_PASSWORD = config_harvester["db"]["db_password"]
 DB_HOST = config_harvester["db"]["db_host"]

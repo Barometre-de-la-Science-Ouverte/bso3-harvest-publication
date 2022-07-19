@@ -35,13 +35,6 @@ def get_harvester_config(config_file_path: str) -> dict:
     config_harvester['db']['db_port'] = os.getenv('DB_PORT')
     config_harvester['db']['db_name'] = os.getenv('DB_NAME')
 
-    # Add env var secrets & pwd for app - flask
-    config_harvester['app'] = {}
-    config_harvester['app']['flask_app'] = os.getenv('FLASK_APP')
-    config_harvester['app']['flask_env'] = os.getenv('FLASK_ENV')
-    config_harvester['app']['flask_ip'] = os.getenv('FLASK_IP')
-    config_harvester['app']['flask_port'] = os.getenv('FLASK_PORT')
-
     # Wiley config
     config_harvester[WILEY_KEY] = {
         CONFIG_WILEY_TOKEN_KEY: os.getenv(CONFIG_WILEY_TOKEN_KEY),
