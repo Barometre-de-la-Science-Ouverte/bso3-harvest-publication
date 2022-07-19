@@ -6,7 +6,7 @@ from infrastructure.storage.swift import Swift
 
 def load_metadata(metadata_container, metadata_file, destination_dir, subfolder_name=''):
     """
-    Download latest publications staging file on bso_dump object storage
+    Download file on bso_dump object storage if it has not been already downloaded.
     Returns the path of the file once downloaded
     """
     swift_handler = Swift(config_harvester)

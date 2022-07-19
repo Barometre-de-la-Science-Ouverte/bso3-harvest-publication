@@ -77,7 +77,7 @@ def get_status_harvester(task_id):
 @main_blueprint.route("/process", methods=["POST"])
 def run_task_process():
     """
-    Process publications using Grobid and Softcite
+    Process publications using Grobid, Softcite and Datastet
     """
     args = request.get_json(force=True)
     partition_size = args.get("partition_size", 1_000)

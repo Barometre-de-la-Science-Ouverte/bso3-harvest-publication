@@ -36,9 +36,11 @@ class DBHandler:
 
     def select_all_where_uuids(self, uuids: List[str]):
         """Return the table content where uuids match"""
-        result = self.engine.execute(
-            f"SELECT * FROM {self.table_name} WHERE uuid IN (" + ", ".join([f"'{uuid}'" for uuid in uuids]) + ")")
-        return [ProcessedEntry(*entry) for entry in result.fetchall()]
+        if uuids:
+            result = self.engine.execute(
+                f"SELECT * FROM {self.table_name} WHERE uuid IN (" + ", ".join([f"'{uuid}'" for uuid in uuids]) + ")")
+            return [ProcessedEntry(*entry) for entry in result.fetchall()]
+        return []
 
     def write_entity_batch(self, records: List):
         cur = self.engine.raw_connection().cursor()
@@ -94,23 +96,24 @@ class DBHandler:
         """Update database with the version of the service (grobid, softcite, dataseer) used to process the publication
         entries = [(publication_uuid, service_used, version_used), ...]
         """
-        publications_processed = {}
-        get_uuid = lambda x: x[0]
-        db_entries = self.select_all_where_uuids([get_uuid(x) for x in entries])
-        for entry in entries:
-            publication_uuid, service_used, version_used = entry
-            if publication_uuid not in publications_processed:
-                publications_processed[publication_uuid] = next(
-                    db_entry for db_entry in db_entries if db_entry.uuid == publication_uuid)
-            if service_used == grobid_ns.service_name:
-                publications_processed[publication_uuid].grobid_version = version_used
-            elif service_used == softcite_ns.service_name:
-                publications_processed[publication_uuid].softcite_version = version_used
-            elif service_used == datastet_ns.service_name:
-                publications_processed[publication_uuid].datastet_version = version_used
-        records = list(publications_processed.values())
-        if records:
-            self.write_entity_batch(records)
+        if entries:
+            publications_processed = {}
+            get_uuid = lambda x: x[0]
+            db_entries = self.select_all_where_uuids([get_uuid(x) for x in entries])
+            for entry in entries:
+                publication_uuid, service_used, version_used = entry
+                if publication_uuid not in publications_processed:
+                    publications_processed[publication_uuid] = next(db_entry for db_entry in db_entries
+                                                                    if db_entry.uuid == publication_uuid)
+                if service_used == grobid_ns.service_name:
+                    publications_processed[publication_uuid].grobid_version = version_used
+                elif service_used == softcite_ns.service_name:
+                    publications_processed[publication_uuid].softcite_version = version_used
+                elif service_used == datastet_ns.service_name:
+                    publications_processed[publication_uuid].datastet_version = version_used
+            records = list(publications_processed.values())
+            if records:
+                self.write_entity_batch(records)
 
     def update_database(self):
         container = self.config['publications_dump']
