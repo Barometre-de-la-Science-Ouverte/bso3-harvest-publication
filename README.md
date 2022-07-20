@@ -18,9 +18,6 @@ The processing part uses a [python client for Grobid](https://github.com/kermitt
 * The tool is fault tolerant, it will keep track of the failed resource access with corresponding errors and makes
   possible subsequent retry on this subset.
 
-* Optionally, aggregated metadata from biblio-glutton for an article are accessed and stored together with the full text
-  resources.
-
 * A postgres database can track the harvesting of the publications harvested when launched with docker-compose. It contains the UUID/DOI mapping, the url used to download the publication, the date of the download and informations about the processing services.
 
 * The publications can then be processed by the Grobid model, Softcite model and Datastet model to extract metadatas. The version of each of the services used are recorded in the postgres database.
@@ -55,7 +52,7 @@ $ cd bso3-harvest-publication
 ```shell
 $ virtualenv --system-site-packages -p python3 env
 $ source env/bin/activate
-$ pip3 install -r requirements.txt
+$ make install
 ```
 
 3. Add the configuration files for *arxiv* (arxiv_config.py) and *wiley* (wiley_config.py) to the config folder (ask a
@@ -143,7 +140,7 @@ curl  -H "Content-Type: application/json" -X POST http://localhost:5004/harvest_
 curl  -H "Content-Type: application/json" -X POST http://localhost:5004/process -d '{"partition_size": X, "spec_grobid_version": "X.Y.Z", "spec_softcite_version": "X.Y.Z", "spec_datastet_version": "X.Y.Z"}'
 ```
 
-Documentation of the endpoints is available at the index: `http://localhost:5004`
+Documentation of the endpoints is available at `http://localhost:5004` once your app is running
 
 ## Storage
 
