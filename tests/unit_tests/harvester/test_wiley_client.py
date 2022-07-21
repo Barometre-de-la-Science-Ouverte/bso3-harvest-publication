@@ -41,10 +41,10 @@ class WileyClientTest(TestCase):
     def test_get_publication_base_url_should_correctly_form_the_url_from_wiley_configuration_dict(
             self, mock_write_to_file):
         # given
-        expected_publication_base_url = 'https://wiley-base-url.fr/login?user=wiley_ezproxy_user&pass=wiley_ezproxy_pass&url=https://wiley-publication-url/'
+        expected_publication_base_url = 'https://wiley-publication-url/'
 
         # when
-        actual_publication_base_url = self.wiley_client._get_publication_base_url(wiley_fake_config)
+        actual_publication_base_url = self.wiley_client.publication_base_url
 
         # then
         self.assertEqual(expected_publication_base_url, actual_publication_base_url)
@@ -52,7 +52,7 @@ class WileyClientTest(TestCase):
     def test_get_publication_url_should_format_doi_and_add_it_to_base_url(
             self, mock_write_to_file):
         # given
-        expected_publication_url = 'https://wiley-base-url.fr/login?user=wiley_ezproxy_user&pass=wiley_ezproxy_pass&url=https://wiley-publication-url/fake%2Fdoi'
+        expected_publication_url = 'https://wiley-publication-url/fake%2Fdoi'
 
         # when
         actual_publication_url = self.wiley_client._get_publication_url(fake_doi)

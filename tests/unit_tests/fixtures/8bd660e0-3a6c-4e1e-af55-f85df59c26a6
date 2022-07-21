@@ -1,0 +1,160 @@
+<!DOCTYPE html><html lang="fr">
+<head>
+    <title>Connexion - CAS &#8211; Central Authentication Service</title>
+    <meta charset="UTF-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/><link rel="stylesheet" href="/webjars/font-awesome/5.0.13/web-fonts-with-css/css/fontawesome-all.min.css"/><link type="text/css" rel="stylesheet" href="/webjars/lato/0.3.0/css/lato.min.css"/><link rel="stylesheet" href="/themes/ul/css/cas.css"/><link rel="icon" href="/favicon.ico" type="image/x-icon"/><script type="text/javascript" src="/webjars/jquery/3.3.1/jquery.min.js"></script>
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/></head>
+
+<body class="login">
+
+<main role="main" class="container mt-3 mb-3">
+    <div id="container">
+		<div id="grid">
+			<div id="header" aria-labelledby="app-name">
+				<a href="https://www.univ-lorraine.fr/"><img src="themes/ul/images/logoUL-blanc.png" alt="Université de Lorraine" width="auto" height="60"></a>                
+				<h1 id="app-name" class="fl-table-cell">Service d'authentification</h1>
+				<p class="securite">
+					L'usage des ressources et services numériques de l'Université de Lorraine se fait dans le strict respect de la Charte Informatique, partie intégrante du Règlement Intérieur voté par le Conseil d’Administration de l'université.
+				</p>
+			</div>
+						
+			<div id="content" class="row">        
+        <div id="notices" class="col-md mt-3 mt-md-0">
+            <div id="cookiesDisabled" class="card" style="display: none;">
+    <div class="card-body">
+        <h5 class="card-title">Cookies navigateur désactivés</h5>
+        <p class="card-text">Votre navigateur ne supporte pas les cookies. L'authentification centralisée NE FONCTIONNERA PAS.</p>
+    </div>
+</div>            
+        </div>
+		<div class="col-md">
+            <div class="card">
+                <div class="card-body">
+                    <!-- Fragment pour afficher un bandeau --><div id="bandeau"></div>
+
+                    <form method="post" id="fm1" action="login">
+                        <section class="form-group">
+                            <label for="username"><span class="accesskey">I</span>dentifiant :</label>
+
+                            <div>
+                                <input class="form-control required"
+                                       id="username"
+                                       size="25"
+                                       tabindex="1"
+                                       type="text"
+									   placeholder="Identifiant"
+                                       accesskey="i"
+                                       autocomplete="off" name="username" value=""/></div>
+                        </section>
+
+                        <section class="form-group">
+                            <label for="password"><span class="accesskey">M</span>ot de passe :</label>
+
+                            <div>
+                                <input class="form-control required"
+                                       type="password"
+                                       id="password"
+                                       size="25"
+                                       tabindex="2"
+									   placeholder="Mot de passe"                                       
+                                       accesskey="m"
+                                       autocomplete="off" name="password" value=""/><span id="capslock-on" style="display:none;">
+                                <p>
+                                    <i class="fa fa-exclamation-circle"></i>
+                                    <span>La touche Verr Maj est activée !</span>
+                                </p>
+                            </span>
+                            </div>
+                        </section>
+
+                        <input type="hidden" name="execution" value="22959959-98e1-487e-ab9f-6712215c1fc7_ZXlKaGJHY2lPaUpJVXpVeE1pSjkuVUJ6TWhOTFppVW8reUhpMTAxSUVaRHdKK29tTEkvaHJmS0FnaXVEZFlTdmtvbkF4SzBtZTNJTEVIWEcvM0sxYUZyVUhSZXdXeURUNXhpdmFKVW9Ld0xHSlNreVV6WDRFVUppb3VYSFp3VFpYTE1IUkdLUTVLd3BodlpKRXlpaC95cmxnZGlUWFBlMkRYd3NkelN4TXlNQU9tNTZldVBBbWNjdzJtMGkvQmZVVXlabXY3NzNPSHl2K0lKOFlNTGNJeDlkQkxrVWx3SGNLSlhkOHJBemlsK3UwMTRvdjk1WWlSVFhGT29lUjVCOFluMUdaemdQajR4OUZXUW5rRzNCK0V1WmhqbUc2dDF6V1kvRmQxTDllQ3F1Y1h6K0pqMXlGWEZEbjZvcEpEanhTeDlTbndlaFdhakQ2Yks3SG9uN2liUXJHcGhmYTNrcmkvUzdRR2ZQL01pRHFxcE8ydDhGQVJPMHZCNzRhek03UGlqZmRMR2lzb0NYMjVUbGdkY1gyMUxjVGNGdUY1cVpXTVpMVEZQZ3d1L1hkbmMvNXNDcllEUWtFVUhEazdkSytKazV6YzBxa2tZVDV3U1JQMmR3Q0dweVdvbG5nY1JCZXhYVExKei9aN3c2T2hVUWc0L2VoMGxiSU11N2x5ZUl4NytuTTMwTStSZHZ0NWs5Ri9lclRGY0JUUDNRTU8rTnUxcWdia0UvY3FLQTlJZWpMZTNIclNuOFJNVG5FSll3WFZuUFhnTHBjcGgxczlENXJ5YmJRcUsxY0NXdk1BNUM0L3ZhZktEWEtXOXluOGljQnBpZ1lVZFYycFhQL1VnaFpjaUwzYWR2bUI0V2pDUmtsdjc0WWI3a2dkTS9XZXN3NTVCVThPRFVKMWRoVnNOVmdjQkdaK3JSd1pqK0hkeE9pZElud3I2ZDRuQ2Rrd0VjSDV1UVo0TStPdUZiNjFjc2hocXJrdVRtWCtVTHFwbGJKTDFLL2FpWWRXajRnbHVrV3FHM08zbEcrOHRZaC9sbnc4enVSMFE4Y3YxenhNVEhsQ1dBTlN2YSttRkhKNGQwL0V0NTRJa2xDdXRscHJVRE01MnRvRWVNYnBFeEVGdUc1R1V2SkxqbzkvOThjZUUweHJsR3dQeDlvMDk3NUo4QUl6R3Z0VXdPRm9YemVUaTJMSURUM3dydHFBcG56RjNqOXh1OE1hSFNFL29VUEpXdjBsa3RtN3pVRks2NG5XOEhsbGprQkhZeFVidzB5U0YwMjMvVDd2TGlBL1JlcnlRS2QvcDB0ZHIvazJ1MkdERVB1aGhYeVFNUExlS3dtTzgrTklydXBhSFFwdHUwMGVGdGR2UExyZnZBTk5jUytJUzBqTllqUXo5Uk5XMHpSVU03ODZ2YWoyQ1RHTVdEOTFOeWZWNmNCM0dLNndONXN3R25DY2wxSzZmbzEwQ2trdk9sMkJZL01Kc0hNYkthQ1k0bW5DeW51bnFBcUtuWHdsVE1KN1hDSVhGL1RBeWVlRlFUVEkvZUNEL1lrL2ZaT3dtZS9QczBYSUJaYTQvSHRJbnF6Q3h0L25YOE0yRTJMbHN1c0xNN3hDMkZQTmlRL2kweHVDdDl4Z1ZXODNiYWc2SjBtUTRHc1o3REtxbDJQZnJVc1RMa1R3cm90ak5uL0VWamFwWmVzZ3o1NFZtZlFJWVQvVVUwMGtneGhnZVY5a0lJN1M1WnlIVG12MXZwMDBQOUN0NGE4TG9PaW1nNFRDYnZwT3M5ejBmWGFzeHlJTnlGaldOMkdIa01rOTYzcU8yUGlaLzFVR0RHUHlGdlFodjArWEN2QitwejFOREVKdzhBZTR2U2lxSHI3YXY0M1pQSmk4ZHZRZnp1Y0NDY0doVXE0Tm5ieDdyWU1aRlorekk4dkZsKy9sN3Q3b2ZHbWtBelc1UGIvL2FqVGU3dU45TXBsTGd0cis5VkN5UTlaSjJ4K21weWNaNTliTlZHUG9wVUlaTFdTVlBKNC9RWDlxYURISVBnMEpXMFliTTNxVEd6RFc2elhkb3NMUElPalRjdkdkcG1iSTRyQVJraG9JRjhySmhYOXRraFdYaU9mWk9ndGFxYkZPN1Q4SzFJbjUza3dKME9CNzNqTnlabEQ5Z1ZkNFBicXIrbE14N25pQVBnMTVuT21UZnRTR1JEVEVuUGVXbndadDVOSk5aR09EakVyR3dRMWJOak5HQnNlWWN3SFFFNVBvTWxXSUEzcnJSYXVhb01jY1VGUWcwdk9zV2N2cEdUaVNkSFVmZ1JnTi9sM1F1M0s0aW9hVDdoUmVpb1RLZVRDNndmcmlab2ZZRHdpOGl2MXRyZlFoVXhzUEVHcU0xK1V2M21hck1EQlhzQ1ZGQ3VaUW5VZkQxV1lvTFNYcFlCVGdieElNYjRnelhxWWJkbHVBU2pyVjFtTU1hZlpXTzhSS0lUL2RoWDlTclp6dUtpR3VPQnAvTnhEaWFGQXJ4TEF1cE1Uc0x3M0hacEs0R0JVdGRCcUhVckZJUFhuR2R2Tnl5YjYrRU53akJhaXBvTHYxVHpDUm9zZFZudDJNYlJrYVM4OU9Ic2RBM1ZqOVZqSHlqWmMyS21URWRuQ2R6MnkzMlZ5WTlXUHd4OGdxc1BvUDUyT1JHd2Q4amEyZUE4MEtPbjhPMzFjaVpPZDFlR3FDU2J3TTJMWmpqWHpnd1FGbkVsVm5Kem5PZzBoZkg5SExXNnVBd3hEV3A1akNyOVNoNjAzWkVsNXVJTHJORE9DTjdOZ1pwSWhvY29pVEd2bUNFM1N1S2lKQ0FFOTdWRnIrYzQyRFRjMFBVYkdJRG51TFRJcU5oZGp4ZU4vcEdEaWlYV0theDB0bkd0aW9SQlNacng4RWxFUHNUM2h1dW5UR3BoY2dDTlJtbFdiSU5OdnpCajZvaUtlNkJZZVErT3BIdXErYk9BNytVOXk1RG13U0pWZVVzWFRwOThaZ0xodjl6TGlhUk9Ndi9ucVBwMjAySEZOZm9NajlBbDk4Z01hTUdFYnlIalNUS3ZLbkRJQm1MdlZObElJWWdFL00wcW91WmJiOEhGcHIwTnUyb0g3NXBkQ295UlYwbVA5UGNPZW1QS0lPK2E1aVN3THN5UFNiU1VsYmhub3BZUXZ5TVc2ZDVFSmkzTTVieS9CUlllMEVpelYyWWpTajJFQy83amlBRnNkSW5DeWZXcTdXLzBMV2RqaC85RmhTMjRuQWJMOEpnVFBxNDlabFpYWG5wUHVRRnBVa2FPdWNjbHUzdDBZK1RZY0JnU1dQT0xoQndrWmUwNHYvTW5BYnBNREFORVNGVkNmSnpmcS91TFhQb0ZZSktFckRyWlBpUFRWcjU2K1RWVmNZVlpSeitZUC83MW5NeWhTQ0FDUHRCaEpIVExPVGJkTkhMTVpodDg2VjhBZXNzZGp6UG9WN3ozUjExbk1uVUZJaCs4cXZUZFE3cnZSaGlpNnZyT0t1VXZDYlZwZHY2OUdsOTRPbUxQcFROZHZMYkU5QlArT20vdXpFNVFvRWUxSkRtbG43SThBbzF6N21uOVdqdEVVYVZ3UUpnZ0F5V1ppY01NRy9qYW44T3VqWUpQVnplcGVjTnBqbmRCdVN2VXQzaUt4d2Z6RUM2K3VuaktFZFQ3Ym9yQk5hNFpsaFJsVkRqZ2xlK2RaQlFwRmMybVM3UDFvUFdFeGhhbE45TUMvby9aZjNvVTRqM2Fwd3JWOExuekxhY0dtcGJvSmJya21SUFhXOU1zL1MwSEY2bk04NnlRcHBvc0RnWnN6QkgyY2s3azdNbUpEdzRCU0NqMXZpSmpvU093bkplQnl5dE9XZTA1Nld0UHY1STBQcGNhTmlsWGt5UFlhR2NScVhUNTVUQk93NEpPVHJhVkw3Z2s5bmN1cUg1WHVTNnNvcERSRnFCRjZOakU1OG5RcCt4SnlmZmYxWTFKTXV4SUFrWElBWUQ3bHdoYVlPZk1LMHFxdS9sdGpHZ3crVTZHeHd1QXRoV05pbUtyak5wSStIOThCNlhFUGFOS3hPOFJ3bkx6RGtiNlJURGxEbkhxaDR4cVZkejFrRlpsOERzN2I3K1JrRFN3VWVrcWUrMXBSUThZU0w5NlljOXpERHVlWXUrWlpaRzgwMU8wc3lVYUMzQzBwcHFDTzhUR1EwZzhucEwvTTVMM1NzamNCSklxVUV6ZFB5YWtYc3lTVEpCbXpXajNZMVBVZ0ROU3R1R2szRml2Q1hTQ1JocGE4eGQwUUlxc0JicHhndEFKbGliVTV1SnZYaGZZYWhpZFhTbTJNZzFHRmRUTUlrL1NOZGdHTVlvdkRqSWdpK1JnWE9qcmlad0Rra0x3Nm1xK3IvNGZmNnhtdE11WC9ZVXdlc20yblhHdlVNSTAyZkhsYmRpQkxVTTV3QTZHN2hsWDNNcnhJWWludkdaL3FPRXltMG9xYi5wY2o3VVVuUEthbzlJYjB0QzZfRndJTWtTWTdtanNuRXRwX0lqVTQwZUpBV05fTlc3ekluSHgtX0pIcXhXbmY5OEo3RWhsN1F5b3dmU1RuaDJlTDRkUQ=="/><input type="hidden" name="_eventId" value="submit"/><input type="hidden" name="geolocation"/><input class="btn btn-block btn-submit"
+                               name="submit"
+                               accesskey="l"
+                               tabindex="6"
+                               type="submit"
+                               value="SE CONNECTER"
+                        /></form>
+
+                    <div>
+                        <!--<a href="https://sesame.univ-lorraine.fr/recovery/id" target="_blank" class="btn-mdp">
+                            <span>Problème de mot de passe?</span>
+                        </a--><a href="https://sesame.univ-lorraine.fr/recovery/id" target="_blank" class="btn-mdp">
+                            <span>Mot de passe oublié ?</span>
+                        </a>
+                        <a href="https://numerique.univ-lorraine.fr/assistance" target="_blank" class="btn-mdp">
+                            <span>Besoin d'aide ?</span>
+                        </a>
+                    </div>                    
+
+                    <script type="text/javascript">
+                        var i = "Veuillez patienter..."
+                        $( document ).ready(function() {
+                            $("#fm1").submit(function () {
+                                $(":submit").attr("disabled", true);
+                                $(":submit").attr("value", i);
+                                console.log(i);
+                                return true;
+                            });
+                        });
+                    </script>
+
+                    <div id="sidebar">
+        <div class="sidebar-content">
+            <p>Pour des raisons de sécurité, veuillez vous <a href="logout">déconnecter</a> et fermer votre navigateur lorsque vous avez fini d'accéder aux services authentifiés.</p>
+        </div>
+    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+		</div>
+	</div>
+</main>
+
+<script type="text/javascript" src="/webjars/zxcvbn/4.3.0/zxcvbn.js"></script>
+<script type="text/javascript" src="/webjars/jquery-ui/1.12.1/jquery-ui.min.js"></script>
+<script type="text/javascript" src="/webjars/jquery-cookie/1.4.1-1/jquery.cookie.js"></script>
+<script src="/webjars/bootstrap/4.1.0/js/bootstrap.bundle.min.js"></script>
+
+<script src="/webjars/headjs/1.0.3/head.min.js"></script>
+<script src="/webjars/store.js/1.3.17/store.min.js"></script>
+<script type="text/javascript" src="/js/cas.js"></script>
+<script type="text/javascript" src="/themes/ul/js/cas.js"></script>
+
+<script>
+head.ready(document, function () {
+    if (!window.jQuery) {
+    	var jqueryUrl = "\/webjars\/jquery\/3.3.1\/jquery.min.js"; 
+        head.load(jqueryUrl, loadjQueryUI);
+    } else {
+        notifyResourcesAreLoaded(resourceLoadedSuccessfully);
+    }
+});
+
+function loadjQueryUI() {
+	var jqueryUrl = "\/webjars\/jquery-ui\/1.12.1\/jquery-ui.min.js"; 
+	head.load(jqueryUrl, loadjQueryCookies);
+}
+
+function loadjQueryCookies() {
+	var jqueryUrl = "\/webjars\/jquery-cookie\/1.4.1-1\/jquery.cookie.js"; 
+	head.load(jqueryUrl, notifyResourcesAreLoaded(resourceLoadedSuccessfully));
+}
+
+function notifyResourcesAreLoaded(callback) {
+    if (typeof callback === "function") {
+        callback();
+    }
+}
+</script>
+
+<script>
+    /*<![CDATA[*/
+
+    var trackGeoLocation = false;
+
+    /*]]>*/
+</script>
+
+</body>
+</html>
