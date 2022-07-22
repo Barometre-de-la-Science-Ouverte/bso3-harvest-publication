@@ -7,3 +7,4 @@ class ResponseMock:
         self.status_code = status_code
         self.ok = True if status_code == 200 else False
         self.content = content
+        self.text = content
