@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from datetime import datetime
 
 
 class ProcessedEntry(Sequence):
@@ -10,7 +11,9 @@ class ProcessedEntry(Sequence):
                  grobid_version: str,
                  harvester_used: str,
                  domain: str,
-                 url_used: str):
+                 url_used: str,
+                 harvesting_date: datetime,
+                 datastet_version: str):
         self.doi: str = doi
         self.uuid: str = uuid
         self.is_harvested: str = is_harvested
@@ -19,11 +22,14 @@ class ProcessedEntry(Sequence):
         self.harvester_used: str = harvester_used
         self.domain: str = domain
         self.url_used: str = url_used
+        self.harvesting_date = harvesting_date
+        self.datastet_version: str = datastet_version
         self._tup = (self.doi, self.uuid, self.is_harvested, self.softcite_version, self.grobid_version,
-                     self.harvester_used, self.domain, self.url_used)
+                     self.harvester_used, self.domain, self.url_used, self.harvesting_date, self.datastet_version)
+
     def actualize(self):
         self._tup = (self.doi, self.uuid, self.is_harvested, self.softcite_version, self.grobid_version,
-                     self.harvester_used, self.domain, self.url_used)
+                     self.harvester_used, self.domain, self.url_used, self.harvesting_date, self.datastet_version)
 
     def __repr__(self) -> str:
         self.actualize()

@@ -1,280 +1,159 @@
-# Publication PDF harvester
+# Publication PDF harvester and metadata extractor.
 
-This repo is a fork of the repo https://github.com/kermitt2/biblio-glutton-harvester.
+This project aims to download french scientific publications and process them using Deep Learning models ([Grobid](https://hub.docker.com/r/grobid/grobid), [Softcite](https://hub.docker.com/r/grobid/software-mentions) and [Datastet](https://hub.docker.com/r/grobid/datastet)) to extract metadata relevant for the Baromètre de la Science Ouverte (BSO).  
+It uses as input a filtered subset of the [Unpaywall database snapshot](https://unpaywall.org) (from [OurResearch](http://ourresearch.org/)) stored on an OVH objecct storage.
 
-Python utility for harvesting efficiently a large Open Access collection of scholar PDF: 
+The harvester part of this repo is based of a fork of the repo https://github.com/kermitt2/biblio-glutton-harvester but has been heavily modified to fit the needs of this project.
+The processing part uses a [python client for Grobid](https://github.com/kermitt2/grobid_client_python) and a [python client for Softcite and Datastet](https://github.com/kermitt2/softdata_mentions_client) to handle the communication with the containers exposing the different deep learning models.
 
-* The downloaded PDF can be stored on a SWIFT object storage (OpenStack) or on a local storage, with UUID renaming/mapping. 
+* The downloaded PDF can be stored on a SWIFT object storage (OpenStack) or on a local storage, with UUID
+  renaming/mapping.
 
-* Downloads and storage uploads over HTTP(S) are multi-threaded for best robustness and efficiency. 
+* Downloads and storage uploads over HTTP(S) are multi-threaded for best robustness and efficiency.
 
-* The download supports redirections, https protocol, wait/retries and uses rotating request headers. 
+* The download supports redirections, https protocol, wait/retries, uses rotating request headers and resolve cloudflare v1 challenges.
 
 * The harvesting process can be interrupted and resumed.
 
-* The tool is fault tolerant, it will keep track of the failed resource access with corresponding errors and makes possible subsequent retry on this subset. 
+* The tool is fault tolerant, it will keep track of the failed resource access with corresponding errors and makes
+  possible subsequent retry on this subset.
 
-* Optionally, aggregated metadata from biblio-glutton for an article are accessed and stored together with the full text resources. 
+* A postgres database can track the harvesting of the publications harvested when launched with docker-compose. It contains the UUID/DOI mapping, the url used to download the publication, the date of the download and informations about the processing services.
 
-* It is also possible to harvest only a random sample of PDF instead of complete sets. 
+* The publications can then be processed by the Grobid model, Softcite model and Datastet model to extract metadatas. The version of each of the services used are recorded in the postgres database.
 
-* A postgres database can track the harvesting of the publications harvested when launched with docker-compose. 
-
-The utility can be used in particular to harvest the **Unpaywall** dataset (PDF) and the **PMC** publications (PDF and corresponding NLM XML files).
+* The output of each model is stored in a file on a SWIFT object storage.
 
 ## Environment setup
 
 ### Requirements
 
-The utility requires Python 3.6 or more. It is developed for a deployment on a POSIX/Linux server (`gzip` and `wget` as external process). A SWIFT object storage and a dedicated SWIFT container must have been created for the cloud storage of the data collection. 
+The utility requires Python 3.6 or more. It is developed for a deployment on a POSIX/Linux server (`gzip` and `wget` as
+external process). A SWIFT object storage and a dedicated SWIFT container must have been created for the cloud storage
+of the data collection.
 
-The utility will use some local storage dedicated to the embedded databases keeping track of the advancement of the harvesting, metadata and temporary downloaded resources. Consider a few GB of free space for a large scale harvesting of TB of PDF. 
+The utility will use some local storage dedicated to the embedded databases keeping track of the advancement of the
+harvesting, metadata and temporary downloaded resources. Consider a few GB of free space for a large scale harvesting of
+TB of PDF.
 
 Storage: as a rule of thumb, consider bewteen 1 and 1.5 TB for storage 1 million scholar PDF.
 
 ### Install
 
 1. Get the github repository:
+
 ```shell
 $ git clone https://github.com/Barometre-de-la-Science-Ouverte/bso3-harvest-publication.git
 $ cd bso3-harvest-publication
 ```
 
-2. [Install PostgreSQL](https://www.postgresql.org/download/)
-```shell
-$ brew install postgresql # for mac users
-```
+2. Setup the Python virtual environment
 
-3. Setup the Python virtual environment
 ```shell
 $ virtualenv --system-site-packages -p python3 env
 $ source env/bin/activate
-$ pip3 install -r requirements.txt
+$ make install
 ```
 
-4. For generating thumbnails corresponding to the harvested PDF, ImageMagick must be installed. For instance on Ubuntu:
-```shell
-# for linux users
-$ apt-get install imagemagick
-# for windows and mac
-$ pip uninstall python-magic  
-$ pip install python-magic-bin==0.4.14
-```
-
-5. Add the configuration files for *arxiv* (arxiv_config.py) and *wiley* (wiley_config.py) to the config folder (ask a developer for them).
-
-
-
-
+3. Add the configuration files for *arxiv* (arxiv_config.py) and *wiley* (wiley_config.py) to the config folder (ask a
+   developer for them).
 
 ## Configuration
 
-A configuration file must be completed, by default the file `config.json` will be used, but it is also possible to use it as a template and specifies a particular configuration file when using the tool (via the `--config` parameter). 
+A configuration file must be completed, by default the file `config.json` will be used, but it is also possible to use
+it as a template and specifies a particular configuration file when using the tool (via the `--config` parameter).
 
-- `data_path` is the path where temporary files, metadata and local DB are stored to manage the harvesting. If no cloud storage configuration is indicated, it is also where the harvested resources will be stored.  
+- `compression` indicates if the resource files need to be compressed with `gzip` or not. Default is true, which means
+  that all the harvested files will have an additional extension `.gz`.
 
-- `compression` indicates if the resource files need to be compressed with `gzip` or not. Default is true, which means that all the harvested files will have an additional extension `.gz`. 
+- `batch_size` gives the number of PDF that is considered for parallel process at the same time, the process will move
+  to a new batch only when all the PDF of the previous batch will be processed.
 
-- `batch_size` gives the number of PDF that is considered for parallel process at the same time, the process will move to a new batch only when all the PDF of the previous batch will be processed.  
- 
-- `"prioritize_pmc"` indicates if the harvester has to choose a PMC PDF (NIH PMC or Europe PMC) when available instead of a publisher PDF, this can improve the harvesting success rate and performance, but depending on the task the publisher PDF might be preferred.  
+- `metadata_dump` is the bucket containing the metadata files of the publications to be harvested.
 
-- if a `biblio_glutton_base` URL service is provided, biblio-glutton will be used to enrich the metadata of every harvested articles. biblio-glutton provides aggregated metadata that extends CrossRef records with PubMed information and strong identifiers. 
-
-- if a DOI is not found by `biblio_glutton`, it is possible to call the CrossRef REST API as a fallback to retrieve the publisher metadata. This is useful when the biblio-glutton service presents a gap in coverage for recent DOI records. 
+- `is_level_debug` indicates the logging level.
 
 ```json
 {
     "compression": true,
-    "batch_size": 100,
-    "prioritize_pmc": false,
-    "pmc_base": "ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/",
-    "biblio_glutton_base": "", 
-    "crossref_base": "https://api.crossref.org",
-    "crossref_email": "",
-    "region": "",
-    "swift": {},
+    "batch_size": 200,
     "metadata_dump": "",
+    "lmdb_size_Go": 25,
+    "is_level_debug": 1
 }
 ```
+Other elements of configuration need to be provided by environment variables.  
 
-The configuration for a SWIFT object storage uses the following parameters:
-
-```json
-{
-    "swift": {},
-    "swift_container": ""
-}
+Variables for connecting to OVH storage via the [swift openstack API](https://docs.ovh.com/fr/storage/debuter-avec-lapi-swift/). It contains the account and authentication information (authentication is made via Keystone):
 ```
-
-If you are not using a SWIFT storage, remove these keys or leave these above values empty. Important: It is assumed that the complete SWIFT container is dedicated to the harvesting. The `--reset` parameter will clear all the objects stored in the container, so be careful. 
-
-The `"swift"` key will contain the account and authentication information, typically via Keystone, something like this: 
-
-```json
-{
-    "swift": {
-        "os_username": "user-007",
-        "os_password": "1234",
-        "os_user_domain_name": "Default",
-        "os_project_domain_name": "Default",
-        "os_project_name": "myProjectName",
-        "os_project_id": "myProjectID",
-        "os_region_name": "NorthPole",
-        "os_auth_url": "https://auth......./v3"
-    },
-    "swift_container": "my_glutton_oa_harvesting"
-}
+# swift - ovh
+OS_USERNAME
+OS_PASSWORD
+OS_USER_DOMAIN_NAME
+OS_PROJECT_DOMAIN_NAME
+OS_PROJECT_NAME
+OS_PROJECT_ID
+OS_REGION_NAME
+OS_AUTH_URL
 ```
+If you are not using a SWIFT storage, leave these above values empty.
 
-Note: for harvesting PMC files, although the ftp server is used, the downloads tend to fail as the parallel requests increase. It might be useful to lower the default, and to launch `reprocess` for completing the harvesting. For the unpaywall dataset, we have good results with high `batch_size` (like 200), probably because the distribution of the URL implies that requests are never concentrated on one OA server. 
-
-Also note that: 
-
-* For PMC harvesting, the PMC fulltext available at NIH are not always provided with a PDF. In these cases, only the NLM file will be harvested.
-
-* PMC PDF files can also be harvested via Unpaywall, not using the NIH PMC services. The NLM files will then not be included, but the PDF coverage might be better than a direct harvesting at NIH.
+The name of the swift object storage where the harvested publications will be stored:
+```
+PUBLICATIONS_DUMP_BUCKET
+```
+Variables for the postgres storage tracking the harvested files:
+```
+# Postgres
+DB_USER
+DB_PASSWORD
+DB_HOST
+DB_PORT
+DB_NAME
+```
+Variables for harvesting Wiley publications via their API:
+```
+# Wiley
+CONFIG_WILEY_TOKEN_KEY
+CONFIG_WILEY_EZPROXY_USER_KEY
+CONFIG_WILEY_EZPROXY_PASS_KEY
+CONFIG_WILEY_PUBLICATION_URL_KEY
+CONFIG_WILEY_BASE_URL_KEY
+```
 
 ## Usage and options
 
+Current usage assume a containerised setup (as can be seen in the docker-compose.yml file):
+- A version of this application run in web application (flask) mode that schedule harvesting or processing tasks based on the requests received.
+- A version of this application run in worker mode that fetch tasks in a queue and executes them.
+- A redis container to register tasks on.
+- A [dashboard web app](https://hub.docker.com/r/dataesr/dashboard-crawler) that displays informations on queues, tasks and worker.
+- A postgres container to record harvested publications infos. 
 
 ```
-usage: python3 OAHarvester.py [-h] [--unpaywall UNPAYWALL] [--pmc PMC] [--config CONFIG] [--dump DUMP]
-                      [--reprocess] [--reset] [--thumbnail] [--sample SAMPLE]
-
-Open Access PDF harvester
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --unpaywall UNPAYWALL
-                        path to the Unpaywall dataset (gzipped)
-  --pmc PMC             path to the pmc file list, as available on NIH's site
-  --config CONFIG       path to the config file, default is ./config.json
-  --dump DUMP           write a map with UUID, article main identifiers and available harvested
-                        resources
-  --reprocess           reprocessed failed entries with OA link
-  --reset               ignore previous processing states, clear the existing storage and re-
-                        init the harvesting process from the beginning
-  --thumbnail           generate thumbnail files for the front page of the PDF
-  --sample SAMPLE       Harvest only a random sample of indicated size
-
+# Build the image and spin up the containers
+docker-compose up --build
+# When everything is up and running
+# Schedule a harvesting task with a request on the harvest_partitions route
+curl  -H "Content-Type: application/json" -X POST http://localhost:5004/harvest_partitions -d '{"metadata_file": "your_metadata_file.jsonl.gz", "total_partition_number": X}'
+# Or schedule a processing task with a request on the process route
+curl  -H "Content-Type: application/json" -X POST http://localhost:5004/process -d '{"partition_size": X, "spec_grobid_version": "X.Y.Z", "spec_softcite_version": "X.Y.Z", "spec_datastet_version": "X.Y.Z"}'
 ```
 
-The [Unpaywall database snapshot](https://unpaywall.org) is available from [OurResearch](http://ourresearch.org/). 
+Documentation of the endpoints is available at `http://localhost:5004` once your app is running
 
-`PMC_FILE_LIST` can currently be accessed as follow:
-- all OA files: ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_file_list.txt
-- non commercial-use OA files: ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_non_comm_use_pdf.txt
-- commercial-use OA files (CC0 and CC-BY): ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_comm_use_file_list.txt
+## Storage
 
-
-For processing all entries of an Unpaywall snapshot:
-
-```bash
-> python3 OAHarvester.py --unpaywall /mnt/data/biblio/unpaywall_snapshot_2018-06-21T164548_with_versions.jsonl.gz
+Files are stored under a path like format on OVH object storage to be able to access a subset quickly. The different files generated by this project are organised as follow:
 ```
-
-By default, no thumbnail images are generated. For generating thumbnail images from the front page of the downloaded PDF (small, medium, large):
-
-```bash
-> python3 OAHarvester.py --thumbnail --unpaywall /mnt/data/biblio/unpaywall_snapshot_2018-06-21T164548_with_versions.jsonl.gz 
+prefix/uuid[0:2]/uuid[2:4]/uuid[4:6]/uuid[6:8]/uuid/uuid.ext
 ```
+prefix can be one of `metadata`, `publication`, `datastet`, `softcite`, `grobid` indicating its type and allowing for efficient access for the needs of the BSO.
 
-By default, `./config.json` is used, but you can pass a specific config with the `--config` option:
-
-```bash
-> python3 OAHarvester.py --config ./my_config.json --unpaywall /mnt/data/biblio/unpaywall_snapshot_2018-06-21T164548_with_versions.jsonl.gz
-```
-
-If the process is interrupted, relaunching the above command will resume the process at the interruption point. For re-starting the process from the beginning, and removing existing local information about the state of process, use the parameter `--reset`:
-
-```bash
-> python3 OAHarvester.py --reset --unpaywall /mnt/data/biblio/unpaywall_snapshot_2018-06-21T164548_with_versions.jsonl.gz
-```
-
-After the completion of the snapshot, we can retry the PDF harvesting for the failed entries with the parameter `--reprocess`:
-
-```bash
-> python3 OAHarvester.py --reprocess --unpaywall /mnt/data/biblio/unpaywall_snapshot_2018-06-21T164548_with_versions.jsonl.gz
-```
-
-For downloading the PDF from the PMC set, simply use the `--pmc` parameter instead of `--unpaywall`:
-
-```bash
-> python3 OAHarvester.py --pmc /mnt/data/biblio/oa_file_list.txt
-```
-
-For harvesting only a predifined random number of entries and not the whole sets, the parameter `--sample` can be used with the desired number:
-
-```bash
-> python3 OAHarvester.py --pmc /mnt/data/biblio/oa_file_list.txt --sample 2000
-```
-
-This command will harvest 2000 PDF randomly distributed in the complete PMC set. For the Unpaywall set, as around 20% of the entries only have an Open Access PDF, you will need to multiply by 5 the sample number, e.g. if you wish 2000 PDF, indicate `--sample 10000`. 
-
-### Map for identifier mapping
-
-A mapping with the UUID associated with an Open Access full text resource and the main identifiers of the entries can be dumped in JSONL (default file name is `map.jsonl`) with the following command:
-
-```bash
-> python3 OAHarvester.py --dump output.jsonl
-```
-
-By default, this map is always generated at the completion of an harvesting or re-harvesting. This mapping is necessary for further usage and for accessing resources associated to an entry (listing million files directly with AWS S3 is by far too slow, we thus need a local index/catalog).
-
-In the JSONL dump, each entry identified as available Open Access is present with its UUID given by the attribute `id`, its main identifiers (`doi`, `pmid`, `pmcid`, `pii`, `istextId`), the list of available harvested resources and the target best Open Access URL considered.
-
-```json
-{"id": "00005fb2-0969-4ed6-92b3-0552f3fa283c", "doi": "10.1001/jamanetworkopen.2019.13325", "pmid": 31617925, "resources": ["json", "pdf"], "oa_link": "https://jamanetwork.com/journals/jamanetworkopen/articlepdf/2752991/ganguli_2019_oi_190509.pdf"}
-```
-
-The UUID can then be used for accessing the resources for this entry, the prefix path being based on the first 8 characters of the UUID, as follow: 
-
-- PDF: `1b/a0/cc/e3/1ba0cce3-335b-46d8-b29f-9cdfb6430fd2/1ba0cce3-335b-46d8-b29f-9cdfb6430fd2.pdf`
-
-- metadata in JSON: `1b/a0/cc/e3/1ba0cce3-335b-46d8-b29f-9cdfb6430fd2/1ba0cce3-335b-46d8-b29f-9cdfb6430fd2.json`
-
-- possible JATS file (for harvested PMC full texts): `1b/a0/cc/e3/1ba0cce3-335b-46d8-b29f-9cdfb6430fd2/1ba0cce3-335b-46d8-b29f-9cdfb6430fd2.nxml`
-
-- thumbnail small (150px width): `1b/a0/cc/e3/1ba0cce3-335b-46d8-b29f-9cdfb6430fd2/1ba0cce3-335b-46d8-b29f-9cdfb6430fd2-thumb-small.png`
-
-- thumbnail medium (300px width): `1b/a0/cc/e3/1ba0cce3-335b-46d8-b29f-9cdfb6430fd2/1ba0cce3-335b-46d8-b29f-9cdfb6430fd2-thumb-medium.png`
-
-- thumbnail large (500px width): `1b/a0/cc/e3/1ba0cce3-335b-46d8-b29f-9cdfb6430fd2/1ba0cce3-335b-46d8-b29f-9cdfb6430fd2-thumb-large.png`
-
-Note that if `"compression"` is set to `True` in the configuration file, __all these files__ will have a `.gz` extension.
-
-Depending on the config, the resources can be accessed either locally under `data_path` or on AWS S3 following the URL prefix: `https://bucket_name.s3.amazonaws.com/`, for instance `https://bucket_name.s3.amazonaws.com/1b/a0/cc/e3/1ba0cce3-335b-46d8-b29f-9cdfb6430fd2/1ba0cce3-335b-46d8-b29f-9cdfb6430fd2.pdf` - if you have set the appropriate access rights. The same applies to a SWIFT object storage based on the container name indicated in the config file. 
-
-Only entries available in Open Access according to Unpaywall or PMC are present in the JSONL map file. If an entry is present in the JSONL map file but without a full text resource (`"pdf"` or "`"xml"`), it means that the harvesting of the Open Access file has failed. 
-
-## Troubleshooting with imagemagick
-
-A relatively recent update (end of October 2018) of imagemagick is breaking the normal conversion usage. Basically the converter does not convert by default for security reason related to server usage. For non-server mode as involved in our module, it is not a problem to allow PDF conversion. For this, simply edit the file 
-` /etc/ImageMagick-6/policy.xml` and put into comment the following line: 
-
-```
-<!-- <policy domain="coder" rights="none" pattern="PDF" /> -->
-```
-
-## Building and deploying a Docker container
-
-You need `docker` and `docker-compose` installed on your system. 
-
-A `docker-compose.yml` file is available with the project, but you will need additionally:
-
-- to update a configuration file according to your storage requirements (local, S3 or SWIFT)
-
-- to create an external volume to store the embedded databases keeping track of the advancement of the harvesting, metadata and temporary downloaded resources, it's also on this external volume that the input file must be stored (the unpaywall dump file or the NIH PMC identifier list file) 
-
-```console
-docker-compose run --rm harvester
-```
 
 ## License and contact
 
-Distributed under [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0). The dependencies used in the project are either themselves also distributed under Apache 2.0 license or distributed under a compatible license. 
+Distributed under [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0). The dependencies used in the project
+are either themselves also distributed under Apache 2.0 license or distributed under a compatible license.
 
-If you contribute to this Open Source project, you agree to share your contribution following this license. 
-
-Main author and contact: Patrice Lopez (<patrice.lopez@science-miner.com>)
+If you contribute to this Open Source project, you agree to share your contribution following this license.

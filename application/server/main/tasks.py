@@ -10,14 +10,14 @@ from types import SimpleNamespace
 
 import requests
 from grobid_client.grobid_client import GrobidClient
-from software_mentions_client.client import software_mentions_client as smc
+from softdata_mentions_client.client import softdata_mentions_client
 
 from application.server.main.logger import get_logger
 from config.db_config import engine
 from config.harvester_config import config_harvester
 from config.logger_config import LOGGER_LEVEL
 from config.path_config import DESTINATION_DIR_METADATA
-from config.processing_service_namespaces import grobid_ns, softcite_ns
+from config.processing_service_namespaces import grobid_ns, softcite_ns, datastet_ns
 from harvester.OAHarvester import OAHarvester
 from infrastructure.database.db_handler import DBHandler
 from infrastructure.storage.swift import Swift
@@ -25,6 +25,7 @@ from load_metadata import load_metadata
 from ovh_handler import download_files, upload_and_clean_up
 from run_grobid import run_grobid
 from run_softcite import run_softcite
+from run_datastet import run_datastet
 from domain.processed_entry import ProcessedEntry
 
 METADATA_DUMP = config_harvester['metadata_dump']
@@ -113,11 +114,11 @@ def create_task_unpaywall(args):
         logger_console.debug(db_handler.fetch_all())
 
 
-def get_softcite_version(softcite_file_path: str) -> str:
-    """Get the version of softcite used by reading from an output file"""
-    with open(softcite_file_path, 'r') as f:
-        softcite_version = json.load(f)['version']
-    return softcite_version
+def get_softdata_version(softdata_file_path: str) -> str:
+    """Get the version of softcite or datastet used by reading from an output file"""
+    with open(softdata_file_path, 'r') as f:
+        softdata_version = json.load(f)['version']
+    return softdata_version
 
 
 def get_grobid_version() -> str:
@@ -134,7 +135,9 @@ def get_publications_entries_to_process(db_records: List[ProcessedEntry], servic
     publications_entries_to_process = []
 
     for record in db_records:
-        if service_name == softcite_ns.service_name:
+        if service_name == datastet_ns.service_name:
+            current_version = record.datastet_version
+        elif service_name == softcite_ns.service_name:
             current_version = record.softcite_version
         elif service_name == grobid_ns.service_name:
             current_version = record.grobid_version
@@ -147,8 +150,10 @@ def get_service_version(file_suffix: str, local_files: List[str]) -> str:
     """Return the version of the service that produced the files"""
     processed_files = [file for file in local_files if file.endswith(file_suffix)]
     if processed_files:
+        if file_suffix == datastet_ns.suffix:
+            return get_softdata_version(processed_files[0])
         if file_suffix == softcite_ns.suffix:
-            return get_softcite_version(processed_files[0])
+            return get_softdata_version(processed_files[0])
         elif file_suffix == grobid_ns.suffix:
             return get_grobid_version()
     else:
@@ -171,29 +176,31 @@ def compile_records_for_db(entries_to_process: List[ProcessedEntry], service_ns:
 def run_processing_services():
     """Run parallel calls to the different services when there are files to process"""
     processing_futures = []
-    with ThreadPoolExecutor(max_workers=2) as executor:
+    with ThreadPoolExecutor(max_workers=3) as executor:
         if next(iter(glob(grobid_ns.dir + '*')), None):
             processing_futures.append(
                 executor.submit(run_grobid, grobid_ns.config_path, grobid_ns.dir, GrobidClient))
         if next(iter(glob(softcite_ns.dir + '*')), None):
             processing_futures.append(
-                executor.submit(run_softcite, softcite_ns.config_path, softcite_ns.dir, smc))
+                executor.submit(run_softcite, softcite_ns.config_path, softcite_ns.dir, softdata_mentions_client))
+        if next(iter(glob(datastet_ns.dir + '*')), None):
+            processing_futures.append(
+                executor.submit(run_datastet, datastet_ns.config_path, datastet_ns.dir, softdata_mentions_client))
     for future in processing_futures:
         future.result()
 
 
-def create_task_process(partition_files, spec_grobid_version, spec_softcite_version):
-    logger_console.debug(f"Call with args: {partition_files, spec_grobid_version, spec_softcite_version}")
+def create_task_process(partition_files, spec_grobid_version, spec_softcite_version, spec_datastet_version):
+    logger_console.debug(f"Call with args: {partition_files, spec_grobid_version, spec_softcite_version, spec_datastet_version}")
     _swift = Swift(config_harvester)
     db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=_swift)
     db_records = db_handler.fetch_all()
-
-    for service_ns, spec_version_service in [(grobid_ns, spec_grobid_version), (softcite_ns, spec_softcite_version)]:
+    services_ns = [grobid_ns, softcite_ns, datastet_ns]
+    spec_versions = [spec_grobid_version, spec_softcite_version, spec_datastet_version]
+    publications_entries_services = []
+    for service_ns, spec_version_service in zip(services_ns, spec_versions):
         publications_entries = get_publications_entries_to_process(db_records, service_ns.service_name, spec_version_service)
-        if service_ns.service_name == grobid_ns.service_name:
-            publications_entries_grobid = publications_entries
-        elif service_ns.service_name == softcite_ns.service_name:
-            publications_entries_softcite = publications_entries
+        publications_entries_services.append(publications_entries)
         uuids_publications_to_process = [e.uuid for e in publications_entries]
         publication_files = [file for file in partition_files if db_handler._get_uuid_from_path(file) in uuids_publications_to_process]
         if publication_files:
@@ -205,7 +212,7 @@ def create_task_process(partition_files, spec_grobid_version, spec_softcite_vers
     logger_console.info(f"Total runtime: {round(total_time - start_time, 3)}s for {len(partition_files)} files")
 
 
-    for service_ns, publications_entries in [(grobid_ns, publications_entries_grobid), (softcite_ns, publications_entries_softcite)]:
+    for service_ns, publications_entries in zip(services_ns, publications_entries_services):
         entries_to_update = compile_records_for_db(publications_entries, service_ns, db_handler)
         upload_and_clean_up(_swift, service_ns)
         db_handler.update_database_processing(entries_to_update)
