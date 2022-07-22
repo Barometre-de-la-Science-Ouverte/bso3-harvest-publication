@@ -5,7 +5,7 @@ PAYLOAD='{"metadata_file": "bso-publications-5k.jsonl.gz", "total_partition_numb
 ENV_VARIABLE_FILENAME=.env
 
 unit-tests:
-	pytest --disable-warnings tests
+	python3 -m pytest --disable-warnings tests
 
 e2e-tests:
 	@echo Start end-to-end testing

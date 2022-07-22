@@ -3,7 +3,7 @@ from config import CONFIG_WILEY_TOKEN_KEY, CONFIG_WILEY_EZPROXY_USER_KEY, CONFIG
 
 fake_doi = 'fake/doi'
 fake_filepath = 'fake_file_path'
-fake_file_content = 'fake_file_content'
+fake_file_content = '%PDF-fake_file_content'
 
 
 # Wiley

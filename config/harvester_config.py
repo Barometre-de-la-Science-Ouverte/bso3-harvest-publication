@@ -45,10 +45,7 @@ def get_harvester_config(config_file_path: str) -> dict:
     # Wiley config
     config_harvester[WILEY_KEY] = {
         CONFIG_WILEY_TOKEN_KEY: os.getenv(CONFIG_WILEY_TOKEN_KEY),
-        CONFIG_WILEY_EZPROXY_USER_KEY: os.getenv(CONFIG_WILEY_EZPROXY_USER_KEY),
-        CONFIG_WILEY_EZPROXY_PASS_KEY: os.getenv(CONFIG_WILEY_EZPROXY_PASS_KEY),
         CONFIG_WILEY_PUBLICATION_URL_KEY: os.getenv(CONFIG_WILEY_PUBLICATION_URL_KEY),
-        CONFIG_WILEY_BASE_URL_KEY: os.getenv(CONFIG_WILEY_BASE_URL_KEY)
     }
     return config_harvester
 

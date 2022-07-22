@@ -53,7 +53,7 @@ class Download(TestCase):
         # Then
         self.assertEqual(result, "success")
         self.assertEqual(local_entry["harvester_used"], "wiley")
-        self.assertTrue(_is_valid_file(filename))
+        self.assertTrue(_is_valid_file(filename, "pdf"))
         os.remove(filename)
 
     def test_wiley_download_should_catch_the_exception_raised_by_wiley_client_and_set_result_to_fail(self):
