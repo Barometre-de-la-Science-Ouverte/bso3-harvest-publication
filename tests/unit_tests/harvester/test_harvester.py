@@ -11,7 +11,7 @@ from harvester.OAHarvester import (Continue, _apply_selection, _check_entry,
                                    uuid, generateStoragePath,
                                    update_dict, OvhPath, METADATA_PREFIX,
                                    PUBLICATION_PREFIX, get_latest_publication, OAHarvester)
-from tests.unit_tests.fixtures.api_clients import wiley_client_mock
+from tests.unit_tests.fixtures.api_clients import wiley_client_mock, elsevier_client_mock
 from tests.unit_tests.fixtures.harvester import FIXTURES_PATH, harvester_2_publications, sample_urls_lists, \
     sample_filenames, sample_entries, sample_uuids, harvester_2_publications_sample, parsed_ca_entry, \
     parsed_oa_entry_output, pdf_file, pdf_gz_file, config_harvester
@@ -450,7 +450,7 @@ class HarvesterInit(TestCase):
         config_with_swift = config_harvester.copy()
         config_with_swift["swift"] = "yes"
         # When
-        _ = OAHarvester(config_with_swift, wiley_client_mock)
+        _ = OAHarvester(config_with_swift, wiley_client_mock, elsevier_client_mock)
         # Then
         mock_Swift.assert_called_with(config_with_swift)
 

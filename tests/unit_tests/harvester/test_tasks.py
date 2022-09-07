@@ -53,7 +53,7 @@ class CreateTaskHarvestPartition(TestCase):
         mock_reset_lmdb.return_value = None
 
         # When
-        create_task_harvest_partition('', '', '', '', '')
+        create_task_harvest_partition('', '', '', '', '', '')
 
         # Then
         mock_swift_init.assert_called_once()

@@ -11,6 +11,7 @@ from application.server.main.logger import get_logger
 from config.logger_config import LOGGER_LEVEL
 from harvester.exception import EmptyFileContentException, PublicationDownloadFileException, FailedRequest
 from utils.file import is_file_not_empty, decompress
+from harvester.base_api_client import BaseAPIClient
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
 
@@ -19,11 +20,12 @@ FAIL_DOWNLOAD = 'fail'
 ARXIV_HARVESTER = 'arxiv'
 STANDARD_HARVESTER = 'standard'
 WILEY_HARVESTER = 'wiley'
+ELSEVIER_HARVESTER = 'elsevier'
 EMPTY_URL = ''
 EXCEPTION_HARVESTER = ''
 
 
-def _download_publication(urls, filename, local_entry, wiley_client):
+def _download_publication(urls, filename, local_entry, wiley_client, elsevier_client):
     result = FAIL_DOWNLOAD
     doi = local_entry['doi']
     logger.info(f'*** Start downloading the publication with doi = {doi}. {len(urls)} urls will be tested.')
@@ -35,7 +37,13 @@ def _download_publication(urls, filename, local_entry, wiley_client):
                 if result == SUCCESS_DOWNLOAD:
                     break
             elif wiley_client and 'wiley' in url:  # Wiley client can be None in case of an initialization problem
-                result, harvester_used = wiley_download(doi, filename, wiley_client)
+                result, _ = publisher_api_download(doi, filename, wiley_client)
+                harvester_used = WILEY_HARVESTER
+                if result == SUCCESS_DOWNLOAD:
+                    break
+            elif elsevier_client and 'elsevier' in url:  # Elsevier client can be None in case of an initialization problem
+                result, _ = publisher_api_download(doi, filename, elsevier_client)
+                harvester_used = ELSEVIER_HARVESTER
                 if result == SUCCESS_DOWNLOAD:
                     break
             # standard download always done if other methods do not work
@@ -69,13 +77,13 @@ def arxiv_download(url: str, filepath: str, doi: str) -> (str, str):
     return result, harvester_used
 
 
-def wiley_download(doi: str, filepath: str, wiley_client) -> (str, str):
+def publisher_api_download(doi: str, filepath: str, client:BaseAPIClient) -> (str, str):
     try:
-        result, harvester_used = wiley_client.download_publication(doi, filepath)
+        result, harvester_used = client.download_publication(doi, filepath)
     except FailedRequest:
-        result, harvester_used = FAIL_DOWNLOAD, WILEY_HARVESTER
+        result, harvester_used = FAIL_DOWNLOAD, WILEY_HARVESTER if client.name == "wiley" else ELSEVIER_HARVESTER
         logger.error(
-            "An error occurred during downloading the publication using wiley_client. Standard download will be used."
+            f"An error occurred during downloading the publication using {client.name} client. Standard download will be used."
             " Request exception = ", exc_info=True)
     return result, harvester_used
 

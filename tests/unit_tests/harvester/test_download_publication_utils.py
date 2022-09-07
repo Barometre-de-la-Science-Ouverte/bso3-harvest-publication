@@ -6,12 +6,12 @@ from unittest.mock import patch, MagicMock, Mock
 
 import cloudscraper
 
-from config import WILEY_KEY
+from config import WILEY
 from config.harvester_config import config_harvester
-from harvester.download_publication_utils import _process_request, _download_publication, url_to_path, wiley_download
+from harvester.download_publication_utils import _process_request, _download_publication, url_to_path, publisher_api_download
 from harvester.exception import FailedRequest
 from harvester.wiley_client import WileyClient
-from tests.unit_tests.fixtures.api_clients import wiley_client_mock
+from tests.unit_tests.fixtures.api_clients import wiley_client_mock, elsevier_client_mock
 from tests.unit_tests.fixtures.harvester import timeout_url, wiley_parsed_entry, arXiv_parsed_entry
 from tests.unit_tests.fixtures.harvester_constants import wiley_url
 from utils.file import _is_valid_file
@@ -22,10 +22,10 @@ TESTED_MODULE = 'harvester.download_publication_utils'
 class Download(TestCase):
 
     @patch(f"{TESTED_MODULE}.arxiv_download")
-    @patch(f"{TESTED_MODULE}.wiley_download")
+    @patch(f"{TESTED_MODULE}.publisher_api_download")
     @patch(f"{TESTED_MODULE}.standard_download")
     def test_download_publication_standard_download_should_be_used_when_wiley_client_is_none(
-            self, mock_standard_download, mock_wiley_download, mock_arxiv_download):
+            self, mock_standard_download, mock_publisher_api_download, mock_arxiv_download):
         # Given
         fake_doi = 'fake_doi'
         fake_local_entry = {'doi': fake_doi}
@@ -34,22 +34,23 @@ class Download(TestCase):
         fake_urls = [fake_url]
 
         wiley_client = None
+        elsevier_client = None
 
         # When
-        _ = _download_publication(fake_urls, fake_filename, fake_local_entry, wiley_client)
+        _ = _download_publication(fake_urls, fake_filename, fake_local_entry, wiley_client, elsevier_client)
 
         # Then
         mock_arxiv_download.assert_not_called()
-        mock_wiley_download.assert_not_called()
+        mock_publisher_api_download.assert_not_called()
         mock_standard_download.assert_called_once_with(fake_url, fake_filename, fake_doi)
 
     @unittest.skip("No config on github")
     def test_wiley_download(self):
         # Given
         urls, local_entry, filename = wiley_parsed_entry
-        wiley_client = WileyClient(config_harvester[WILEY_KEY])
+        wiley_client = WileyClient(config_harvester[WILEY])
         # When
-        result, local_entry = _download_publication(urls, filename, local_entry, wiley_client)
+        result, local_entry = _download_publication(urls, filename, local_entry, wiley_client, elsevier_client_mock)
         # Then
         self.assertEqual(result, "success")
         self.assertEqual(local_entry["harvester_used"], "wiley")
@@ -65,7 +66,7 @@ class Download(TestCase):
         wiley_client_mock.download_publication = mock
 
         # When
-        result, harvester_used = wiley_download('fake_doi', 'fake_filepath', wiley_client_mock)
+        result, harvester_used = publisher_api_download('fake_doi', 'fake_filepath', wiley_client_mock)
 
         # Then
         assert result == 'fail'
@@ -88,7 +89,7 @@ class Download(TestCase):
     @patch("os.path.getsize")
     @patch(f'{TESTED_MODULE}._process_request')
     @patch(f'{TESTED_MODULE}.arxiv_download')
-    @patch(f'{TESTED_MODULE}.wiley_download')
+    @patch(f'{TESTED_MODULE}.publisher_api_download')
     def test_fallback_download_when_arXiv_download_does_not_work(
             self, mock_wiley_download, mock_arxiv_download, mock_process_request, mock_getsize
     ):
@@ -98,14 +99,14 @@ class Download(TestCase):
         urls, local_entry, filename = arXiv_parsed_entry
 
         # When
-        result, _ = _download_publication(urls, filename, local_entry, wiley_client_mock)
+        result, _ = _download_publication(urls, filename, local_entry, wiley_client_mock, elsevier_client_mock)
         # Then
         mock_process_request.assert_called()
         os.remove(filename)
 
     @patch('os.path.getsize')
     @patch(f'{TESTED_MODULE}._process_request')
-    @patch(f'{TESTED_MODULE}.wiley_download')
+    @patch(f'{TESTED_MODULE}.publisher_api_download')
     def test_fallback_download_when_wiley_download_does_not_work(
             self, mock_wiley_curl, mock_process_request, mock_getsize
     ):
@@ -114,7 +115,7 @@ class Download(TestCase):
         mock_getsize.return_value = 0
         urls, local_entry, filename = wiley_parsed_entry
         # When
-        result, _ = _download_publication(urls, filename, local_entry, wiley_client_mock)
+        result, _ = _download_publication(urls, filename, local_entry, wiley_client_mock, elsevier_client_mock)
         # Then
         mock_process_request.assert_called()
         os.remove(filename)
@@ -126,7 +127,7 @@ class Download(TestCase):
         # When
         # TODO: need to instantiate a correct wiley client and make sure it is instantiated one time
         with patch('harvester.download_publication_utils.decompress') as mock_decompress:
-            _download_publication(urls, filename, local_entry, wiley_client_mock)
+            _download_publication(urls, filename, local_entry, wiley_client_mock, elsevier_client_mock)
             # Then
             mock_decompress.assert_called_with(filename + ".gz")
 
@@ -135,7 +136,7 @@ class Download(TestCase):
         # Given
         urls, local_entry, filename = arXiv_parsed_entry
         # When
-        result, local_entry = _download_publication(urls, filename, local_entry, wiley_client_mock)
+        result, local_entry = _download_publication(urls, filename, local_entry, wiley_client_mock, elsevier_client_mock)
         # Then
         self.assertEqual(result, "success")
         self.assertEqual(local_entry["harvester_used"], "arxiv")
