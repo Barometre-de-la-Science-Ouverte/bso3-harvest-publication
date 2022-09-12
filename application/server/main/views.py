@@ -10,6 +10,7 @@ from config.logger_config import LOGGER_LEVEL
 from harvester.exception import FailedRequest
 from harvester.wiley_client import WileyClient
 from harvester.elsevier_client import ElsevierClient
+from harvester.base_api_client import BaseAPIClient
 from infrastructure.storage.swift import Swift
 from ovh_handler import get_partitions
 
@@ -26,7 +27,7 @@ def home():
     return render_template("index.html")
 
 
-def safe_instanciation_client(Client, config):
+def safe_instanciation_client(Client: BaseAPIClient, config: dict) -> BaseAPIClient:
     try:
         client = Client(config)
     except FailedRequest:

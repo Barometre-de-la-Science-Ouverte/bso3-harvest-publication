@@ -267,7 +267,7 @@ def write_partitioned_filtered_metadata_file(db_handler: DBHandler,
     filtered_publications_metadata_json_list = metadata_input_file_content_list
     if len(doi_list) > 0:
         filtered_publications_metadata_json_list = [
-            entry for entry in filtered_publications_metadata_json_list if entry['doi'] in doi_list
+            entry for entry in filtered_publications_metadata_json_list if entry.get('doi') in doi_list
         ]
     filtered_publications_metadata_json_list = [
         entry for entry in filtered_publications_metadata_json_list if entry['doi'] not in doi_already_harvested_list
