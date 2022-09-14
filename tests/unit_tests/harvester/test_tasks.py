@@ -27,42 +27,48 @@ class WritePartitionedFilteredMetadataFile(TestCase):
         self.mock_db_handler.fetch_all = Mock()
         self.mock_db_handler.fetch_all.return_value = []
 
+    def tearDown(self):
+        try:
+            os.remove(filtered_metadata_filename)
+        except:
+            print(f"Cannot remove {filtered_metadata_filename}")
+
     def test_write_partitioned_filtered_metadata_file_with_doi_list(self):
         # Given
         # When
         write_partitioned_filtered_metadata_file(
             self.mock_db_handler,
-            source_metadata_file_w_no_doi,
-            filtered_metadata_filename_w_no_doi,
-            doi_list_w_no_doi,
+            source_metadata_file,
+            filtered_metadata_filename,
+            doi_list,
         )
         # Then
-        with gzip.open(filtered_metadata_filename_w_no_doi, "rt") as f_in:
+        with gzip.open(filtered_metadata_filename, "rt") as f_in:
             content = f_in.readlines()
         for line in content:
             self.assertIsNotNone(json.loads(line).get('doi'))
-        assert content == expected_doi_filtered_content_w_no_doi
+        assert content == expected_doi_filtered_content
 
     def test_write_partitioned_filtered_metadata_file_without_doi_list(self):
         # Given
-        with gzip.open(source_metadata_file_w_no_doi, "rt") as f_in:
-            expected_doi_filtered_content_w_no_doi = [
+        with gzip.open(source_metadata_file, "rt") as f_in:
+            expected_doi_filtered_content = [
                 line for line in f_in.readlines() if json.loads(line).get('doi')
             ]
-            expected_doi_filtered_content_w_no_doi[-1] = expected_doi_filtered_content_w_no_doi[-1].rstrip('\n')
+            expected_doi_filtered_content[-1] = expected_doi_filtered_content[-1].rstrip('\n')
         # When
         write_partitioned_filtered_metadata_file(
             self.mock_db_handler,
-            source_metadata_file_w_no_doi,
-            filtered_metadata_filename_w_no_doi,
+            source_metadata_file,
+            filtered_metadata_filename,
             [],
         )
         # Then
-        with gzip.open(filtered_metadata_filename_w_no_doi, "rt") as f_in:
+        with gzip.open(filtered_metadata_filename, "rt") as f_in:
             content = f_in.readlines()
         for line in content:
             self.assertIsNotNone(json.loads(line).get('doi'))
-        self.assertEqual(content, expected_doi_filtered_content_w_no_doi)
+        self.assertEqual(content, expected_doi_filtered_content)
 
 
 class CreateTaskHarvestPartition(TestCase):
