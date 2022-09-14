@@ -39,12 +39,17 @@ class WritePartitionedFilteredMetadataFile(TestCase):
         # Then
         with gzip.open(filtered_metadata_filename_w_no_doi, "rt") as f_in:
             content = f_in.readlines()
+        for line in content:
+            self.assertIsNotNone(json.loads(line).get('doi'))
         assert content == expected_doi_filtered_content_w_no_doi
 
     def test_write_partitioned_filtered_metadata_file_without_doi_list(self):
         # Given
         with gzip.open(source_metadata_file_w_no_doi, "rt") as f_in:
-            expected_doi_filtered_content_w_no_doi = f_in.readlines()
+            expected_doi_filtered_content_w_no_doi = [
+                line for line in f_in.readlines() if json.loads(line).get('doi')
+            ]
+            expected_doi_filtered_content_w_no_doi[-1] = expected_doi_filtered_content_w_no_doi[-1].rstrip('\n')
         # When
         write_partitioned_filtered_metadata_file(
             self.mock_db_handler,
@@ -55,7 +60,9 @@ class WritePartitionedFilteredMetadataFile(TestCase):
         # Then
         with gzip.open(filtered_metadata_filename_w_no_doi, "rt") as f_in:
             content = f_in.readlines()
-        assert content == expected_doi_filtered_content_w_no_doi
+        for line in content:
+            self.assertIsNotNone(json.loads(line).get('doi'))
+        self.assertEqual(content, expected_doi_filtered_content_w_no_doi)
 
 
 class CreateTaskHarvestPartition(TestCase):
