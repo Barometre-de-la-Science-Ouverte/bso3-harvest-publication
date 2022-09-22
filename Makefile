@@ -57,6 +57,19 @@ docker-push: ## Push the image with the current version tag and latest tag to th
 	docker push $(DOCKER_IMAGE_NAME):latest
 	@echo Docker image pushed
 
+download-harvested-status-table-csv: ## Download the harvested_status_table from postgres
+	@kubectl exec postgresql-0 -- psql -d postgres_db -U postgres -c "\copy harvested_status_table to './harvested_status_table.csv' with csv;"
+	@kubectl exec postgresql-0 -- gzip -c ./harvested_status_table.csv > ./tmp/pg_dump/harvested_status_table.csv.gz
+	@kubectl exec postgresql-0 -- rm ./harvested_status_table.csv
+
+# kubectl cp is really just a thin wrapper on kubectl exec plus tar. (https://github.com/kubernetes/kubernetes/issues/60140#issuecomment-952168803)
+# What worked for me, is to base64 encode the data on the fly. (https://github.com/kubernetes/kubernetes/issues/60140#issuecomment-1039049831)
+download-last-dump: ## Download the last postgres dump
+	@echo Downloading the last pg dump
+	@kubectl exec postgresql-0 -- ls -tlh /var/lib/postgresql/backup/ | awk 'NR==2'
+	@echo to ./tmp/pg_dump/
+	@kubectl exec postgresql-0 -- base64 /var/lib/postgresql/backup/$(shell kubectl exec postgresql-0 -- ls -t /var/lib/postgresql/backup/ | awk 'NR==1') | base64 -d > ./tmp/pg_dump/last_pg_dump.gz
+
 set-env-variables: ## Set up the environment variables
 	@echo Setting up environment variables
 	export $(grep -v '^#' $(ENV_VARIABLE_FILENAME) | xargs)
