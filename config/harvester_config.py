@@ -53,7 +53,7 @@ def get_harvester_config(config_file_path: str) -> dict:
         "health_check_doi": "10.1111/jdv.15719",
         "throttle_parameters": {
             "max_num_requests": 1,
-            "window_size": 1
+            "window_size": 15
         }
     }
     # Elsevier config
