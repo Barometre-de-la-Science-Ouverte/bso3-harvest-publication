@@ -7,9 +7,7 @@ on: [ push ]
 
 jobs:
   quality-and-test:
-
     runs-on: ubuntu-latest
-    environment: dataesr-docker-env
 
     steps:
       - uses: actions/checkout@v2
