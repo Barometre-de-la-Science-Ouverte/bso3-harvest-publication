@@ -4,15 +4,15 @@ import os
 from config.harvester_config import get_harvester_config
 from config.path_config import CONFIG_PATH_TEST, DATA_PATH
 from harvester.OAHarvester import OAHarvester
-from tests.unit_tests.fixtures.api_clients import wiley_client_mock
+from tests.unit_tests.fixtures.api_clients import wiley_client_mock, elsevier_client_mock
 from tests.unit_tests.fixtures.harvester_constants import wiley_url
 
 FIXTURES_PATH = os.path.dirname(__file__)
 
 
 config_harvester = get_harvester_config(CONFIG_PATH_TEST)
-harvester_2_publications = OAHarvester(config_harvester, wiley_client_mock)
-harvester_2_publications_sample = OAHarvester(config_harvester, wiley_client_mock, sample=1)
+harvester_2_publications = OAHarvester(config_harvester, wiley_client_mock, elsevier_client_mock)
+harvester_2_publications_sample = OAHarvester(config_harvester, wiley_client_mock, elsevier_client_mock, sample=1)
 
 sample_entries = [
     {

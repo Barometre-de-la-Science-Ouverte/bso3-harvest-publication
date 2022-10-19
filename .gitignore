@@ -138,6 +138,7 @@ target
 .settings
 .classpath
 .idea
+.vscode
 *.iml
 *.log.*
 *.old

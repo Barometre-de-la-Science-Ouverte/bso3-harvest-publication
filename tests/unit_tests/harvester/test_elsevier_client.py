@@ -2,46 +2,46 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from harvester.exception import FailedRequest
-from harvester.wiley_client import WileyClient
-from tests.unit_tests.fixtures.harvester_constants import fake_doi, wiley_fake_config, \
+from harvester.elsevier_client import ElsevierClient
+from tests.unit_tests.fixtures.harvester_constants import fake_doi, elsevier_fake_config, \
     fake_filepath, fake_file_content
 from tests.unit_tests.utils import ResponseMock
 
-TESTED_MODULE = 'harvester.wiley_client'
+TESTED_MODULE = 'harvester.elsevier_client'
 
 
-class WileyClientConstructor(TestCase):
+class ElsevierClientConstructor(TestCase):
 
     def tearDown(self) -> None:
-        WileyClient.clear_instance()
+        ElsevierClient.clear_instance()
 
-    @patch.object(WileyClient, '_init_session')
+    @patch.object(ElsevierClient, '_init_session')
     def test_wiley_client_should_be_instantiated_only_one_time(self, mock_init_session):
         # when
-        _ = WileyClient(wiley_fake_config)
-        _ = WileyClient(wiley_fake_config)
-        _ = WileyClient(wiley_fake_config)
+        _ = ElsevierClient(elsevier_fake_config)
+        _ = ElsevierClient(elsevier_fake_config)
+        _ = ElsevierClient(elsevier_fake_config)
 
         # then
-        mock_init_session.assert_called_once_with(wiley_fake_config)
+        mock_init_session.assert_called_once_with(elsevier_fake_config)
 
 
 @patch(f'harvester.base_api_client.write_to_file')
-class WileyClientTest(TestCase):
+class ElsevierClientTest(TestCase):
 
-    @patch.object(WileyClient, '_init_session')
-    @patch.object(WileyClient, 'download_publication')
+    @patch.object(ElsevierClient, '_init_session')
+    @patch.object(ElsevierClient, 'download_publication')
     def setUp(self, mock_download_publication, mock_init_session):
-        WileyClient.clear_instance()
-        self.wiley_client = WileyClient(wiley_fake_config)
+        ElsevierClient.clear_instance()
+        self.wiley_client = ElsevierClient(elsevier_fake_config)
 
     def tearDown(self) -> None:
-        WileyClient.clear_instance()
+        ElsevierClient.clear_instance()
 
     def test_get_publication_base_url_should_correctly_form_the_url_from_wiley_configuration_dict(
             self, mock_write_to_file):
         # given
-        expected_publication_base_url = 'https://wiley-publication-url/'
+        expected_publication_base_url = 'https://elsevier-publication-url/'
 
         # when
         actual_publication_base_url = self.wiley_client.publication_base_url
@@ -52,7 +52,7 @@ class WileyClientTest(TestCase):
     def test_get_publication_url_should_format_doi_and_add_it_to_base_url(
             self, mock_write_to_file):
         # given
-        expected_publication_url = 'https://wiley-publication-url/fake%2Fdoi'
+        expected_publication_url = 'https://elsevier-publication-url/fake/doi'
 
         # when
         actual_publication_url = self.wiley_client._get_publication_url(fake_doi)

@@ -57,13 +57,14 @@ def calculate_pct(i, count):
 
 
 class OAHarvester:
-    def __init__(self, config, wiley_client, sample=None, sample_seed=None):
+    def __init__(self, config, wiley_client, elsevier_client, sample=None, sample_seed=None):
         self.config = config
         self.env = None  # standard lmdb env for storing biblio entries by uuid
         self.env_doi = None  # lmdb env for storing mapping between doi/pmcid and uuid
         self.env_fail = None  # lmdb env for keeping track of failures
         self._init_lmdb()  # init db
         self.wiley_client = wiley_client
+        self.elsevier_client = elsevier_client
         self._sample_seed = sample_seed  # sample seed
         self.sample = sample if sample != -1 else None
         self.input_swift = None  # swift
@@ -180,8 +181,11 @@ class OAHarvester:
                 # return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
                 pass
             elif entry.get("publisher_normalized") == "Elsevier":
-                # return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
-                pass
+                return (
+                    [f"https://api.elsevier.com/content/article/doi/{entry['doi']}"],
+                    {"id": entry["id"], "doi": entry["doi"], "domain": entry["bso_classification"]},
+                    os.path.join(DATA_PATH, entry["id"] + ".pdf"),
+                )
         raise Continue
 
     def _get_batch_generator(self, filepath, count, reprocess, batch_size=100, filter_out=[]):
@@ -216,6 +220,7 @@ class OAHarvester:
                 filenames,
                 entries,
                 [self.wiley_client] * len(entries),
+                [self.elsevier_client] * len(entries),
                 timeout=30,
             )
         # LMDB updates are out of the parallel process because LMDB write transaction must
@@ -257,12 +262,12 @@ class OAHarvester:
             return txn.get(identifier.encode(encoding="UTF-8"))
 
     def _compress_files(
-            self,
-            local_filename,
-            local_filename_json,
-            local_entry_id,
-            compression_suffix=".gz",
-            **kwargs,
+        self,
+        local_filename,
+        local_filename_json,
+        local_entry_id,
+        compression_suffix=".gz",
+        **kwargs,
     ):
         try:
             if os.path.isfile(local_filename):
@@ -305,13 +310,13 @@ class OAHarvester:
             logger.exception("Error when uploading", exc_info=True)
 
     def _save_files_locally(
-            self,
-            dest_path: OvhPath,
-            local_filename,
-            local_entry_id,
-            local_filename_json,
-            compression_suffix,
-            **kwargs,
+        self,
+        dest_path: OvhPath,
+        local_filename,
+        local_entry_id,
+        local_filename_json,
+        compression_suffix,
+        **kwargs,
     ):
         try:
             local_dest_path = os.path.join(DATA_PATH, dest_path.to_local())
