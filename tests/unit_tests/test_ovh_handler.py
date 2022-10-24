@@ -1,6 +1,8 @@
 import unittest
 from unittest import TestCase, mock
 
+from ovh_handler import get_partitions
+
 from domain.ovh_path import OvhPath
 from infrastructure.storage.swift import Swift
 from ovh_handler import generateStoragePath, download_files, upload_and_clean_up
@@ -8,6 +10,26 @@ from tests.unit_tests.fixtures.swift_object import _swift, local_grobid_dir, loc
 from config.processing_service_namespaces import grobid_ns, softcite_ns
 
 class OvhHandler(TestCase):
+
+    def test_get_partitions(self):
+        # Given
+        elements = list(range(1,10))
+        expected_partitions = [[1,2],[3,4],[5,6],[7,8],[9]]
+        partition_size = 2
+        # When
+        partitions = get_partitions(elements, partition_size)
+        # Then
+        self.assertEqual(partitions, expected_partitions)
+
+    def test_get_partitions_where_partition_size_gte_nb_of_elements(self):
+        # Given
+        elements = list(range(1, 10))
+        expected_partitions = [elements]
+        partition_size = 10
+        # When
+        partitions = get_partitions(elements, partition_size)
+        # Then
+        self.assertEqual(partitions, expected_partitions)
 
     def test_generateStoragePath(self):
         # Given

@@ -37,6 +37,7 @@ clean_up_files:
 	rm -rf tmp/*
 	find . | grep -E "(__pycache__|\.pyc|\.pyo)" | xargs rm -rf
 	rm -rf .ipynb_checkpoints/
+	find . -iname \*.ipynb | xargs -I filename nbdev_clean --clear_all --fname filename
 
 docker-build: ## Build either a docker image for local or prod use
 	./confirm_before_build.sh
@@ -81,6 +82,7 @@ install: ## Install python dependencies
 	@echo Installing dependencies...
 	pip install -r requirements.txt
 	pip install -r requirements-dev.txt
+	nbdev_install_hooks
 	@echo End of dependencies installation
 
 requirements: ## Automatically generate requirements.txt based on the codebase

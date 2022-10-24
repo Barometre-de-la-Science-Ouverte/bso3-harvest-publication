@@ -1,20 +1,16 @@
 import os
+import shutil
 from glob import glob
 from types import SimpleNamespace
 from typing import List
 
-from config.db_config import engine
-from config.harvester_config import config_harvester
-from config.path_config import (PUBLICATION_PREFIX, GROBID_PREFIX,
-                                GROBID_SUFFIX, SOFTCITE_PREFIX,
-                                SOFTCITE_SUFFIX)
-from domain.ovh_path import OvhPath
-from infrastructure.database.db_handler import DBHandler
-from infrastructure.storage.swift import Swift
-import shutil
 from application.server.main.logger import get_logger
 from config.logger_config import LOGGER_LEVEL
+from domain.ovh_path import OvhPath
+from infrastructure.storage.swift import Swift
+
 logger_console = get_logger(__name__, level=LOGGER_LEVEL)
+
 
 def generateStoragePath(identifier):
     """Convert a file name into a path with file prefix as directory paths:
@@ -22,15 +18,11 @@ def generateStoragePath(identifier):
     return OvhPath(identifier[:2], identifier[2:4], identifier[4:6], identifier[6:8], identifier)
 
 
-def get_partitions(_swift: Swift, partition_size: int) -> List:
-    """Return a list of partitions of gzipped pdf files"""
-    db_handler: DBHandler = DBHandler(engine=engine, table_name="harvested_status_table", swift_handler=_swift)
-    files = sorted([
-            str(OvhPath(PUBLICATION_PREFIX, generateStoragePath(record[1]), record[1] + ".pdf.gz"))
-            for record in db_handler.fetch_all()
-        ])
-    partitions = [files[i : i + partition_size] for i in range(0, len(files), partition_size)]
-    return partitions
+def get_partitions(files: List[str], partition_size: int) -> List[List[str]]:
+    """Return a list of partitions of files"""
+    if len(files) > partition_size:
+        return [files[i : i + partition_size] for i in range(0, len(files), partition_size)]
+    return [files]
 
 
 def download_files(_swift, dest_dir, files):

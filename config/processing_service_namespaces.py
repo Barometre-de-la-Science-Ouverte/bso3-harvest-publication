@@ -8,11 +8,11 @@ from types import SimpleNamespace
 
 class ServiceNamespace(SimpleNamespace):
     def __init__(self, _dir, suffix, prefix, service_name, config_path) -> None:
-        self.dir = _dir
-        self.suffix = suffix
-        self.prefix = prefix
-        self.service_name = service_name
-        self.config_path = config_path
+        self.dir: str = _dir
+        self.suffix: str = suffix
+        self.prefix: str = prefix
+        self.service_name: str = service_name
+        self.config_path: str = config_path
 
 grobid_ns = ServiceNamespace(GROBID_DIR, GROBID_SUFFIX, GROBID_PREFIX, "grobid", CONFIG_PATH_GROBID)
 softcite_ns = ServiceNamespace(SOFTCITE_DIR, SOFTCITE_SUFFIX, SOFTCITE_PREFIX, "softcite", CONFIG_PATH_SOFTCITE)

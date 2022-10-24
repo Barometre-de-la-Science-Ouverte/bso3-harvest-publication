@@ -62,7 +62,7 @@ class DBHandler:
             except Exception:
                 logger.error('Writing to postgres error : ', exc_info=True)
 
-    def _get_uuid_from_path(self, path):
+    def _get_uuid_from_path(self, path: str) -> str:
         end_path = path.split('/')[-1]
         uuid = end_path.split('.')[0]
         return uuid

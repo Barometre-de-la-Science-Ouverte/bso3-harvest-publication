@@ -7,7 +7,6 @@ from application.server.main.tasks import (
     create_task_harvest_partition,
     create_task_process,
     write_partitioned_filtered_metadata_file,
-    get_publications_entries_to_process,
 )
 from config.processing_service_namespaces import grobid_ns
 from infrastructure.database.db_handler import DBHandler
@@ -139,43 +138,10 @@ class CreateTaskHarvestPartition(TestCase):
         mock_reset_lmdb.assert_called_once()
 
 
-class getPublicationsIdsToProcess(TestCase):
-    def test_with_identical_service_version_in_db_and_spec_should_return_empty_list(self):
-        # Given
-        expected_entries_publications_grobid: list = []
-        # When
-        entries_publications = get_publications_entries_to_process(
-            rows_db, grobid_ns.service_name, identical_spec_grobid_version
-        )
-        # Then
-        assert entries_publications == expected_entries_publications_grobid
-
-    def test_with_lower_spec_version_should_return_empty_list(self):
-        # Given
-        expected_entries_publications_grobid: list = []
-        # When
-        entries_publications = get_publications_entries_to_process(
-            rows_db, grobid_ns.service_name, low_spec_grobid_version
-        )
-        # Then
-        assert entries_publications == expected_entries_publications_grobid
-
-    def test_with_higher_spec_version_should_return_not_empty_list(self):
-        # Given
-        expected_entries_publications_grobid: list = rows_db
-        # When
-        entries_publications = get_publications_entries_to_process(
-            rows_db, grobid_ns.service_name, high_spec_grobid_version
-        )
-        # Then
-        assert entries_publications == expected_entries_publications_grobid
-
-
 class CreateTaskProcess(TestCase):
     @patch(f"{TESTED_MODULE}.logger_console")
     @patch(f"{TESTED_MODULE}.Swift")
     @patch(f"{TESTED_MODULE}.DBHandler")
-    @patch(f"{TESTED_MODULE}.get_publications_entries_to_process")
     @patch(f"{TESTED_MODULE}.download_files")
     @patch(f"{TESTED_MODULE}.run_processing_services")
     @patch(f"{TESTED_MODULE}.upload_and_clean_up")
@@ -186,24 +152,12 @@ class CreateTaskProcess(TestCase):
         mock_upload_and_clean_up,
         mock_run_processing_services,
         mock_download_files,
-        mock_get_publications_entries_to_process,
         mock_db_handler,
         mock_swift,
         mock_logger,
     ):
         # Given
-        mock_db_handler.return_value._get_uuid_from_path = MagicMock(
-            side_effect=[e.uuid for e in publications_entries_grobid]
-            + [e.uuid for e in publications_entries_softcite]
-            + [e.uuid for e in publications_entries_datastet]
-        )
-        mock_db_handler.return_value.fetch_all = MagicMock()
         mock_db_handler.return_value.update_database_processing = MagicMock()
-        mock_get_publications_entries_to_process.side_effect = [
-            publications_entries_grobid,
-            publications_entries_softcite,
-            publications_entries_datastet,
-        ]
         mock_upload_and_clean_up.return_value = None
         mock_logger.debug = MagicMock()
         mock_logger.info = MagicMock()
@@ -213,29 +167,27 @@ class CreateTaskProcess(TestCase):
             expected_arg_update_database_processing_softcite,
             expected_arg_update_database_processing_datastet,
         ]
+        grobid_partition_files = publication_files
+        softcite_partition_files = publication_files
+        datastet_partition_files = publication_files
 
         # When
         create_task_process(
-            publication_files,
-            high_spec_grobid_version,
-            high_spec_softcite_version,
-            high_spec_datastet_version,
+            grobid_partition_files,
+            softcite_partition_files,
+            datastet_partition_files
         )
 
         # Then
         mock_swift.assert_called_once()
         mock_db_handler.assert_called_once()
-        mock_db_handler().fetch_all.assert_called_once()
-        assert mock_get_publications_entries_to_process.call_count == 3
-        assert mock_download_files.call_count == 3
-        mock_download_files.assert_called_with(mock_swift(), datastet_ns.dir, publication_files)
+        self.assertEqual(mock_download_files.call_count, 3)
+        mock_download_files.assert_called_with(mock_swift(), datastet_ns.dir, datastet_partition_files)
         mock_run_processing_services.assert_called_once()
-        assert mock_compile_records_for_db.call_count == 3
-        mock_compile_records_for_db.assert_called_with(
-            publications_entries_datastet, datastet_ns, mock_db_handler()
-        )
-        assert mock_upload_and_clean_up.call_count == 3
-        assert mock_db_handler().update_database_processing.call_count == 3
+        self.assertEqual(mock_compile_records_for_db.call_count, 3)
+        mock_compile_records_for_db.assert_called_with(datastet_ns, mock_db_handler())
+        self.assertEqual(mock_upload_and_clean_up.call_count, 3)
+        self.assertEqual(mock_db_handler().update_database_processing.call_count, 3)
         mock_db_handler().update_database_processing.assert_called_with(
             expected_arg_update_database_processing_datastet
         )
@@ -243,7 +195,6 @@ class CreateTaskProcess(TestCase):
     @patch(f"{TESTED_MODULE}.logger_console")
     @patch(f"{TESTED_MODULE}.Swift")
     @patch(f"{TESTED_MODULE}.DBHandler")
-    @patch(f"{TESTED_MODULE}.get_publications_entries_to_process")
     @patch(f"{TESTED_MODULE}.download_files")
     @patch(f"{TESTED_MODULE}.run_processing_services")
     @patch(f"{TESTED_MODULE}.upload_and_clean_up")
@@ -254,24 +205,12 @@ class CreateTaskProcess(TestCase):
         mock_upload_and_clean_up,
         mock_run_processing_services,
         mock_download_files,
-        mock_get_publications_entries_to_process,
         mock_db_handler,
         mock_swift,
         mock_logger,
     ):
         # Given
-        mock_db_handler.return_value._get_uuid_from_path = MagicMock(
-            side_effect=[e.uuid for e in publications_entries_grobid]
-            + [e.uuid for e in publications_entries_softcite]
-            + [e.uuid for e in publications_entries_datastet]
-        )
-        mock_db_handler.return_value.fetch_all = MagicMock()
         mock_db_handler.return_value.update_database_processing = MagicMock()
-        mock_get_publications_entries_to_process.side_effect = [
-            publications_entries_grobid[:1],
-            publications_entries_softcite[1:2],
-            publications_entries_datastet[2:3],
-        ]
         mock_upload_and_clean_up.return_value = None
         mock_logger.debug = MagicMock()
         mock_logger.info = MagicMock()
@@ -281,31 +220,27 @@ class CreateTaskProcess(TestCase):
             expected_arg_update_database_processing_softcite[1:2],
             expected_arg_update_database_processing_datastet[2:3],
         ]
+        grobid_partition_files = publication_files
+        softcite_partition_files = publication_files
+        datastet_partition_files = publication_files
 
         # When
         create_task_process(
-            publication_files,
-            high_spec_grobid_version,
-            high_spec_softcite_version,
-            high_spec_datastet_version,
+            grobid_partition_files[:1],
+            softcite_partition_files[1:2],
+            datastet_partition_files[2:3]
         )
 
         # Then
         mock_swift.assert_called_once()
         mock_db_handler.assert_called_once()
-        mock_db_handler().fetch_all.assert_called_once()
-        assert mock_get_publications_entries_to_process.call_count == 3
-        assert mock_download_files.call_count == 3
-        mock_download_files.assert_called_with(
-            mock_swift(), datastet_ns.dir, publication_files[2:3]
-        )
+        self.assertEqual(mock_download_files.call_count, 3)
+        mock_download_files.assert_called_with(mock_swift(), datastet_ns.dir, publication_files[2:3])
         mock_run_processing_services.assert_called_once()
-        assert mock_compile_records_for_db.call_count == 3
-        mock_compile_records_for_db.assert_called_with(
-            publications_entries_datastet[2:3], datastet_ns, mock_db_handler()
-        )
-        assert mock_upload_and_clean_up.call_count == 3
-        assert mock_db_handler().update_database_processing.call_count == 3
+        self.assertEqual(mock_compile_records_for_db.call_count, 3)
+        mock_compile_records_for_db.assert_called_with(datastet_ns, mock_db_handler())
+        self.assertEqual(mock_upload_and_clean_up.call_count, 3)
+        self.assertEqual(mock_db_handler().update_database_processing.call_count, 3)
         mock_db_handler().update_database_processing.assert_called_with(
             expected_arg_update_database_processing_datastet[2:3]
         )
@@ -313,7 +248,6 @@ class CreateTaskProcess(TestCase):
     @patch(f"{TESTED_MODULE}.logger_console")
     @patch(f"{TESTED_MODULE}.Swift")
     @patch(f"{TESTED_MODULE}.DBHandler")
-    @patch(f"{TESTED_MODULE}.get_publications_entries_to_process")
     @patch(f"{TESTED_MODULE}.download_files")
     @patch(f"{TESTED_MODULE}.run_processing_services")
     @patch(f"{TESTED_MODULE}.upload_and_clean_up")
@@ -324,24 +258,12 @@ class CreateTaskProcess(TestCase):
         mock_upload_and_clean_up,
         mock_run_processing_services,
         mock_download_files,
-        mock_get_publications_entries_to_process,
         mock_db_handler,
         mock_swift,
         mock_logger,
     ):
         # Given
-        mock_db_handler.return_value._get_uuid_from_path = MagicMock(
-            side_effect=[e.uuid for e in publications_entries_grobid]
-            + [e.uuid for e in publications_entries_softcite]
-            + [e.uuid for e in publications_entries_datastet]
-        )
-        mock_db_handler.return_value.fetch_all = MagicMock()
         mock_db_handler.return_value.update_database_processing = MagicMock()
-        mock_get_publications_entries_to_process.side_effect = [
-            publications_entries_grobid[:1],
-            [],
-            [],
-        ]
         mock_upload_and_clean_up.return_value = None
         mock_logger.debug = MagicMock()
         mock_logger.info = MagicMock()
@@ -351,33 +273,35 @@ class CreateTaskProcess(TestCase):
             [],
             [],
         ]
+        grobid_partition_files = publication_files[:1]
+        softcite_partition_files = []
+        datastet_partition_files = []
 
         # When
         create_task_process(
-            publication_files,
-            high_spec_grobid_version,
-            high_spec_softcite_version,
-            high_spec_datastet_version,
+            grobid_partition_files,
+            softcite_partition_files,
+            datastet_partition_files
         )
 
         # Then
         mock_swift.assert_called_once()
         mock_db_handler.assert_called_once()
-        mock_db_handler().fetch_all.assert_called_once()
-        assert mock_get_publications_entries_to_process.call_count == 3
-        assert mock_download_files.call_count == 1
-        mock_download_files.assert_called_with(mock_swift(), grobid_ns.dir, publication_files[:1])
+        self.assertEqual(mock_download_files.call_count, 3)
+        mock_download_files.assert_called_with(mock_swift(), datastet_ns.dir, datastet_partition_files)
         mock_run_processing_services.assert_called_once()
-        assert mock_compile_records_for_db.call_count == 3
-        mock_compile_records_for_db.assert_called_with([], datastet_ns, mock_db_handler())
-        assert mock_upload_and_clean_up.call_count == 3
-        assert mock_db_handler().update_database_processing.call_count == 3
-        mock_db_handler().update_database_processing.assert_called_with([])
+        self.assertEqual(mock_compile_records_for_db.call_count, 3)
+        mock_compile_records_for_db.assert_called_with(datastet_ns, mock_db_handler())
+        self.assertEqual(mock_upload_and_clean_up.call_count, 3)
+        self.assertEqual(mock_db_handler().update_database_processing.call_count, 3)
+        mock_db_handler().update_database_processing.assert_called_with(
+            []
+        )
+
 
     @patch(f"{TESTED_MODULE}.logger_console")
     @patch(f"{TESTED_MODULE}.Swift")
     @patch(f"{TESTED_MODULE}.DBHandler")
-    @patch(f"{TESTED_MODULE}.get_publications_entries_to_process")
     @patch(f"{TESTED_MODULE}.download_files")
     @patch(f"{TESTED_MODULE}.run_processing_services")
     @patch(f"{TESTED_MODULE}.upload_and_clean_up")
@@ -388,24 +312,12 @@ class CreateTaskProcess(TestCase):
         mock_upload_and_clean_up,
         mock_run_processing_services,
         mock_download_files,
-        mock_get_publications_entries_to_process,
         mock_db_handler,
         mock_swift,
         mock_logger,
     ):
         # Given
-        mock_db_handler.return_value._get_uuid_from_path = MagicMock(
-            side_effect=[e.uuid for e in publications_entries_grobid]
-            + [e.uuid for e in publications_entries_softcite]
-            + [e.uuid for e in publications_entries_datastet]
-        )
-        mock_db_handler.return_value.fetch_all = MagicMock()
         mock_db_handler.return_value.update_database_processing = MagicMock()
-        mock_get_publications_entries_to_process.side_effect = [
-            [],
-            publications_entries_softcite[1:2],
-            [],
-        ]
         mock_upload_and_clean_up.return_value = None
         mock_logger.debug = MagicMock()
         mock_logger.info = MagicMock()
@@ -415,35 +327,34 @@ class CreateTaskProcess(TestCase):
             expected_arg_update_database_processing_softcite[1:2],
             [],
         ]
+        grobid_partition_files = publication_files[:1]
+        softcite_partition_files = []
+        datastet_partition_files = []
 
         # When
         create_task_process(
-            publication_files,
-            high_spec_grobid_version,
-            high_spec_softcite_version,
-            high_spec_datastet_version,
+            grobid_partition_files,
+            softcite_partition_files,
+            datastet_partition_files
         )
 
         # Then
         mock_swift.assert_called_once()
         mock_db_handler.assert_called_once()
-        mock_db_handler().fetch_all.assert_called_once()
-        assert mock_get_publications_entries_to_process.call_count == 3
-        assert mock_download_files.call_count == 1
-        mock_download_files.assert_called_with(
-            mock_swift(), softcite_ns.dir, publication_files[1:2]
-        )
+        self.assertEqual(mock_download_files.call_count, 3)
+        mock_download_files.assert_called_with(mock_swift(), datastet_ns.dir, datastet_partition_files)
         mock_run_processing_services.assert_called_once()
-        assert mock_compile_records_for_db.call_count == 3
-        mock_compile_records_for_db.assert_called_with([], datastet_ns, mock_db_handler())
-        assert mock_upload_and_clean_up.call_count == 3
-        assert mock_db_handler().update_database_processing.call_count == 3
-        mock_db_handler().update_database_processing.assert_called_with([])
+        self.assertEqual(mock_compile_records_for_db.call_count, 3)
+        mock_compile_records_for_db.assert_called_with(datastet_ns, mock_db_handler())
+        self.assertEqual(mock_upload_and_clean_up.call_count, 3)
+        self.assertEqual(mock_db_handler().update_database_processing.call_count, 3)
+        mock_db_handler().update_database_processing.assert_called_with(
+            []
+        )
 
     @patch(f"{TESTED_MODULE}.logger_console")
     @patch(f"{TESTED_MODULE}.Swift")
     @patch(f"{TESTED_MODULE}.DBHandler")
-    @patch(f"{TESTED_MODULE}.get_publications_entries_to_process")
     @patch(f"{TESTED_MODULE}.download_files")
     @patch(f"{TESTED_MODULE}.run_processing_services")
     @patch(f"{TESTED_MODULE}.upload_and_clean_up")
@@ -454,24 +365,12 @@ class CreateTaskProcess(TestCase):
         mock_upload_and_clean_up,
         mock_run_processing_services,
         mock_download_files,
-        mock_get_publications_entries_to_process,
         mock_db_handler,
         mock_swift,
         mock_logger,
     ):
         # Given
-        mock_db_handler.return_value._get_uuid_from_path = MagicMock(
-            side_effect=[e.uuid for e in publications_entries_grobid]
-            + [e.uuid for e in publications_entries_softcite]
-            + [e.uuid for e in publications_entries_datastet]
-        )
-        mock_db_handler.return_value.fetch_all = MagicMock()
         mock_db_handler.return_value.update_database_processing = MagicMock()
-        mock_get_publications_entries_to_process.side_effect = [
-            [],
-            [],
-            publications_entries_datastet[2:3],
-        ]
         mock_upload_and_clean_up.return_value = None
         mock_logger.debug = MagicMock()
         mock_logger.info = MagicMock()
@@ -481,31 +380,27 @@ class CreateTaskProcess(TestCase):
             [],
             expected_arg_update_database_processing_datastet[2:3],
         ]
+        grobid_partition_files = publication_files[:1]
+        softcite_partition_files = []
+        datastet_partition_files = []
 
         # When
         create_task_process(
-            publication_files,
-            high_spec_grobid_version,
-            high_spec_softcite_version,
-            high_spec_datastet_version,
+            grobid_partition_files,
+            softcite_partition_files,
+            datastet_partition_files
         )
 
         # Then
         mock_swift.assert_called_once()
         mock_db_handler.assert_called_once()
-        mock_db_handler().fetch_all.assert_called_once()
-        assert mock_get_publications_entries_to_process.call_count == 3
-        assert mock_download_files.call_count == 1
-        mock_download_files.assert_called_with(
-            mock_swift(), datastet_ns.dir, publication_files[2:3]
-        )
+        self.assertEqual(mock_download_files.call_count, 3)
+        mock_download_files.assert_called_with(mock_swift(), datastet_ns.dir, datastet_partition_files)
         mock_run_processing_services.assert_called_once()
-        assert mock_compile_records_for_db.call_count == 3
-        mock_compile_records_for_db.assert_called_with(
-            publications_entries_datastet[2:3], datastet_ns, mock_db_handler()
-        )
-        assert mock_upload_and_clean_up.call_count == 3
-        assert mock_db_handler().update_database_processing.call_count == 3
+        self.assertEqual(mock_compile_records_for_db.call_count, 3)
+        mock_compile_records_for_db.assert_called_with(datastet_ns, mock_db_handler())
+        self.assertEqual(mock_upload_and_clean_up.call_count, 3)
+        self.assertEqual(mock_db_handler().update_database_processing.call_count, 3)
         mock_db_handler().update_database_processing.assert_called_with(
             expected_arg_update_database_processing_datastet[2:3]
         )
@@ -513,7 +408,6 @@ class CreateTaskProcess(TestCase):
     @patch(f"{TESTED_MODULE}.logger_console")
     @patch(f"{TESTED_MODULE}.Swift")
     @patch(f"{TESTED_MODULE}.DBHandler")
-    @patch(f"{TESTED_MODULE}.get_publications_entries_to_process")
     @patch(f"{TESTED_MODULE}.download_files")
     @patch(f"{TESTED_MODULE}.run_processing_services")
     @patch(f"{TESTED_MODULE}.upload_and_clean_up")
@@ -524,24 +418,12 @@ class CreateTaskProcess(TestCase):
         mock_upload_and_clean_up,
         mock_run_processing_services,
         mock_download_files,
-        mock_get_publications_entries_to_process,
         mock_db_handler,
         mock_swift,
         mock_logger,
     ):
         # Given
-        mock_db_handler.return_value._get_uuid_from_path = MagicMock(
-            side_effect=[e.uuid for e in publications_entries_grobid]
-            + [e.uuid for e in publications_entries_softcite]
-            + [e.uuid for e in publications_entries_datastet]
-        )
-        mock_db_handler.return_value.fetch_all = MagicMock()
         mock_db_handler.return_value.update_database_processing = MagicMock()
-        mock_get_publications_entries_to_process.side_effect = [
-            publications_entries_grobid[:1],
-            publications_entries_softcite[:1],
-            publications_entries_datastet[:1],
-        ]
         mock_upload_and_clean_up.return_value = None
         mock_logger.debug = MagicMock()
         mock_logger.info = MagicMock()
@@ -552,28 +434,27 @@ class CreateTaskProcess(TestCase):
             expected_arg_update_database_processing_datastet,
         ]
 
+        grobid_partition_files = publication_files
+        softcite_partition_files = publication_files
+        datastet_partition_files = publication_files
+
         # When
         create_task_process(
-            publication_files,
-            high_spec_grobid_version,
-            high_spec_softcite_version,
-            high_spec_datastet_version,
+            grobid_partition_files,
+            softcite_partition_files,
+            datastet_partition_files
         )
 
         # Then
         mock_swift.assert_called_once()
         mock_db_handler.assert_called_once()
-        mock_db_handler().fetch_all.assert_called_once()
-        assert mock_get_publications_entries_to_process.call_count == 3
-        assert mock_download_files.call_count == 3
-        mock_download_files.assert_called_with(mock_swift(), datastet_ns.dir, publication_files[:1])
+        self.assertEqual(mock_download_files.call_count, 3)
+        mock_download_files.assert_called_with(mock_swift(), datastet_ns.dir, datastet_partition_files)
         mock_run_processing_services.assert_called_once()
-        assert mock_compile_records_for_db.call_count == 3
-        mock_compile_records_for_db.assert_called_with(
-            publications_entries_datastet[:1], datastet_ns, mock_db_handler()
-        )
-        assert mock_upload_and_clean_up.call_count == 3
-        assert mock_db_handler().update_database_processing.call_count == 3
+        self.assertEqual(mock_compile_records_for_db.call_count, 3)
+        mock_compile_records_for_db.assert_called_with(datastet_ns, mock_db_handler())
+        self.assertEqual(mock_upload_and_clean_up.call_count, 3)
+        self.assertEqual(mock_db_handler().update_database_processing.call_count, 3)
         mock_db_handler().update_database_processing.assert_called_with(
             expected_arg_update_database_processing_datastet
         )
@@ -581,7 +462,6 @@ class CreateTaskProcess(TestCase):
     @patch(f"{TESTED_MODULE}.logger_console")
     @patch(f"{TESTED_MODULE}.Swift")
     @patch(f"{TESTED_MODULE}.DBHandler")
-    @patch(f"{TESTED_MODULE}.get_publications_entries_to_process")
     @patch(f"{TESTED_MODULE}.download_files")
     @patch(f"{TESTED_MODULE}.run_processing_services")
     @patch(f"{TESTED_MODULE}.upload_and_clean_up")
@@ -592,19 +472,11 @@ class CreateTaskProcess(TestCase):
         mock_upload_and_clean_up,
         mock_run_processing_services,
         mock_download_files,
-        mock_get_publications_entries_to_process,
         mock_db_handler,
         mock_swift,
         mock_logger,
     ):
         # Given
-        mock_get_publications_entries_to_process.return_value = []
-        mock_db_handler.return_value._get_uuid_from_path = MagicMock(
-            side_effect=[e.uuid for e in publications_entries_grobid]
-            + [e.uuid for e in publications_entries_softcite]
-            + [e.uuid for e in publications_entries_datastet]
-        )
-        mock_db_handler.return_value.fetch_all = MagicMock()
         mock_db_handler.return_value.update_database_processing = MagicMock()
         mock_upload_and_clean_up.return_value = None
         mock_logger.debug = MagicMock()
@@ -614,21 +486,21 @@ class CreateTaskProcess(TestCase):
 
         # When
         create_task_process(
-            publication_files,
-            high_spec_grobid_version,
-            high_spec_softcite_version,
-            high_spec_datastet_version,
+            [],
+            [],
+            [],
         )
 
         # Then
         mock_swift.assert_called_once()
         mock_db_handler.assert_called_once()
-        mock_db_handler().fetch_all.assert_called_once()
-        assert mock_get_publications_entries_to_process.call_count == 3
-        assert mock_download_files.call_count == 0
+        self.assertEqual(mock_download_files.call_count, 3)
+        mock_download_files.assert_called_with(mock_swift(), datastet_ns.dir, [])
         mock_run_processing_services.assert_called_once()
-        assert mock_compile_records_for_db.call_count == 3
-        mock_compile_records_for_db.assert_called_with([], datastet_ns, mock_db_handler())
-        assert mock_upload_and_clean_up.call_count == 3
-        assert mock_db_handler().update_database_processing.call_count == 3
-        mock_db_handler().update_database_processing.assert_called_with([])
+        self.assertEqual(mock_compile_records_for_db.call_count, 3)
+        mock_compile_records_for_db.assert_called_with(datastet_ns, mock_db_handler())
+        self.assertEqual(mock_upload_and_clean_up.call_count, 3)
+        self.assertEqual(mock_db_handler().update_database_processing.call_count, 3)
+        mock_db_handler().update_database_processing.assert_called_with(
+            []
+        )

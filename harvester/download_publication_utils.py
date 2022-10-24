@@ -2,6 +2,7 @@ import os
 import re
 import subprocess
 from time import sleep
+from typing import Tuple
 
 import cloudscraper
 from bs4 import BeautifulSoup
@@ -58,7 +59,7 @@ def _download_publication(urls, filename, local_entry, wiley_client, elsevier_cl
     return result, local_entry
 
 
-def arxiv_download(url: str, filepath: str, doi: str) -> (str, str):
+def arxiv_download(url: str, filepath: str, doi: str) -> Tuple[str, str]:
     from config.swift_cli_config import init_cmd
     ovh_arxiv_file_pdf_gz = url_to_path(url)
     result, harvester_used = FAIL_DOWNLOAD, ARXIV_HARVESTER
@@ -77,7 +78,7 @@ def arxiv_download(url: str, filepath: str, doi: str) -> (str, str):
     return result, harvester_used
 
 
-def publisher_api_download(doi: str, filepath: str, client:BaseAPIClient) -> (str, str):
+def publisher_api_download(doi: str, filepath: str, client:BaseAPIClient) -> Tuple[str, str]:
     try:
         result, harvester_used = client.download_publication(doi, filepath)
     except FailedRequest:
@@ -88,7 +89,7 @@ def publisher_api_download(doi: str, filepath: str, client:BaseAPIClient) -> (st
     return result, harvester_used
 
 
-def standard_download(url: str, filename: str, doi: str) -> (str, str):
+def standard_download(url: str, filename: str, doi: str) -> Tuple[str, str]:
     scraper = cloudscraper.create_scraper(interpreter='nodejs')
     content = _process_request(scraper, url)
     if not content:
