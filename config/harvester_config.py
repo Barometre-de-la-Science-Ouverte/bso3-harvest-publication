@@ -50,7 +50,7 @@ def get_harvester_config(config_file_path: str) -> dict:
             "Wiley-TDM-Client-Token": os.getenv(WILEY_TOKEN_KEY)
         },
         "PUBLICATION_URL": os.getenv(WILEY_PUBLICATION_URL_KEY),
-        "health_check_doi": "10.1111/jdv.15719",
+        "health_check_doi": "10.1111/jofi.12230",
         "throttle_parameters": {
             "max_num_requests": 1,
             "window_size": 15
