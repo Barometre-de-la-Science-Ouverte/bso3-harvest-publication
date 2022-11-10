@@ -19,8 +19,9 @@ WORKDIR /src
 COPY config.json .
 COPY requirements.txt .
 
-RUN mkdir /src/data
 RUN mkdir /src/tmp
+RUN mkdir -p ./data/entries_software
+RUN mkdir -p ./data/entries_dataset
 
 RUN pip install --no-cache-dir -r requirements.txt
 

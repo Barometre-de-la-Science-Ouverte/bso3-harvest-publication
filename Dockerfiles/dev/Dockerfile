@@ -16,7 +16,8 @@ RUN python3 -m pip install pip --upgrade
 WORKDIR /src
 
 RUN mkdir /src/tmp
-RUN mkdir /src/data
+RUN mkdir -p ./data/entries_software
+RUN mkdir -p ./data/entries_dataset
 
 # copy project
 COPY requirements.txt .
