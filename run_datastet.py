@@ -8,13 +8,13 @@ def run_datastet(config_path, data_path, softdata_mentions_client):
         config = {
             "dataset_mention_host": os.getenv("DATASET_MENTION_HOST"),
             "dataset_mention_port": os.getenv("DATASET_MENTION_PORT"),
-            "batch_size": int(os.getenv("BATCH_SIZE")),
-            "concurrency": int(os.getenv("CONCURRENCY")),
-            "data_path": os.getenv("DATA_PATH"),
-            "log_file": os.getenv("LOG_FILE"),
-            "log_level": os.getenv("LOG_LEVEL"),
-            "sleep_time": int(os.getenv("SLEEP_TIME")),
-            "timeout": int(os.getenv("TIMEOUT"))
+            "batch_size": int(os.getenv("DATASET_MENTION_BATCH_SIZE")),
+            "concurrency": int(os.getenv("DATASET_MENTION_CONCURRENCY")),
+            "data_path": os.getenv("DATASET_MENTION_DATA_PATH"),
+            "log_file": os.getenv("DATASET_MENTION_LOG_FILE"),
+            "log_level": os.getenv("DATASET_MENTION_LOG_LEVEL"),
+            "sleep_time": int(os.getenv("DATASET_MENTION_SLEEP_TIME")),
+            "timeout": int(os.getenv("DATASET_MENTION_TIMEOUT"))
         }
     else:
         config = json.load(open(config_path))

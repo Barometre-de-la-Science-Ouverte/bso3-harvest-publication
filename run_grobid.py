@@ -8,10 +8,10 @@ def run_grobid(config_path, data_path, GrobidClient):
         config = {
             'grobid_server': os.getenv("GROBID_SERVER"),
             'grobid_port': os.getenv("GROBID_PORT"),
-            'batch_size': int(os.getenv("BATCH_SIZE")),
-            'coordinates': json.loads(os.getenv('COORDINATES')),
-            'sleep_time': int(os.getenv("SLEEP_TIME")),
-            'timeout': int(os.getenv("TIMEOUT"))
+            'batch_size': int(os.getenv("GROBID_BATCH_SIZE")),
+            'coordinates': json.loads(os.getenv('GROBID_COORDINATES')),
+            'sleep_time': int(os.getenv("GROBID_SLEEP_TIME")),
+            'timeout': int(os.getenv("GROBID_TIMEOUT"))
         }
     else:
         config = json.load(open(config_path))

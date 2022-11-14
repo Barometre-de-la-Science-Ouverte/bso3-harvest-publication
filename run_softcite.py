@@ -8,13 +8,13 @@ def run_softcite(config_path, data_path, smc):
         config = {
             "software_mention_host": os.getenv("SOFTWARE_MENTION_HOST"),
             "software_mention_port": os.getenv("SOFTWARE_MENTION_PORT"),
-            "batch_size": int(os.getenv("BATCH_SIZE")),
-            "concurrency": int(os.getenv("CONCURRENCY")),
-            "data_path": os.getenv("DATA_PATH"),
-            "log_file": os.getenv("LOG_FILE"),
-            "log_level": os.getenv("LOG_LEVEL"),
-            "sleep_time": int(os.getenv("SLEEP_TIME")),
-            "timeout": int(os.getenv("TIMEOUT"))
+            "batch_size": int(os.getenv("SOFTWARE_MENTION_BATCH_SIZE")),
+            "concurrency": int(os.getenv("SOFTWARE_MENTION_CONCURRENCY")),
+            "data_path": os.getenv("SOFTWARE_MENTION_DATA_PATH"),
+            "log_file": os.getenv("SOFTWARE_MENTION_LOG_FILE"),
+            "log_level": os.getenv("SOFTWARE_MENTION_LOG_LEVEL"),
+            "sleep_time": int(os.getenv("SOFTWARE_MENTION_SLEEP_TIME")),
+            "timeout": int(os.getenv("SOFTWARE_MENTION_TIMEOUT"))
         }
     else:
         config = json.load(open(config_path))
