@@ -161,13 +161,13 @@ def run_processing_services():
     with ThreadPoolExecutor(max_workers=3) as executor:
         if next(iter(glob(grobid_ns.dir + '*')), None):
             processing_futures.append(
-                executor.submit(run_grobid, grobid_ns.config_path, grobid_ns.dir, GrobidClient))
+                executor.submit(run_grobid, None, grobid_ns.dir, GrobidClient))
         if next(iter(glob(softcite_ns.dir + '*')), None):
             processing_futures.append(
-                executor.submit(run_softcite, softcite_ns.config_path, softcite_ns.dir, softdata_mentions_client))
+                executor.submit(run_softcite, None, softcite_ns.dir, softdata_mentions_client))
         if next(iter(glob(datastet_ns.dir + '*')), None):
             processing_futures.append(
-                executor.submit(run_datastet, datastet_ns.config_path, datastet_ns.dir, softdata_mentions_client))
+                executor.submit(run_datastet, None, datastet_ns.dir, softdata_mentions_client))
     for future in processing_futures:
         future.result()
 
