@@ -240,6 +240,9 @@ def write_partitioned_filtered_metadata_file(db_handler: DBHandler,
     with gzip.open(source_metadata_file, 'rt') as f_in:
         metadata_input_file_content_list = [json.loads(line) for line in f_in.readlines()]
 
+    # TODO if publication without doi
+    # filtered_publications_metadata_json_list = [entry for entry in metadata_input_file_content_list if entry.get('doi') else {'doi': entry['id'], **entry}]
+    # instead of:
     filtered_publications_metadata_json_list = metadata_input_file_content_list
     if len(doi_list) > 0:
         filtered_publications_metadata_json_list = [
