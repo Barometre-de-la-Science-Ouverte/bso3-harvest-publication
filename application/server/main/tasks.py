@@ -54,65 +54,6 @@ def create_task_harvest_partition(source_metadata_file, partition_index, total_p
     harvester.reset_lmdb()
 
 
-def create_task_unpaywall(args):
-    logger_console.debug(f'launching task with args {args}')
-    sample_seed = args.get('sample_seed', 1)
-    nb_samples = args.get('nb_samples', -1)
-    metadata_file = args.get('metadata_file', '')
-    metadata_folder = args.get('metadata_folder', '')
-
-    swift_handler = Swift(config_harvester)
-    db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
-    logger_console.debug('Database before harvesting')
-    logger_console.debug(db_handler.fetch_all())
-    if ((metadata_file == '') and (metadata_folder == '')) or ((metadata_file != '') and (metadata_folder != '')):
-        logger_console.debug('Only one of the two arguments metadata_file of metadata_folder should be provided!')
-    else:
-        if metadata_folder:
-            logger_console.debug(f'Metadata folder provided : {metadata_folder}')
-            list_local_files = []
-            files = swift_handler.get_swift_list(container=METADATA_DUMP, dir_name=metadata_folder)
-            for file in files:
-                metadata_file = load_metadata(metadata_container=METADATA_DUMP,
-                                              metadata_file=file,
-                                              destination_dir=DESTINATION_DIR_METADATA,
-                                              subfolder_name=metadata_folder)
-                list_local_files.append(metadata_file)
-                logger_console.debug(f'Metadata list files after metadata folder provided: {list_local_files}')
-        else:
-            metadata_file = load_metadata(metadata_container=METADATA_DUMP,
-                                          metadata_file=metadata_file,
-                                          destination_dir=DESTINATION_DIR_METADATA)
-            list_local_files = [metadata_file]
-            logger_console.debug(f'Metadata file provided: {metadata_file}')
-            logger_console.debug(f'Metadata list files after metadata file provided: {list_local_files}')
-
-        for file in list_local_files:
-            if metadata_folder:
-                end_file_name = os.path.basename(file)
-                file_generic_name = end_file_name.split('.')[0]
-                destination_dir_output = os.path.join(metadata_folder, file_generic_name)
-                logger_console.debug(f'destination dir output (folder statement): {destination_dir_output}')
-            else:
-                destination_dir_output = ''
-                logger_console.debug(f'destination dir output (file statement): {destination_dir_output}')
-            harvester = OAHarvester(config_harvester, sample=nb_samples, sample_seed=sample_seed)
-            logger_console.debug(f'metadata file in harvest unpaywall : {file}')
-            logger_console.debug(f'metadata folder in harvest unpaywall : {destination_dir_output}')
-            with gzip.open(file, 'rt') as f:
-                logger_console.debug("doi in metadata file")
-                logger_console.debug([json.loads(line)['doi'] for line in f.readlines()])
-            harvester.harvestUnpaywall(file, destination_dir=destination_dir_output)
-            harvester.diagnostic()
-        try:
-            db_handler.update_database()
-            harvester.reset_lmdb()
-        except Exception as e:
-            logger_console.debug(e)
-        logger_console.debug('Database after harvesting')
-        logger_console.debug(db_handler.fetch_all())
-
-
 def get_softdata_version(softdata_file_path: str) -> str:
     """Get the version of softcite or datastet used by reading from an output file"""
     with open(softdata_file_path, 'r') as f:
@@ -194,24 +135,6 @@ def create_task_process(grobid_partition_files, softcite_partition_files, datast
         db_handler.update_database_processing(entries_to_update)
 
 
-def create_task_prepare_harvest(doi_list, source_metadata_file, filtered_metadata_filename, force):
-    logger_console.debug(f'doi_list {doi_list}')
-    logger_console.debug(f'filtered_metadata_filename {filtered_metadata_filename}')
-    logger_console.debug(f'force {force}')
-    swift_handler = Swift(config_harvester)
-    db_handler: DBHandler = DBHandler(engine=engine, table_name='harvested_status_table', swift_handler=swift_handler)
-    if not force:  # don't redo the ones already done
-        doi_already_harvested = [entry[0] for entry in db_handler.fetch_all()]
-        doi_list = [doi for doi in doi_list if doi not in doi_already_harvested]
-    source_metadata_file = load_metadata(metadata_container=METADATA_DUMP,
-                                         metadata_file=source_metadata_file,
-                                         destination_dir=DESTINATION_DIR_METADATA)
-    with gzip.open(source_metadata_file, 'rt') as f_in:
-        content = [json.loads(line) for line in f_in.readlines()]
-    with gzip.open(os.path.join(DESTINATION_DIR_METADATA, filtered_metadata_filename), 'wt') as f_out:
-        f_out.write(os.linesep.join([json.dumps(entry) for entry in content if entry['doi'] in doi_list]))
-
-
 def get_partition_size(source_metadata_file, total_partition_number):
     with gzip.open(source_metadata_file, 'rt') as f:
         number_of_lines = len(f.readlines())
@@ -255,8 +178,3 @@ def write_partitioned_filtered_metadata_file(db_handler: DBHandler,
         f'Number of publications in the file after filtering: {len(filtered_publications_metadata_json_list)}')
     with gzip.open(os.path.join(DESTINATION_DIR_METADATA, filtered_metadata_filename), 'wt') as f_out:
         f_out.write(os.linesep.join([json.dumps(entry) for entry in filtered_publications_metadata_json_list]))
-
-
-def create_task_clean_up(filtered_metadata_file):
-    from config.swift_cli_config import init_cmd
-    subprocess.check_call(f'{init_cmd} delete {METADATA_DUMP} {filtered_metadata_file}', shell=True)

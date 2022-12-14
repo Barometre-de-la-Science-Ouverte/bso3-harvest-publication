@@ -20,7 +20,7 @@ from config import ELSEVIER, WILEY
 from config.db_config import engine
 from config.harvester_config import config_harvester
 from config.logger_config import LOGGER_LEVEL
-from config.path_config import PUBLICATION_PREFIX
+from config.path_config import COMPRESSION_EXT, PUBLICATION_PREFIX, PUBLICATION_EXT
 from config.processing_service_namespaces import (datastet_ns, grobid_ns,
                                                   softcite_ns)
 
@@ -57,7 +57,7 @@ def get_files_to_process(db_records: List[ProcessedEntry],
     """Return a list of pdf gzipped files that pass the filter"""
     records_to_process = filter_publications(db_records, publications_filter)
     files_to_process = sorted([
-            str(OvhPath(PUBLICATION_PREFIX, generateStoragePath(record.uuid), record.uuid + ".pdf.gz"))
+            str(OvhPath(PUBLICATION_PREFIX, generateStoragePath(record.uuid), record.uuid + PUBLICATION_EXT + COMPRESSION_EXT))
             for record in records_to_process
         ])
     return files_to_process

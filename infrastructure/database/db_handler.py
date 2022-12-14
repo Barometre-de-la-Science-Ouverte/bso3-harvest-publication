@@ -6,7 +6,7 @@ import lmdb
 from application.server.main.logger import get_logger
 from config import DB_MODEL_VERSION_INITIAL_VALUE, DB_HARVESTING_DATE_COLUMN_NAME
 from config.logger_config import LOGGER_LEVEL
-from config.path_config import PUBLICATION_PREFIX
+from config.path_config import COMPRESSION_EXT, PUBLICATION_PREFIX, PUBLICATION_EXT
 from domain.ovh_path import OvhPath
 from domain.processed_entry import ProcessedEntry
 from harvester.OAHarvester import generateStoragePath
@@ -83,15 +83,6 @@ class DBHandler:
                 dict_content[k.decode('utf-8')] = pickle.loads(v)
         return dict_content
 
-    def _is_uuid_in_list(self, uuid, list_uuid):
-        if uuid in list_uuid:
-            return "1"
-        else:
-            return "0"
-
-    def _get_harvester_used(self, uuid):
-        pass
-
     def update_database_processing(self, entries: List[Tuple[str, str, str]]):
         """Update database with the version of the service (grobid, softcite, dataseer) used to process the publication
         entries = [(publication_uuid, service_used, version_used), ...]
@@ -118,7 +109,7 @@ class DBHandler:
     def update_database(self):
         container = self.config['publications_dump']
         lmdb_size = self.config['lmdb_size_Go'] * 1024 * 1024 * 1024
-        extension_publication: str = '.pdf.gz'
+        extension_publication: str = PUBLICATION_EXT + COMPRESSION_EXT
 
         # get uuid entry content (harvester_used and domain are in it)
         dict_local_uuid_entries = self._get_lmdb_content_pickle('data/entries', lmdb_size)

@@ -12,8 +12,6 @@ FIXTURES_PATH = os.path.dirname(__file__)
 
 config_harvester = get_harvester_config(CONFIG_PATH_TEST)
 harvester_2_publications = OAHarvester(config_harvester, wiley_client_mock, elsevier_client_mock)
-harvester_2_publications_sample = OAHarvester(config_harvester, wiley_client_mock, elsevier_client_mock, sample=1)
-
 sample_entries = [
     {
         "id": "8bd660e0-3a6c-4e1e-af55-f85df59c26a6",
@@ -111,8 +109,14 @@ urls_entry = [
 
 parsed_oa_entry_output = (urls_entry, oa_entry_out, sample_filenames[0])
 
-parsed_ca_entry = (
+parsed_ca_entry_wiley = (
     ["https://onlinelibrary.wiley.com/doi/pdfdirect/10.1111/ppl.13009"],
+    {"id": sample_uuids[0], "doi": "10.1111/ppl.13009", "domain": "Biology (fond.)"},
+    os.path.join(DATA_PATH, sample_uuids[0] + ".pdf"),
+)
+
+parsed_ca_entry_elsevier = (
+    ["https://api.elsevier.com/content/article/doi/10.1111/ppl.13009"],
     {"id": sample_uuids[0], "doi": "10.1111/ppl.13009", "domain": "Biology (fond.)"},
     os.path.join(DATA_PATH, sample_uuids[0] + ".pdf"),
 )

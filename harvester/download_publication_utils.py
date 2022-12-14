@@ -10,6 +10,7 @@ from requests import ConnectTimeout
 
 from application.server.main.logger import get_logger
 from config.logger_config import LOGGER_LEVEL
+from config.path_config import COMPRESSION_EXT, PUBLICATION_EXT
 from harvester.exception import EmptyFileContentException, PublicationDownloadFileException, FailedRequest
 from utils.file import is_file_not_empty, decompress
 from harvester.base_api_client import BaseAPIClient
@@ -22,8 +23,6 @@ ARXIV_HARVESTER = 'arxiv'
 STANDARD_HARVESTER = 'standard'
 WILEY_HARVESTER = 'wiley'
 ELSEVIER_HARVESTER = 'elsevier'
-EMPTY_URL = ''
-EXCEPTION_HARVESTER = ''
 
 
 def _download_publication(urls, filename, local_entry, wiley_client, elsevier_client):
@@ -64,7 +63,7 @@ def arxiv_download(url: str, filepath: str, doi: str) -> Tuple[str, str]:
     ovh_arxiv_file_pdf_gz = url_to_path(url)
     result, harvester_used = FAIL_DOWNLOAD, ARXIV_HARVESTER
     if ovh_arxiv_file_pdf_gz:
-        filepath_gz = filepath + ".gz"
+        filepath_gz = filepath + COMPRESSION_EXT
         subprocess.check_call(f'{init_cmd} download arxiv_harvesting {ovh_arxiv_file_pdf_gz} -o {filepath_gz}',
                               shell=True)
         if is_file_not_empty(filepath_gz):
@@ -130,7 +129,7 @@ def _process_request(scraper, url, n=0, timeout_in_seconds=60):
         return
 
 
-def url_to_path(url, ext='.pdf.gz'):
+def url_to_path(url, ext=PUBLICATION_EXT + COMPRESSION_EXT):
     try:
         _id = re.findall(r"arxiv\.org/pdf/(.*)$", url)[0]
         prefix = "arxiv" if _id[0].isdigit() else _id.split('/')[0]

@@ -8,7 +8,6 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from multiprocessing import cpu_count
-from random import sample, seed
 
 import lmdb
 import urllib3
@@ -16,7 +15,7 @@ import urllib3
 from application.server.main.logger import get_logger
 from config.harvest_strategy_config import oa_harvesting_strategy
 from config.logger_config import LOGGER_LEVEL
-from config.path_config import DATA_PATH, METADATA_PREFIX, PUBLICATION_PREFIX
+from config.path_config import COMPRESSION_EXT, DATA_PATH, METADATA_PREFIX, METADATA_EXT, PUBLICATION_PREFIX, PUBLICATION_EXT
 from domain.ovh_path import OvhPath
 from harvester.download_publication_utils import _download_publication, SUCCESS_DOWNLOAD
 from infrastructure.storage import swift
@@ -29,8 +28,6 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logging.getLogger("keystoneclient").setLevel(logging.ERROR)
 logging.getLogger("swiftclient").setLevel(logging.ERROR)
 
-crossref_base = None
-crossref_email = None
 NB_THREADS = 2 * cpu_count()
 
 """
@@ -57,7 +54,7 @@ def calculate_pct(i, count):
 
 
 class OAHarvester:
-    def __init__(self, config, wiley_client, elsevier_client, sample=None, sample_seed=None):
+    def __init__(self, config, wiley_client, elsevier_client):
         self.config = config
         self.env = None  # standard lmdb env for storing biblio entries by uuid
         self.env_doi = None  # lmdb env for storing mapping between doi/pmcid and uuid
@@ -65,14 +62,10 @@ class OAHarvester:
         self._init_lmdb()  # init db
         self.wiley_client = wiley_client
         self.elsevier_client = elsevier_client
-        self._sample_seed = sample_seed  # sample seed
-        self.sample = sample if sample != -1 else None
-        self.input_swift = None  # swift
         self.swift = None
         self.batch_size = self.config["batch_size"]
 
         # ovh storage metadata input dump and output publications dump
-        self.storage_metadata = config["metadata_dump"]
         self.storage_publications = config["publications_dump"]
 
         # condition
@@ -101,7 +94,7 @@ class OAHarvester:
         envFilePath = os.path.join(DATA_PATH, "fail")
         self.env_fail = lmdb.open(envFilePath, map_size=lmdb_size)
 
-    def harvestUnpaywall(self, filepath, reprocess=False, filter_out=[], destination_dir=""):
+    def harvestUnpaywall(self, filepath, reprocess=False, destination_dir=""):
         """
         Main method, use the Unpaywall dataset for getting pdf url for Open Access resources,
         download in parallel PDF, generate thumbnails (if selected), upload resources locally
@@ -109,26 +102,16 @@ class OAHarvester:
         """
         batch_size_pdf = self.config.get("batch_size", 100)
         count = _count_entries(gzip.open, filepath)
-        if self.sample:
-            selection = _sample_selection(self.sample, count, self._sample_seed)
-            current_idx = 0
         batch_gen = self._get_batch_generator(
-            filepath, count, reprocess, batch_size_pdf, filter_out
-        )
+            filepath, count, reprocess, batch_size_pdf)
         for batch in batch_gen:
-            if self.sample:
-                n = len(batch)
-                batch = _apply_selection(batch, selection, current_idx)
-                current_idx += n
             urls = [e[0] for e in batch]
             entries = [e[1] for e in batch]
             filenames = [e[2] for e in batch]
             self.processBatch(urls, filenames, entries, destination_dir)
 
-    def _process_entry(self, entry, reprocess, filter_out=[]):
+    def _process_entry(self, entry, reprocess):
         doi = entry["doi"]
-        if doi in filter_out:
-            raise Continue
         try:
             _check_entry(entry, doi, self.getUUIDByIdentifier, reprocess, self.env, self.env_doi)
             url, entry, filename = self._parse_entry(entry)
@@ -167,7 +150,7 @@ class OAHarvester:
                         "domain": entry["bso_classification"],
                         "oa_locations": oa_locations,
                     },
-                    os.path.join(DATA_PATH, entry["id"] + ".pdf"),
+                    os.path.join(DATA_PATH, entry["id"] + PUBLICATION_EXT),
                 )
         else:  # closed access (via publishers APIs)
             # returns urls, entry, filename to match signature even though we really only care about the doi since we use publishers APIs.
@@ -175,20 +158,17 @@ class OAHarvester:
                 return (
                     [f"https://onlinelibrary.wiley.com/doi/pdfdirect/{entry['doi']}"],
                     {"id": entry["id"], "doi": entry["doi"], "domain": entry["bso_classification"]},
-                    os.path.join(DATA_PATH, entry["id"] + ".pdf"),
+                    os.path.join(DATA_PATH, entry["id"] + PUBLICATION_EXT),
                 )
-            elif entry.get("publisher_normalized") == "Springer":
-                # return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
-                pass
             elif entry.get("publisher_normalized") == "Elsevier":
                 return (
                     [f"https://api.elsevier.com/content/article/doi/{entry['doi']}"],
                     {"id": entry["id"], "doi": entry["doi"], "domain": entry["bso_classification"]},
-                    os.path.join(DATA_PATH, entry["id"] + ".pdf"),
+                    os.path.join(DATA_PATH, entry["id"] + PUBLICATION_EXT),
                 )
         raise Continue
 
-    def _get_batch_generator(self, filepath, count, reprocess, batch_size=100, filter_out=[]):
+    def _get_batch_generator(self, filepath, count, reprocess, batch_size=100):
         """Reads gzip file and returns batches of processed entries"""
         batch = []
         with gzip.open(filepath, "rt", encoding="utf-8") as gz:
@@ -198,9 +178,7 @@ class OAHarvester:
                     curr = calculate_pct(i, count)
                     logger.info(f"{curr}%")
                 try:
-                    url, entry, filename = self._process_entry(
-                        json.loads(line), reprocess, filter_out
-                    )
+                    url, entry, filename = self._process_entry(json.loads(line), reprocess)
                     if url:
                         batch.append([url, entry, filename])
                 except Continue:
@@ -235,7 +213,7 @@ class OAHarvester:
             valid_file = False
             local_filename = os.path.join(DATA_PATH, local_entry["id"])
             # TODO: if result = 'fail' no need to do the check?
-            if _is_valid_file(local_filename + ".pdf", "pdf"):
+            if _is_valid_file(local_filename + PUBLICATION_EXT, "pdf"):
                 valid_file = True
                 local_entry["valid_fulltext_pdf"] = True
 
@@ -266,7 +244,7 @@ class OAHarvester:
         local_filename,
         local_filename_json,
         local_entry_id,
-        compression_suffix=".gz",
+        compression_suffix=COMPRESSION_EXT,
         **kwargs,
     ):
         try:
@@ -324,12 +302,12 @@ class OAHarvester:
             if os.path.isfile(local_filename):
                 shutil.copyfile(
                     local_filename,
-                    os.path.join(local_dest_path, local_entry_id + ".pdf" + compression_suffix),
+                    os.path.join(local_dest_path, local_entry_id + PUBLICATION_EXT + compression_suffix),
                 )
             if os.path.isfile(local_filename_json):
                 shutil.copyfile(
                     local_filename_json,
-                    os.path.join(local_dest_path, local_entry_id + ".json" + compression_suffix),
+                    os.path.join(local_dest_path, local_entry_id + METADATA_EXT + compression_suffix),
                 )
         except IOError:
             logger.exception("Invalid path")
@@ -347,13 +325,13 @@ class OAHarvester:
         data_path = os.path.join(DATA_PATH, destination_dir)
         filepaths: dict = {
             "dest_path": OvhPath(destination_dir, generateStoragePath(local_entry["id"])),
-            "local_filename": os.path.join(data_path, local_entry["id"] + ".pdf"),
-            "local_filename_json": os.path.join(data_path, local_entry["id"] + ".json"),
+            "local_filename": os.path.join(data_path, local_entry["id"] + PUBLICATION_EXT),
+            "local_filename_json": os.path.join(data_path, local_entry["id"] + METADATA_EXT),
         }
         self._write_metadata_file(filepaths["local_filename_json"], local_entry)
         compression_suffix = ""
         if self.config["compression"]:
-            compression_suffix = ".gz"
+            compression_suffix = COMPRESSION_EXT
             self._compress_files(
                 **filepaths, local_entry_id=local_entry["id"], compression_suffix=compression_suffix
             )
@@ -400,10 +378,10 @@ def write_in_lmdb(env: lmdb.Environment, key: str, value: dict):
 
 def clean_empty_file_if_it_exists(local_filename_wo_ext):
     """Remove empty pdf or tar file if present"""
-    local_filename = local_filename_wo_ext + ".pdf"
+    local_filename = local_filename_wo_ext + PUBLICATION_EXT
     if os.path.isfile(local_filename):
         os.remove(local_filename)
-    local_filename = local_filename_wo_ext + ".tar.gz"
+    local_filename = local_filename_wo_ext + ".tar" + COMPRESSION_EXT
     if os.path.isfile(local_filename):
         os.remove(local_filename)
 
@@ -413,28 +391,6 @@ def update_dict(mydict, key, value):
         mydict[key].append(value)
     else:
         mydict[key] = [value]
-
-
-def _sample_selection(nb_samples, count, sample_seed):
-    """
-    Random selection corresponding to the requested sample size
-    """
-    if 0 < nb_samples < count:
-        seed(sample_seed)
-        selection = sample(range(count), nb_samples)
-        selection.sort()
-        return selection
-    else:
-        raise IndexError(
-            "Sample must be greater than 0 and less than the total number of items to sample from"
-        )
-
-
-def _apply_selection(batch, selection, current_idx):
-    sub_selection = [
-        i - current_idx for i in selection if current_idx <= i < current_idx + len(batch)
-    ]
-    return [batch[i] for i in sub_selection]
 
 
 def _check_entry(entry, _id, getUUID_fn, reprocess, env, env_doi):

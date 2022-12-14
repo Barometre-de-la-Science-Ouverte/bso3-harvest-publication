@@ -1,10 +1,10 @@
 import os
 import magic
 import gzip
-
+from config.path_config import COMPRESSION_EXT
 
 def compress(file):
-    deflated_file = file + ".gz"
+    deflated_file = file + COMPRESSION_EXT
     with open(file, "rb") as f_in:
         with gzip.open(deflated_file, "wb") as f_out:
             f_out.write(f_in.read())

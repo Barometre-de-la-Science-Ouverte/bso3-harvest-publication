@@ -7,7 +7,7 @@ from infrastructure.database.db_handler import DBHandler
 from config.harvester_config import config_harvester
 from infrastructure.storage.swift import Swift
 from tests.e2e_tests.db_connection import DBConnection
-from config.path_config import PUBLICATION_PREFIX, METADATA_PREFIX
+from config.path_config import COMPRESSION_EXT, METADATA_EXT, PUBLICATION_PREFIX, METADATA_PREFIX, PUBLICATION_EXT
 from domain.ovh_path import OvhPath
 
 
@@ -104,8 +104,8 @@ def check_doi_in_postgres(context):
 def check_uuid_from_postgres_to_swift(context):
     swift_list: list = context.db_handler.swift_handler.get_swift_list(container=config_harvester['publications_dump'])
 
-    extension_metadata: str = '.json.gz'
-    extension_publication: str = '.pdf.gz'
+    extension_metadata: str = METADATA_EXT + COMPRESSION_EXT
+    extension_publication: str = PUBLICATION_EXT + COMPRESSION_EXT
 
     postgres_result_list: list = context.db_handler.fetch_all()
     postgres_metadata_list: list = []

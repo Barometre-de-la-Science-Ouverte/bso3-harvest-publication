@@ -1,20 +1,30 @@
-import json
-import os
 import abc
 import gzip
+import json
+import os
 import unittest
 from unittest import TestCase, mock
 
-from config.path_config import DATA_PATH
-from harvester.OAHarvester import (Continue, _apply_selection, _check_entry,
-                                   _count_entries, _sample_selection,
-                                   uuid, generateStoragePath,
-                                   update_dict, OvhPath, METADATA_PREFIX,
-                                   PUBLICATION_PREFIX, get_latest_publication, OAHarvester)
-from tests.unit_tests.fixtures.api_clients import wiley_client_mock, elsevier_client_mock
-from tests.unit_tests.fixtures.harvester import FIXTURES_PATH, harvester_2_publications, sample_urls_lists, \
-    sample_filenames, sample_entries, sample_uuids, harvester_2_publications_sample, parsed_ca_entry, \
-    parsed_oa_entry_output, pdf_file, pdf_gz_file, config_harvester
+from config.path_config import (COMPRESSION_EXT, DATA_PATH, METADATA_EXT,
+                                PUBLICATION_EXT)
+from harvester.OAHarvester import (METADATA_PREFIX, PUBLICATION_PREFIX,
+                                   Continue, OAHarvester, OvhPath,
+                                   _check_entry, _count_entries,
+                                   generateStoragePath, get_latest_publication,
+                                   update_dict, uuid)
+from tests.unit_tests.fixtures.api_clients import (elsevier_client_mock,
+                                                   wiley_client_mock)
+from tests.unit_tests.fixtures.harvester import (FIXTURES_PATH,
+                                                 config_harvester,
+                                                 harvester_2_publications,
+                                                 parsed_ca_entry_elsevier,
+                                                 parsed_ca_entry_wiley,
+                                                 parsed_oa_entry_output,
+                                                 pdf_file, pdf_gz_file,
+                                                 sample_entries,
+                                                 sample_filenames,
+                                                 sample_urls_lists,
+                                                 sample_uuids)
 from utils.file import compress, decompress
 
 
@@ -32,79 +42,12 @@ class CountEntries(TestCase):
 
         self.assertEqual(nb_publications, 2)
 
-
-class SampleSelection(TestCase):
-    def test_when_sample_is_4_then_return_list_of_size_4(self):
-        nb_sample = 4
-        count = 22
-        samples = _sample_selection(nb_sample, count, sample_seed=1)
-        self.assertEqual(len(samples), nb_sample)
-
-    def test_when_sample_is_0_then_raise_index_error_exception(self):
-        sample = 0
-        count = 4
-        with self.assertRaises(IndexError):
-            _ = _sample_selection(sample, count, sample_seed=1)
-
-
-class ApplySelection(TestCase):
-    def test_when_given_a_list_returns_elements_corresponding_to_selection(self):
-        # Given
-        batches = []
-        batch = []
-        for i in range(22):
-            batch.append([chr(i), chr(i + 1), chr(i + 2)])
-        batches.append(batch)
-        batch = []
-        for i in range(22, 25):
-            batch.append([chr(i), chr(i + 1), chr(i + 2)])
-        batches.append(batch)
-        mock_selection = [1, 2, 3, 24]
-        # When
-        current_idx = 0
-        for batch_n, batch in enumerate(batches):
-            trimmed_down_list = _apply_selection(batch, mock_selection, current_idx)
-            # Then
-            self.assertEqual(
-                len([i for i in mock_selection if current_idx <= i < current_idx + len(batch)]),
-                len(trimmed_down_list),
-            )
-            for e in trimmed_down_list:
-                self.assertIn(e, batch)
-                self.assertIn(batch.index(e), mock_selection)
-            current_idx += len(batch)
-
-
 class HarvestUnpaywall(TestCase):
     def test_when_wrong_filepath_raise_FileNotFoundError_exception(self):
         wrong_filepath = "wrong_filepath"
 
         with self.assertRaises(FileNotFoundError):
             harvester_2_publications.harvestUnpaywall(wrong_filepath)
-
-    @mock.patch("harvester.OAHarvester._sample_selection")
-    @mock.patch.object(uuid, "uuid4")
-    @mock.patch.object(OAHarvester, "processBatch")
-    @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
-    def test_when_2_publications_and_sample_is_1_then_processBatch_is_called_with_1_element(
-            self, mock_getUUIDByIdentifier, mock_processBatch, mock_uuid4, mock_sample_selection
-    ):
-        # Given a file path
-        filepath = os.path.join(FIXTURES_PATH, "dump_2_publications.jsonl.gz.test")
-        expected_url = sample_urls_lists[0]
-        expected_filename = sample_filenames[0]
-        expected_entry = sample_entries[0]
-        mock_uuid4.side_effect = sample_uuids
-        mock_getUUIDByIdentifier.return_value = None
-        mock_sample_selection.return_value = [0]
-
-        # When harvestUnpaywall is executed
-        harvester_2_publications_sample.harvestUnpaywall(filepath, reprocess=True)
-
-        # Then processBatch is executed on
-        mock_processBatch.assert_called_with(
-            [expected_url], [expected_filename], [expected_entry], ""
-        )
 
     @mock.patch.object(uuid, "uuid4")
     @mock.patch.object(OAHarvester, "processBatch")
@@ -130,7 +73,7 @@ class HarvestUnpaywall(TestCase):
 
     @mock.patch.object(uuid, "uuid4")
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
-    def test__get_batch_generator(self, mock_getUUIDByIdentifier, mock_uuid4):
+    def test__get_batch_generator_last_batch(self, mock_getUUIDByIdentifier, mock_uuid4):
         # Given
         filepath = os.path.join(FIXTURES_PATH, "dump_2_publications.jsonl.gz.test")
         count = _count_entries(gzip.open, filepath)
@@ -153,6 +96,51 @@ class HarvestUnpaywall(TestCase):
             self.assertEqual(urls, expected_urls[i * batch_size: (i + 1) * batch_size])
             self.assertEqual(entries, expected_entries[i * batch_size: (i + 1) * batch_size])
             self.assertEqual(filenames, expected_filenames[i * batch_size: (i + 1) * batch_size])
+
+    @mock.patch.object(uuid, "uuid4")
+    @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
+    def test__get_batch_generator(self, mock_getUUIDByIdentifier, mock_uuid4):
+        # Given
+        filepath = os.path.join(FIXTURES_PATH, "dump_2_publications.jsonl.gz.test")
+        count = _count_entries(gzip.open, filepath)
+        reprocess = False
+        batch_size = 1
+        expected_urls = sample_urls_lists
+        expected_filenames = sample_filenames
+        expected_entries = sample_entries
+        mock_getUUIDByIdentifier.return_value = None
+        mock_uuid4.side_effect = sample_uuids
+        # When
+        batch_gen = harvester_2_publications._get_batch_generator(
+            filepath, count, reprocess, batch_size
+        )
+        # Then
+        for i, batch in enumerate(batch_gen):
+            urls = [e[0] for e in batch]
+            entries = [e[1] for e in batch]
+            filenames = [e[2] for e in batch]
+            self.assertEqual(urls, expected_urls[i * batch_size: (i + 1) * batch_size])
+            self.assertEqual(entries, expected_entries[i * batch_size: (i + 1) * batch_size])
+            self.assertEqual(filenames, expected_filenames[i * batch_size: (i + 1) * batch_size])
+
+    @mock.patch.object(uuid, "uuid4")
+    @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
+    @mock.patch.object(OAHarvester, "_process_entry", mock.Mock(side_effect=Continue()))
+    def test__get_batch_generator_Continue(self, mock_getUUIDByIdentifier, mock_uuid4):
+        # Given
+        filepath = os.path.join(FIXTURES_PATH, "dump_2_publications.jsonl.gz.test")
+        count = _count_entries(gzip.open, filepath)
+        reprocess = False
+        batch_size = 1
+        mock_getUUIDByIdentifier.return_value = None
+        mock_uuid4.side_effect = sample_uuids
+        # When
+        batch_gen = harvester_2_publications._get_batch_generator(
+            filepath, count, reprocess, batch_size
+        )
+        # Then
+        for i, batch in enumerate(batch_gen):
+            self.assertEqual(batch, [])
 
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test__process_entry_when_entry_already_processed(self, mock_getUUIDByIdentifier):
@@ -201,19 +189,44 @@ class HarvestUnpaywall(TestCase):
         self.assertEqual(urls, expected_urls)
         self.assertEqual(filename, expected_filename)
 
-    def test__parse_ca_entry(self):
+    def test__parse_ca_entry_Wiley(self):
         # Given
-        entry_filepath = os.path.join(FIXTURES_PATH, "ca_entry.json")
+        entry_filepath = os.path.join(FIXTURES_PATH, "ca_entry_wiley.json")
         with open(entry_filepath, "rt") as fp:
             entry_in = json.load(fp)
         entry_in["id"] = sample_uuids[0]
-        expected_urls, expected_entry, expected_filename = parsed_ca_entry
+        expected_urls, expected_entry, expected_filename = parsed_ca_entry_wiley
         # When
         urls, entry, filename = harvester_2_publications._parse_entry(entry_in)
         # Then
         self.assertEqual(entry, expected_entry)
         self.assertEqual(urls, expected_urls)
         self.assertEqual(filename, expected_filename)
+
+    def test__parse_ca_entry_Elsevier(self):
+        # Given
+        entry_filepath = os.path.join(FIXTURES_PATH, "ca_entry_elsevier.json")
+        with open(entry_filepath, "rt") as fp:
+            entry_in = json.load(fp)
+        entry_in["id"] = sample_uuids[0]
+        expected_urls, expected_entry, expected_filename = parsed_ca_entry_elsevier
+        # When
+        urls, entry, filename = harvester_2_publications._parse_entry(entry_in)
+        # Then
+        self.assertEqual(entry, expected_entry)
+        self.assertEqual(urls, expected_urls)
+        self.assertEqual(filename, expected_filename)
+
+    def test__parse_entry_Continue(self):
+        # Given a CA publication that is neither wiley nor elsevier
+        entry_filepath = os.path.join(FIXTURES_PATH, "ca_entry_continue.json")
+        with open(entry_filepath, "rt") as fp:
+            entry_in = json.load(fp)
+        entry_in["id"] = sample_uuids[0]
+        # Then
+        with self.assertRaises(Continue):
+            # When
+            harvester_2_publications._parse_entry(entry_in)
 
     @mock.patch.object(OAHarvester, "getUUIDByIdentifier")
     def test__check_entry_when_entry_already_processed(self, mock_getUUIDByIdentifier):
@@ -264,8 +277,8 @@ class ManageFiles(TestCase):
         self.DATA_PATH = os.path.join(FIXTURES_PATH, "manageFiles")
         self.filepaths = {
             "dest_path": generateStoragePath(local_entry["id"]),
-            "local_filename": os.path.join(self.DATA_PATH, local_entry["id"] + ".pdf"),
-            "local_filename_json": os.path.join(self.DATA_PATH, local_entry["id"] + ".json"),
+            "local_filename": os.path.join(self.DATA_PATH, local_entry["id"] + PUBLICATION_EXT),
+            "local_filename_json": os.path.join(self.DATA_PATH, local_entry["id"] + METADATA_EXT),
         }
 
     def test_generate_thumbnails(self):
@@ -289,13 +302,13 @@ class ManageFiles(TestCase):
         # When
         with mock.patch("harvester.OAHarvester.os.remove"):
             harvester_2_publications._compress_files(
-                **self.filepaths, local_entry_id=self.entry["id"], compression_suffix=".gz"
+                **self.filepaths, local_entry_id=self.entry["id"], compression_suffix=COMPRESSION_EXT
             )
         # Then
         for var_name, file in self.filepaths.items():
             if var_name == "dest_path":
                 continue
-            compressed_file = file + ".gz"
+            compressed_file = file + COMPRESSION_EXT
             self.assertTrue(os.path.exists(compressed_file))
             os.remove(compressed_file)
 
@@ -342,7 +355,7 @@ class ManageFiles(TestCase):
         mock_makedirs.assert_called_with(local_dest_path, exist_ok=True)
         mock_copyfile.assert_called_with(
             self.filepaths["local_filename_json"],
-            os.path.join(local_dest_path, self.entry["id"] + ".json" + compression_suffix),
+            os.path.join(local_dest_path, self.entry["id"] + METADATA_EXT + compression_suffix),
         )
 
     @mock.patch("harvester.OAHarvester.os.remove")

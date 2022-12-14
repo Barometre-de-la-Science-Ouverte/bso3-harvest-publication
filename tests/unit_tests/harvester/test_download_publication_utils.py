@@ -8,6 +8,7 @@ import cloudscraper
 
 from config import WILEY
 from config.harvester_config import config_harvester
+from config.path_config import COMPRESSION_EXT, PUBLICATION_EXT
 from harvester.download_publication_utils import _process_request, _download_publication, url_to_path, publisher_api_download
 from harvester.exception import FailedRequest
 from harvester.wiley_client import WileyClient
@@ -74,7 +75,7 @@ class Download(TestCase):
 
     def test_arXiv_url_to_path(self):
         # Given
-        ext = ".pdf.gz"
+        ext = PUBLICATION_EXT + COMPRESSION_EXT
         post_07_arXiv_url = "http://arxiv.org/pdf/1501.00001"
         expected_post_07_arXiv_path = "arxiv/1501/1501.00001/1501.00001" + ext
         pre_07_arXiv_url = "https://arxiv.org/pdf/quant-ph/0602109"
@@ -129,7 +130,7 @@ class Download(TestCase):
         with patch('harvester.download_publication_utils.decompress') as mock_decompress:
             _download_publication(urls, filename, local_entry, wiley_client_mock, elsevier_client_mock)
             # Then
-            mock_decompress.assert_called_with(filename + ".gz")
+            mock_decompress.assert_called_with(filename + COMPRESSION_EXT)
 
     @unittest.skip("No config on github")
     def test_arXiv_download_output_is_pdf(self):
