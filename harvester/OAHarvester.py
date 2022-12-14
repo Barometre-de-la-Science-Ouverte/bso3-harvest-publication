@@ -3,29 +3,23 @@ import json
 import logging
 import os
 import pickle
-import re
 import shutil
-import subprocess
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from multiprocessing import cpu_count
-from random import sample, seed
-from time import sleep
 
-import cloudscraper
 import lmdb
-import magic
-from requests.exceptions import ConnectTimeout
 import urllib3
-from bs4 import BeautifulSoup
 
-from config.harvest_strategy_config import oa_harvesting_strategy
-from config.path_config import DATA_PATH, METADATA_PREFIX, PUBLICATION_PREFIX
-from infrastructure.storage import swift
-from domain.ovh_path import OvhPath
 from application.server.main.logger import get_logger
+from config.harvest_strategy_config import oa_harvesting_strategy
 from config.logger_config import LOGGER_LEVEL
+from config.path_config import COMPRESSION_EXT, DATA_PATH, METADATA_PREFIX, METADATA_EXT, PUBLICATION_PREFIX, PUBLICATION_EXT
+from domain.ovh_path import OvhPath
+from harvester.download_publication_utils import _download_publication, SUCCESS_DOWNLOAD
+from infrastructure.storage import swift
+from utils.file import _is_valid_file, compress
 
 logger = get_logger(__name__, level=LOGGER_LEVEL)
 
@@ -34,19 +28,17 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logging.getLogger("keystoneclient").setLevel(logging.ERROR)
 logging.getLogger("swiftclient").setLevel(logging.ERROR)
 
-crossref_base = None
-crossref_email = None
 NB_THREADS = 2 * cpu_count()
 
 """
 Harvester for PDF available in open access. a LMDB index is used to keep track of the harvesting process and
-possible failures.  
+possible failures.
 
-This version uses the standard ThreadPoolExecutor for parallelizing the download/processing/upload processes. 
+This version uses the standard ThreadPoolExecutor for parallelizing the download/processing/upload processes.
 Given the limits of ThreadPoolExecutor (input stored in memory, blocking Executor.map until the whole input
-is processed and output stored in memory until all input is consumed), it works with batches of PDF of a size 
-indicated in the config.json file (default is 100 entries). We are moving from first batch to the second one 
-only when the first is entirely processed. The harvesting process is not CPU bounded so using threads is okay. 
+is processed and output stored in memory until all input is consumed), it works with batches of PDF of a size
+indicated in the config.json file (default is 100 entries). We are moving from first batch to the second one
+only when the first is entirely processed. The harvesting process is not CPU bounded so using threads is okay.
 """
 
 
@@ -61,23 +53,20 @@ def calculate_pct(i, count):
         return 0
 
 
-class OAHarvester(object):
-
-    def __init__(self, config, sample=None, sample_seed=None):
+class OAHarvester:
+    def __init__(self, config, wiley_client, elsevier_client):
         self.config = config
         self.env = None  # standard lmdb env for storing biblio entries by uuid
         self.env_doi = None  # lmdb env for storing mapping between doi/pmcid and uuid
         self.env_fail = None  # lmdb env for keeping track of failures
         self._init_lmdb()  # init db
-        self._sample_seed = sample_seed  # sample seed
-        self.sample = sample if sample != -1 else None
-        self.input_swift = None  # swift
+        self.wiley_client = wiley_client
+        self.elsevier_client = elsevier_client
         self.swift = None
-        self.batch_size = self.config['batch_size']
+        self.batch_size = self.config["batch_size"]
 
         # ovh storage metadata input dump and output publications dump
-        self.storage_metadata = config['metadata_dump']
-        self.storage_publications = config['publications_dump']
+        self.storage_publications = config["publications_dump"]
 
         # condition
         is_swift_config = ("swift" in self.config) and len(self.config["swift"]) > 0
@@ -85,7 +74,7 @@ class OAHarvester(object):
             self.swift = swift.Swift(self.config)
 
     def _init_lmdb(self):
-        # create the data path if it does not exist 
+        # create the data path if it does not exist
         if not os.path.isdir(DATA_PATH):
             try:
                 os.makedirs(DATA_PATH)
@@ -94,43 +83,35 @@ class OAHarvester(object):
             else:
                 logger.debug("Successfully created the directory %s" % DATA_PATH)
 
-        lmdb_size = self.config['lmdb_size_Go'] * 1024 * 1024 * 1024
+        lmdb_size = self.config["lmdb_size_Go"] * 1024 * 1024 * 1024
         # open in write mode
-        envFilePath = os.path.join(DATA_PATH, 'entries')
+        envFilePath = os.path.join(DATA_PATH, "entries")
         self.env = lmdb.open(envFilePath, map_size=lmdb_size)
 
-        envFilePath = os.path.join(DATA_PATH, 'doi')
+        envFilePath = os.path.join(DATA_PATH, "doi")
         self.env_doi = lmdb.open(envFilePath, map_size=lmdb_size)
 
-        envFilePath = os.path.join(DATA_PATH, 'fail')
+        envFilePath = os.path.join(DATA_PATH, "fail")
         self.env_fail = lmdb.open(envFilePath, map_size=lmdb_size)
 
-    def harvestUnpaywall(self, filepath, reprocess=False, filter_out=[], destination_dir=''):
+    def harvestUnpaywall(self, filepath, reprocess=False, destination_dir=""):
         """
-        Main method, use the Unpaywall dataset for getting pdf url for Open Access resources, 
-        download in parallel PDF, generate thumbnails (if selected), upload resources locally 
+        Main method, use the Unpaywall dataset for getting pdf url for Open Access resources,
+        download in parallel PDF, generate thumbnails (if selected), upload resources locally
         or on OVH and update the json description of the entries
         """
-        batch_size_pdf = self.config.get('batch_size', 100)
+        batch_size_pdf = self.config.get("batch_size", 100)
         count = _count_entries(gzip.open, filepath)
-        if self.sample:
-            selection = _sample_selection(self.sample, count, self._sample_seed)
-            current_idx = 0
-        batch_gen = self._get_batch_generator(filepath, count, reprocess, batch_size_pdf, filter_out)
+        batch_gen = self._get_batch_generator(
+            filepath, count, reprocess, batch_size_pdf)
         for batch in batch_gen:
-            if self.sample:
-                n = len(batch)
-                batch = _apply_selection(batch, selection, current_idx)
-                current_idx += n
             urls = [e[0] for e in batch]
             entries = [e[1] for e in batch]
             filenames = [e[2] for e in batch]
             self.processBatch(urls, filenames, entries, destination_dir)
 
-    def _process_entry(self, entry, reprocess, filter_out=[]):
-        doi = entry['doi']
-        if doi in filter_out:
-            raise Continue
+    def _process_entry(self, entry, reprocess):
+        doi = entry["doi"]
         try:
             _check_entry(entry, doi, self.getUUIDByIdentifier, reprocess, self.env, self.env_doi)
             url, entry, filename = self._parse_entry(entry)
@@ -141,50 +122,63 @@ class OAHarvester(object):
 
     def _parse_entry(self, entry):
         """Parse entry to get url, entry, filename"""
-        latest_observation = entry['oa_details'][get_nth_key(entry['oa_details'], -1)]
-        if latest_observation['is_oa']:
+        latest_observation = get_latest_publication(entry)
+        if latest_observation["is_oa"]:
             urls_for_pdf = {}
             oa_locations = {}
-            for oa_location in latest_observation['oa_locations']:
-                if ('url_for_pdf' in oa_location) and oa_location['url_for_pdf']:
+            for oa_location in latest_observation["oa_locations"]:
+                if ("url_for_pdf" in oa_location) and oa_location["url_for_pdf"]:
                     for i, strategy in enumerate(oa_harvesting_strategy):
                         if strategy(oa_location):
-                            update_dict(urls_for_pdf, i, oa_location['url_for_pdf'])
+                            update_dict(urls_for_pdf, i, oa_location["url_for_pdf"])
                             update_dict(oa_locations, i, oa_location)
                             break
-            urls_for_pdf = [url for url_list_idx in sorted(urls_for_pdf) for url in urls_for_pdf[url_list_idx]]
-            oa_locations = [oa_location for oa_locations_idx in sorted(oa_locations) for oa_location in
-                            oa_locations[oa_locations_idx]]
+            urls_for_pdf = [
+                url for url_list_idx in sorted(urls_for_pdf) for url in urls_for_pdf[url_list_idx]
+            ]
+            oa_locations = [
+                oa_location
+                for oa_locations_idx in sorted(oa_locations)
+                for oa_location in oa_locations[oa_locations_idx]
+            ]
             if urls_for_pdf and oa_locations:
-                return urls_for_pdf, {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification'],
-                                      "oa_locations": oa_locations}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
+                return (
+                    urls_for_pdf,
+                    {
+                        "id": entry["id"],
+                        "doi": entry["doi"],
+                        "domain": entry["bso_classification"],
+                        "oa_locations": oa_locations,
+                    },
+                    os.path.join(DATA_PATH, entry["id"] + PUBLICATION_EXT),
+                )
         else:  # closed access (via publishers APIs)
             # returns urls, entry, filename to match signature even though we really only care about the doi since we use publishers APIs.
             if entry.get("publisher_normalized") == "Wiley":
-                return [f"https://onlinelibrary.wiley.com/doi/pdfdirect/{entry['doi']}"], {'id': entry['id'],
-                                                                                           'doi': entry['doi'],
-                                                                                           'domain': entry[
-                                                                                               'bso_classification']}, os.path.join(
-                    DATA_PATH, entry['id'] + ".pdf")
-            elif entry.get("publisher_normalized") == "Springer":
-                # return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
-                pass
+                return (
+                    [f"https://onlinelibrary.wiley.com/doi/pdfdirect/{entry['doi']}"],
+                    {"id": entry["id"], "doi": entry["doi"], "domain": entry["bso_classification"]},
+                    os.path.join(DATA_PATH, entry["id"] + PUBLICATION_EXT),
+                )
             elif entry.get("publisher_normalized") == "Elsevier":
-                # return [], {'id': entry['id'], 'doi': entry['doi'], 'domain': entry['bso_classification']}, os.path.join(DATA_PATH, entry['id'] + ".pdf")
-                pass
+                return (
+                    [f"https://api.elsevier.com/content/article/doi/{entry['doi']}"],
+                    {"id": entry["id"], "doi": entry["doi"], "domain": entry["bso_classification"]},
+                    os.path.join(DATA_PATH, entry["id"] + PUBLICATION_EXT),
+                )
         raise Continue
 
-    def _get_batch_generator(self, filepath, count, reprocess, batch_size=100, filter_out=[]):
+    def _get_batch_generator(self, filepath, count, reprocess, batch_size=100):
         """Reads gzip file and returns batches of processed entries"""
         batch = []
-        with gzip.open(filepath, 'rt', encoding='utf-8') as gz:
+        with gzip.open(filepath, "rt", encoding="utf-8") as gz:
             curr = 0
             for i, line in enumerate(gz):
                 if calculate_pct(i, count) != curr:
                     curr = calculate_pct(i, count)
                     logger.info(f"{curr}%")
                 try:
-                    url, entry, filename = self._process_entry(json.loads(line), reprocess, filter_out)
+                    url, entry, filename = self._process_entry(json.loads(line), reprocess)
                     if url:
                         batch.append([url, entry, filename])
                 except Continue:
@@ -195,65 +189,64 @@ class OAHarvester(object):
                     batch = []
             yield batch
 
-    def processBatch(self, urls, filenames, entries, destination_dir=''):
+    def processBatch(self, urls, filenames, entries, destination_dir=""):
+        logger.debug("Processing batch")
         with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
-            results = executor.map(_download_publication, urls, filenames, entries, timeout=30)
-        # LMDB write transaction must be performed in the thread that created the transaction, so
-        # better to have the following lmdb updates out of the paralell process
+            results = executor.map(
+                _download_publication,
+                urls,
+                filenames,
+                entries,
+                [self.wiley_client] * len(entries),
+                [self.elsevier_client] * len(entries),
+                timeout=30,
+            )
+        # LMDB updates are out of the parallel process because LMDB write transaction must
+        # be performed in the thread that created the transaction. It is supposed to be fast
+        # but it might cause a bottleneck if the data recorded is to big
         entries = []
         for result, local_entry in results:
-            # conservative check if the downloaded file is of size 0 with a status code sucessful (code: 0),
-            # it should not happen *in theory*
-            # and check mime type
+            logger.debug(
+                f'Validating the file of the publication with doi = {local_entry["doi"]},'
+                f'result = {result}, harvester used = {local_entry["harvester_used"]}'
+            )
             valid_file = False
+            local_filename = os.path.join(DATA_PATH, local_entry["id"])
+            # TODO: if result = 'fail' no need to do the check?
+            if _is_valid_file(local_filename + PUBLICATION_EXT, "pdf"):
+                valid_file = True
+                local_entry["valid_fulltext_pdf"] = True
 
-            local_filename = os.path.join(DATA_PATH, local_entry['id'])
-            if os.path.isfile(local_filename + ".pdf"):
-                if _is_valid_file(local_filename + ".pdf", "pdf"):
-                    valid_file = True
-                    local_entry["valid_fulltext_pdf"] = True
+            # Done wether we succeed or not in biblio-glutton-harvester so we keep it that way
+            write_in_lmdb(env=self.env, key=local_entry["id"], value=_create_map_entry(local_entry))
 
-            if (result is None or result == "0" or result == "success") and valid_file:
-                # logger.info(json.dumps({"Stats": {"is_harvested": True, "entry": local_entry}}))
-                # update DB
-                with self.env.begin(write=True) as txn:
-                    txn.put(local_entry['id'].encode(encoding='UTF-8'),
-                            pickle.dumps(_create_map_entry(local_entry)))
-
+            if result == SUCCESS_DOWNLOAD and valid_file:
                 entries.append(local_entry)
             else:
-                # logger.info(json.dumps({"Stats": {"is_harvested": False, "entry": local_entry}}))
-                # update DB
-                with self.env.begin(write=True) as txn:
-                    txn.put(local_entry['id'].encode(encoding='UTF-8'),
-                            pickle.dumps(_create_map_entry(local_entry)))
+                write_in_lmdb(
+                    env=self.env_fail,
+                    key=local_entry["id"],
+                    value={"result": result, "url": local_entry.get("url_for_pdf", "no url")},
+                )
+                clean_empty_file_if_it_exists(local_filename)
 
-                with self.env_fail.begin(write=True) as txn_fail:
-                    txn_fail.put(local_entry['id'].encode(encoding='UTF-8'),
-                                 pickle.dumps({
-                                     "result": result,
-                                     "url": local_entry.get('url_for_pdf', 'no url')
-                                 }))
-
-                # if an empty pdf or tar file is present, we clean it
-                local_filename = os.path.join(DATA_PATH, local_entry['id'] + ".pdf")
-                if os.path.isfile(local_filename):
-                    os.remove(local_filename)
-                local_filename = os.path.join(DATA_PATH, local_entry['id'] + ".tar.gz")
-                if os.path.isfile(local_filename):
-                    os.remove(local_filename)
-
-        # finally we can parallelize the thumbnail/upload/file cleaning steps for this batch
+        # LMDB update done so we parallelize the thumbnail/upload/file cleaning steps
         destination_dirs = len(entries) * [destination_dir]
         with ThreadPoolExecutor(max_workers=NB_THREADS) as executor:
             results = executor.map(self.manageFiles, entries, destination_dirs, timeout=30)
 
     def getUUIDByIdentifier(self, identifier):
         with self.env_doi.begin() as txn:
-            return txn.get(identifier.encode(encoding='UTF-8'))
+            return txn.get(identifier.encode(encoding="UTF-8"))
 
-    def _compress_files(self, local_filename, local_filename_json,
-                        local_entry_id, compression_suffix='.gz', **kwargs):
+    def _compress_files(
+        self,
+        local_filename,
+        local_filename_json,
+        local_entry_id,
+        compression_suffix=COMPRESSION_EXT,
+        **kwargs,
+    ):
         try:
             if os.path.isfile(local_filename):
                 compress(local_filename)
@@ -268,7 +261,7 @@ class OAHarvester(object):
             logger.error("Error compressing resource files for " + local_entry_id)
 
     def _write_metadata_file(self, local_filename_json, local_entry, **kwargs):
-        with open(local_filename_json, 'w') as outfile:
+        with open(local_filename_json, "w") as outfile:
             json.dump(local_entry, outfile)
 
     def _upload_files(self, dest_path: OvhPath, local_filename, local_filename_json, **kwargs):
@@ -277,26 +270,45 @@ class OAHarvester(object):
             files_to_upload = []
             if os.path.isfile(local_filename):
                 files_to_upload.append(
-                    (local_filename, OvhPath(PUBLICATION_PREFIX, dest_path, os.path.basename(local_filename))))
+                    (
+                        local_filename,
+                        OvhPath(PUBLICATION_PREFIX, dest_path, os.path.basename(local_filename)),
+                    )
+                )
             if os.path.isfile(local_filename_json):
                 files_to_upload.append(
-                    (local_filename_json, OvhPath(METADATA_PREFIX, dest_path, os.path.basename(local_filename_json))))
+                    (
+                        local_filename_json,
+                        OvhPath(METADATA_PREFIX, dest_path, os.path.basename(local_filename_json)),
+                    )
+                )
             if len(files_to_upload) > 0:
                 self.swift.upload_files_to_swift(self.storage_publications, files_to_upload)
-        except Exception as e:
-            logger.exception('Error when uploading', exc_info=True)
+        except Exception:
+            logger.exception("Error when uploading", exc_info=True)
 
-    def _save_files_locally(self, dest_path: OvhPath, local_filename, local_entry_id,
-                            local_filename_json, compression_suffix, **kwargs):
+    def _save_files_locally(
+        self,
+        dest_path: OvhPath,
+        local_filename,
+        local_entry_id,
+        local_filename_json,
+        compression_suffix,
+        **kwargs,
+    ):
         try:
             local_dest_path = os.path.join(DATA_PATH, dest_path.to_local())
             os.makedirs(local_dest_path, exist_ok=True)
             if os.path.isfile(local_filename):
-                shutil.copyfile(local_filename,
-                                os.path.join(local_dest_path, local_entry_id + ".pdf" + compression_suffix))
+                shutil.copyfile(
+                    local_filename,
+                    os.path.join(local_dest_path, local_entry_id + PUBLICATION_EXT + compression_suffix),
+                )
             if os.path.isfile(local_filename_json):
-                shutil.copyfile(local_filename_json,
-                                os.path.join(local_dest_path, local_entry_id + ".json" + compression_suffix))
+                shutil.copyfile(
+                    local_filename_json,
+                    os.path.join(local_dest_path, local_entry_id + METADATA_EXT + compression_suffix),
+                )
         except IOError:
             logger.exception("Invalid path")
 
@@ -309,37 +321,41 @@ class OAHarvester(object):
         except IOError:
             logger.exception("Temporary file cleaning failed")
 
-    def manageFiles(self, local_entry, destination_dir=''):
+    def manageFiles(self, local_entry, destination_dir=""):
         data_path = os.path.join(DATA_PATH, destination_dir)
         filepaths: dict = {
-            "dest_path": OvhPath(destination_dir, generateStoragePath(local_entry['id'])),
-            "local_filename": os.path.join(data_path, local_entry['id'] + ".pdf"),
-            "local_filename_json": os.path.join(data_path, local_entry['id'] + ".json")
+            "dest_path": OvhPath(destination_dir, generateStoragePath(local_entry["id"])),
+            "local_filename": os.path.join(data_path, local_entry["id"] + PUBLICATION_EXT),
+            "local_filename_json": os.path.join(data_path, local_entry["id"] + METADATA_EXT),
         }
-        self._write_metadata_file(filepaths['local_filename_json'], local_entry)
+        self._write_metadata_file(filepaths["local_filename_json"], local_entry)
         compression_suffix = ""
         if self.config["compression"]:
-            compression_suffix = ".gz"
-            self._compress_files(**filepaths, local_entry_id=local_entry['id'], compression_suffix=compression_suffix)
-            filepaths = {k: (filepaths[k] + compression_suffix if k != "dest_path" else filepaths[k]) for k in
-                         filepaths}
+            compression_suffix = COMPRESSION_EXT
+            self._compress_files(
+                **filepaths, local_entry_id=local_entry["id"], compression_suffix=compression_suffix
+            )
+            filepaths = {
+                k: (filepaths[k] + compression_suffix if k != "dest_path" else filepaths[k])
+                for k in filepaths
+            }
         if self.swift:
             self._upload_files(**filepaths)
         else:
-            self._save_files_locally(**filepaths, local_entry_id=local_entry['id'],
-                                     compression_suffix=compression_suffix)
-        self._clean_up_files(**filepaths, local_entry_id=local_entry['id'])
+            self._save_files_locally(
+                **filepaths, local_entry_id=local_entry["id"], compression_suffix=compression_suffix
+            )
+        self._clean_up_files(**filepaths, local_entry_id=local_entry["id"])
 
     def diagnostic(self):
         """
         Log a report on failures stored during the harvesting process
         """
         with self.env_fail.begin(write=True) as txn_fail:
-            nb_fails = txn_fail.stat()['entries']
+            nb_fails = txn_fail.stat()["entries"]
         with self.env.begin(write=True) as txn:
-            nb_total = txn.stat()['entries']
+            nb_total = txn.stat()["entries"]
         logger.info(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
-        print(f"number of failed entries with OA link: {nb_fails} out of {nb_total} entries")
 
     def reset_lmdb(self):
         """
@@ -354,36 +370,27 @@ class OAHarvester(object):
         shutil.rmtree(DATA_PATH)
 
 
+def write_in_lmdb(env: lmdb.Environment, key: str, value: dict):
+    """Write in given lmdb env key value pair, key encoded in UTF-8, value pickled"""
+    with env.begin(write=True) as txn:
+        txn.put(key.encode(encoding="UTF-8"), pickle.dumps(value))
+
+
+def clean_empty_file_if_it_exists(local_filename_wo_ext):
+    """Remove empty pdf or tar file if present"""
+    local_filename = local_filename_wo_ext + PUBLICATION_EXT
+    if os.path.isfile(local_filename):
+        os.remove(local_filename)
+    local_filename = local_filename_wo_ext + ".tar" + COMPRESSION_EXT
+    if os.path.isfile(local_filename):
+        os.remove(local_filename)
+
+
 def update_dict(mydict, key, value):
     if key in mydict:
         mydict[key].append(value)
     else:
         mydict[key] = [value]
-
-
-def compress(file):
-    deflated_file = file + '.gz'
-    with open(file, 'rb') as f_in:
-        with gzip.open(deflated_file, 'wb') as f_out:
-            f_out.write(f_in.read())
-
-
-def _sample_selection(nb_samples, count, sample_seed):
-    """
-        Random selection corresponding to the requested sample size
-        """
-    if 0 < nb_samples < count:
-        seed(sample_seed)
-        selection = sample(range(count), nb_samples)
-        selection.sort()
-        return selection
-    else:
-        raise IndexError('Sample must be greater than 0 and less than the total number of items to sample from')
-
-
-def _apply_selection(batch, selection, current_idx):
-    sub_selection = [i - current_idx for i in selection if current_idx <= i < current_idx + len(batch)]
-    return [batch[i] for i in sub_selection]
 
 
 def _check_entry(entry, _id, getUUID_fn, reprocess, env, env_doi):
@@ -392,10 +399,10 @@ def _check_entry(entry, _id, getUUID_fn, reprocess, env, env_doi):
     if id_candidate is not None:
         id_candidate = id_candidate.decode("utf-8")
         if reprocess:
-            entry['id'] = id_candidate
+            entry["id"] = id_candidate
             # did we succeed with this entry?
             with env.begin() as txn:
-                local_object = txn.get(id_candidate.encode(encoding='UTF-8'))
+                local_object = txn.get(id_candidate.encode(encoding="UTF-8"))
                 if local_object is not None:
                     local_entry = pickle.loads(local_object)
                     if local_entry is not None:
@@ -408,139 +415,31 @@ def _check_entry(entry, _id, getUUID_fn, reprocess, env, env_doi):
             raise Continue()
     else:
         # store a UUID
-        entry['id'] = str(uuid.uuid4())
+        entry["id"] = str(uuid.uuid4())
         with env_doi.begin(write=True) as txn_doi:
-            txn_doi.put(entry['doi'].encode(encoding='UTF-8'), entry['id'].encode(encoding='UTF-8'))
+            txn_doi.put(entry["doi"].encode(encoding="UTF-8"), entry["id"].encode(encoding="UTF-8"))
 
 
 def _count_entries(open_fn, filepath):
     """Check the overall number of entries based on the line number"""
     count = 0
     if os.path.exists(filepath):
-        with open_fn(filepath, 'rb') as fp:
+        with open_fn(filepath, "rb") as fp:
             while 1:
                 buffer = fp.read(8192 * 1024)
                 if not buffer:
                     break
-                count += buffer.count(b'\n')
+                count += buffer.count(b"\n")
         return count
     else:
-        raise FileNotFoundError(f'{filepath} does not exist')
+        raise FileNotFoundError(f"{filepath} does not exist")
 
 
-def get_nth_key(dictionary, n=0):
-    if n < 0:
-        n += len(dictionary)
-    for i, key in enumerate(dictionary.keys()):
-        if i == n:
-            return key
-    raise IndexError("dictionary index out of range")
-
-
-def _process_request(scraper, url, n=0, timeout_in_seconds=60):
-    try:
-        if "cairn" in url:
-            headers = {'User-Agent': 'MESRI-Barometre-de-la-Science-Ouverte'}
-            file_data = scraper.get(url, headers=headers, timeout=timeout_in_seconds)
-        else:
-            file_data = scraper.get(url, timeout=timeout_in_seconds)
-        if file_data.status_code == 200:
-            if file_data.text[:5] == '%PDF-':
-                return file_data.content
-            elif n < 5:
-                soup = BeautifulSoup(file_data.text, 'html.parser')
-                if soup.select_one('a#redirect'):
-                    redirect_url = soup.select_one('a#redirect')['href']
-                    logger.debug('Waiting 5 seconds before following redirect url')
-                    sleep(5)
-                    logger.debug(f'Retry number {n + 1}')
-                    return _process_request(scraper, redirect_url, n + 1)
-        else:
-            logger.debug(f"Response code is not successful: {file_data.status_code}")
-    except ConnectTimeout:
-        logger.exception("Connection Timeout", exc_info=True)
-        return
-
-
-def wiley_curl(wiley_doi, filename):
-    from config.wiley_config import wiley_curl_cmd
-    wiley_doi = wiley_doi.replace('/', '%2F')
-    wiley_curl_cmd += f'{wiley_doi}" -o {filename}'
-    subprocess.check_call(wiley_curl_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-
-
-def url_to_path(url, ext='.pdf.gz'):
-    try:
-        _id = re.findall(r"arxiv\.org/pdf/(.*)$", url)[0]
-        prefix = "arxiv" if _id[0].isdigit() else _id.split('/')[0]
-        filename = url.split('/')[-1]
-        yymm = filename[:4]
-        return '/'.join([prefix, yymm, filename, filename + ext])
-    except:
-        logger.exception("Incorrect arXiv url format, could not extract path")
-
-
-def arXiv_download(url, filename):
-    from config.swift_cli_config import init_cmd
-    file_path = url_to_path(url)
-    subprocess.check_call(f'{init_cmd} download arxiv_harvesting {file_path} -o {filename}', shell=True)
-
-
-def _download_publication(urls, filename, local_entry):
-    result = "fail"
-    for url in urls:
-        try:
-            if 'arxiv' in url:
-                arXiv_download(url, filename)
-                if os.path.getsize(filename) > 0:
-                    logger.debug(f"Download {local_entry['doi']} via arXiv_harvesting")
-                    result = "success"
-                    harvester_used = 'arxiv'
-                    break
-            elif 'wiley' in url:
-                wiley_curl(local_entry['doi'], filename)
-                if os.path.getsize(filename) > 0:
-                    logger.debug(f"Download {local_entry['doi']} via wiley API")
-                    result = "success"
-                    harvester_used = 'wiley'
-                    break
-            elif 'springer' in url:
-                pass
-            elif 'elsevier' in url:
-                pass
-            scraper = cloudscraper.create_scraper(interpreter='nodejs')
-            content = _process_request(scraper, url)
-            if content:
-                logger.debug(f"Download {local_entry['doi']} via standard request")
-                with open(filename, 'wb') as f_out:
-                    f_out.write(content)
-                result = 'success'
-                harvester_used = 'standard'
-                break
-            else:
-                raise Exception("The PDF content returned by _process_request is empty")
-        except Exception:
-            logger.exception(f"Download failed for {url}", exc_info=True)
-            harvester_used = ''
-            url = ''
-    local_entry['harvester_used'] = harvester_used
-    local_entry['url_used'] = url
-
-    return result, local_entry
-
-
-def _is_valid_file(file, mime_type):
-    target_mime = []
-    if mime_type == 'png':
-        target_mime.append("image/png")
-    else:
-        target_mime.append("application/" + mime_type)
-    file_type = ""
-    if os.path.isfile(file):
-        if os.path.getsize(file) == 0:
-            return False
-        file_type = magic.from_file(file, mime=True)
-    return file_type in target_mime
+def get_latest_publication(publication_metadata: dict) -> dict:
+    latest_publication_date_sorted_list = list(publication_metadata["oa_details"].keys())
+    latest_publication_date_sorted_list.sort()
+    latest_publication_date = latest_publication_date_sorted_list[-1]
+    return publication_metadata["oa_details"][latest_publication_date]
 
 
 def _create_map_entry(local_entry):
@@ -571,14 +470,14 @@ def _create_map_entry(local_entry):
         resources.append("thumbnails")
 
     map_entry["resources"] = resources
-    map_entry["harvested_date"] = date.today().strftime('%Y-%m-%d')
-    map_entry['harvester_used'] = local_entry['harvester_used']
-    map_entry['url_used'] = local_entry['url_used']
-    map_entry['domain'] = local_entry['domain']
+    map_entry["harvested_date"] = date.today().strftime("%Y-%m-%d")
+    map_entry["harvester_used"] = local_entry["harvester_used"]
+    map_entry["url_used"] = local_entry["url_used"]
+    map_entry["domain"] = local_entry["domain"]
 
     # add target OA link
-    if 'best_oa_location' in local_entry and 'url_for_pdf' in local_entry['best_oa_location']:
-        pdf_url = local_entry['best_oa_location']['url_for_pdf']
+    if "best_oa_location" in local_entry and "url_for_pdf" in local_entry["best_oa_location"]:
+        pdf_url = local_entry["best_oa_location"]["url_for_pdf"]
         if pdf_url is not None:
             map_entry["oa_link"] = pdf_url
 

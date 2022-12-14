@@ -4,15 +4,17 @@
 #
 #    pip-compile requirements.in
 #
+alembic==1.8.0
+    # via -r requirements.in
 asn1crypto==1.5.1
     # via scramp
-beautifulsoup4==4.10.0
+beautifulsoup4==4.11.1
     # via -r requirements.in
-certifi==2021.10.8
+certifi==2022.6.15
     # via requests
 charset-normalizer==2.0.12
     # via requests
-click==8.1.0
+click==8.1.3
     # via
     #   flask
     #   rq
@@ -37,29 +39,38 @@ greenlet==1.1.2
     # via sqlalchemy
 idna==3.3
     # via requests
-importlib-metadata==4.11.3
+importlib-metadata==4.12.0
     # via
+    #   alembic
     #   click
     #   debtcollector
+    #   mako
     #   oslo-config
+    #   pg8000
     #   redis
     #   sqlalchemy
     #   stevedore
+importlib-resources==5.8.0
+    # via alembic
 iso8601==1.0.2
     # via
     #   keystoneauth1
     #   oslo-utils
 itsdangerous==2.1.2
     # via flask
-jinja2==3.1.1
+jinja2==3.1.2
     # via flask
-keystoneauth1==4.5.0
+keystoneauth1==4.6.0
     # via python-keystoneclient
-lmdb==0.94
+lmdb==1.2.1
     # via -r requirements.in
+mako==1.2.1
+    # via alembic
 markupsafe==2.1.1
-    # via jinja2
-msgpack==1.0.3
+    # via
+    #   jinja2
+    #   mako
+msgpack==1.0.4
     # via oslo-serialization
 netaddr==0.8.0
     # via
@@ -67,8 +78,6 @@ netaddr==0.8.0
     #   oslo-utils
 netifaces==0.11.0
     # via oslo-utils
-numpy==1.21.5
-    # via pandas
 os-service-types==1.7.0
     # via keystoneauth1
 oslo-config==8.8.0
@@ -80,7 +89,7 @@ oslo-i18n==5.1.0
     #   python-keystoneclient
 oslo-serialization==4.3.0
     # via python-keystoneclient
-oslo-utils==4.12.2
+oslo-utils==4.13.0
     # via
     #   oslo-serialization
     #   python-keystoneclient
@@ -88,9 +97,7 @@ packaging==21.3
     # via
     #   oslo-utils
     #   redis
-pandas==1.3.4
-    # via -r requirements.in
-pbr==5.8.1
+pbr==5.9.0
     # via
     #   keystoneauth1
     #   os-service-types
@@ -99,32 +106,29 @@ pbr==5.8.1
     #   oslo-utils
     #   python-keystoneclient
     #   stevedore
-pg8000==1.24.1
+pg8000==1.29.1
     # via testing-postgresql
 psycopg2==2.9.3
     # via -r requirements.in
 psycopg2-binary==2.9.3
     # via -r requirements.in
-pyparsing==3.0.7
+pyparsing==3.0.9
     # via
     #   cloudscraper
     #   oslo-utils
     #   packaging
-python-dateutil==2.8.2
-    # via pandas
 python-dotenv==0.20.0
     # via -r requirements.in
 python-keystoneclient==4.0.0
     # via -r requirements.in
-python-magic==0.4.25
+python-magic==0.4.27
     # via -r requirements.in
-python-swiftclient==3.13.1
+python-swiftclient==4.0.0
     # via -r requirements.in
 pytz==2022.1
     # via
     #   oslo-serialization
     #   oslo-utils
-    #   pandas
 pyyaml==6.0
     # via oslo-config
 redis==4.1.2
@@ -151,13 +155,13 @@ scramp==1.4.1
 six==1.16.0
     # via
     #   keystoneauth1
-    #   python-dateutil
     #   python-keystoneclient
-    #   python-swiftclient
-soupsieve==2.3.1
+soupsieve==2.3.2.post1
     # via beautifulsoup4
 sqlalchemy==1.4.31
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   alembic
 stevedore==3.5.0
     # via
     #   keystoneauth1
@@ -167,7 +171,7 @@ testing-common-database==2.0.3
     # via testing-postgresql
 testing-postgresql==1.3.0
     # via -r requirements.in
-typing-extensions==4.1.1
+typing-extensions==4.3.0
     # via importlib-metadata
 urllib3==1.26.7
     # via
@@ -175,12 +179,18 @@ urllib3==1.26.7
     #   requests
 visitor==0.1.3
     # via flask-bootstrap
-werkzeug==2.1.0
+werkzeug==2.1.2
     # via flask
-wrapt==1.14.0
+wrapt==1.14.1
     # via
     #   debtcollector
     #   deprecated
-zipp==3.7.0
-    # via importlib-metadata
-testing.postgresql==1.3.0
+zipp==3.8.0
+    # via
+    #   importlib-metadata
+    #   importlib-resources
+
+# Grobid client package
+git+https://github.com/Barometre-de-la-Science-Ouverte/grobid_client_python.git#egg=grobid_client_python
+# Softcite & Datastet client package
+git+https://github.com/Barometre-de-la-Science-Ouverte/softdata_mentions_client.git#egg=softdata_mentions_client

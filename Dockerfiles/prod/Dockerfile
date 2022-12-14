@@ -19,12 +19,11 @@ WORKDIR /src
 COPY config.json .
 COPY requirements.txt .
 
-RUN mkdir /src/data
 RUN mkdir /src/tmp
+RUN mkdir -p ./data/entries_software
+RUN mkdir -p ./data/entries_dataset
 
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir git+https://github.com/Barometre-de-la-Science-Ouverte/grobid_client_python.git#egg=grobid_client_python
-RUN pip install --no-cache-dir git+https://github.com/Barometre-de-la-Science-Ouverte/software_mentions_client#egg=software_mentions_client
 
 COPY . .
 

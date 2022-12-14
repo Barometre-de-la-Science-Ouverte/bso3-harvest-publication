@@ -1,12 +1,13 @@
 import shutil
-
-from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
 from typing import List
 
-from config.harvester_config import config_harvester
-from domain.ovh_path import OvhPath
+from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
+
 from application.server.main.logger import get_logger
+from config.harvester_config import config_harvester
 from config.logger_config import LOGGER_LEVEL
+from domain.ovh_path import OvhPath
+
 logger = get_logger(__name__, level=LOGGER_LEVEL)
 
 METADATA_DUMP = config_harvester['metadata_dump']
@@ -37,7 +38,7 @@ class Swift(object):
                     logger.error("error listing SWIFT object storage containers")
 
         except SwiftError as e:
-            logger.exception("error listing containers")
+            logger.exception(f"error listing containers: {str(e)}")
 
         if PUBLICATIONS_DUMP not in container_names:
             # create the container
@@ -58,7 +59,7 @@ class Swift(object):
 
     def upload_files_to_swift(self, container, file_path_dest_path_tuples: List):
         """
-        Bulk upload of a list of files to current SWIFT object storage container under the same destination path
+        Bulk upload of a list of files to current SWIFT object storage container
         """
         # Slightly modified to be able to upload to more than one dest_path
         objs = [SwiftUploadObject(file_path, object_name=str(dest_path)) for file_path, dest_path in
@@ -74,7 +75,8 @@ class Swift(object):
                         logger.exception("%s" % error, exc_info=True)
                 else:
                     if result['action'] == "upload_object":
-                        logger.debug(f'Result upload : {result["object"]} succesfully uploaded on {result["container"]} (from {result["path"]})')
+                        logger.debug(
+                            f'Result upload : {result["object"]} succesfully uploaded on {result["container"]} (from {result["path"]})')
         except SwiftError:
             logger.exception("error uploading file to SWIFT container", exc_info=True)
 
@@ -100,16 +102,15 @@ class Swift(object):
         """
         Return all contents of a given dir in SWIFT object storage.
         Goes through the pagination to obtain all file names.
-        afaik, this is terribly inefficient, as we have to go through all the objects of the storage.
         """
         result = []
         try:
-            list_parts_gen = self.swift.list(container=container)
+            options = {"prefix": dir_name} if dir_name else None
+            list_parts_gen = self.swift.list(container=container, options=options)
             for page in list_parts_gen:
                 if page["success"]:
                     for item in page["listing"]:
-                        if dir_name is None or item["name"].startswith(dir_name):
-                            result.append(item["name"])
+                        result.append(item["name"])
                 else:
                     logger.error(page["error"])
         except SwiftError as e:
