@@ -111,7 +111,14 @@ class OAHarvester:
             self.processBatch(urls, filenames, entries, destination_dir)
 
     def _process_entry(self, entry, reprocess):
-        doi = entry["doi"]
+        doi = entry.get('doi')
+        if doi is None:
+            return None
+        bso_country = entry.get('bso_country_corrected')
+        if not isinstance(bso_country, list):
+            return None
+        if 'fr' not in bso_country:
+            return None
         try:
             _check_entry(entry, doi, self.getUUIDByIdentifier, reprocess, self.env, self.env_doi)
             url, entry, filename = self._parse_entry(entry)
